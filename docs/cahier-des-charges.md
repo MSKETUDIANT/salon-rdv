@@ -100,13 +100,13 @@ Compromis assumé : la sécurité ne doit pas alourdir la réservation, d'où la
 
 ## 8. Planning
 
-Découpage proposé en cinq sprints ; leur durée dépend du délai à valider.
+Cinq sprints de 2 à 3 jours, sur deux semaines. Le détail des tâches est dans le backlog GitHub (13 issues).
 
-1. **Conception** : choix technologique argumenté, architecture, modèle de données.
-2. **Socle** : comptes, rôles, configuration du salon (BF-G1 à BF-G3), Git et migrations dès le premier jour.
-3. **Réservation** : parcours client complet (BF-C1 à BF-C6) et règle de gestion centrale.
-4. **Exploitation du salon** : plannings, clôture, absences, encaissements (BF-K1 à BF-K4, BF-G4, BF-G5).
-5. **Qualité et mise en ligne** : vérification des besoins non fonctionnels, déploiement, README.
+1. Sprint 1 — Base de données : projet Supabase et migrations, authentification et rôles par salon, règles d'accès (RLS).
+2. Sprint 2 — Site client Next.js : initialisation et déploiement Vercel, créneaux sans compte (BF-C1 à C3), connexion et réservation (BF-C4, C5), consultation et annulation (BF-C6).
+3. Sprint 3 — App pro Flutter : initialisation, configuration du salon (BF-G1 à G3), plannings (BF-K1, K2, BF-G5).
+4. Sprint 4 — Exploitation : clôture, absence et encaissement (BF-K3, K4, BF-G4).
+5. Sprint 5 — Qualité et livraison : vérification des BNF-1 à BNF-8, README et mise en ligne.
 
 Les tests s'écrivent dans chaque sprint, pas seulement au dernier.
 
