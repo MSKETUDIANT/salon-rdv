@@ -28,6 +28,8 @@ Règle métier critique : zéro double réservation, garantie par la base
 
 ## 4. Règles de travail
 - Montre ton plan avant d'exécuter. Attends ma validation.
+- Quand je demande à voir quelque chose avant une action, montre-le,
+  puis arrête-toi et attends mon accord.
 - Ne dis jamais « c'est fait » sans preuve : sortie de commande, test, capture.
 - Ne supprime rien (fichier, branche, projet, donnée) sans mon accord explicite.
 - Une issue à la fois. Ne touche pas à ce qui est hors de l'issue en cours.
