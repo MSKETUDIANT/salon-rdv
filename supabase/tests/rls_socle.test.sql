@@ -3,7 +3,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(15);
 
 -- ------------------------------------------------------------
 -- Jeu de données commun aux tests RLS : salons A et B
@@ -162,11 +162,6 @@ select throws_ok(
   '42501',
   null,
   'anon : exécution de private.est_coiffeur_du_salon refusée'
-);
-
-select lives_ok(
-  $$ select private.est_coiffeur('000000a2-0000-0000-0000-000000000000') $$,
-  'anon : private.est_coiffeur exécutable'
 );
 
 -- Agit en tant que Gérant A (a1).

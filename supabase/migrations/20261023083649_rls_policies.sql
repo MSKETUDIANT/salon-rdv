@@ -31,26 +31,6 @@ $$;
 revoke execute on function private.a_le_role(uuid, public.role) from public;
 grant execute on function private.a_le_role(uuid, public.role) to authenticated;
 
--- Cette personne est-elle coiffeur dans au moins un salon ?
--- security definer : anon n'a aucun accès à roles_utilisateur.
-create function private.est_coiffeur(p_id uuid)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select exists (
-    select 1
-      from public.roles_utilisateur
-     where utilisateur_id = p_id
-       and role = 'coiffeur'
-  );
-$$;
-
-revoke execute on function private.est_coiffeur(uuid) from public;
-grant execute on function private.est_coiffeur(uuid) to anon, authenticated;
-
 -- Cette personne est-elle coiffeur dans ce salon ?
 -- security definer : le client ne lit pas les rôles des autres.
 create function private.est_coiffeur_du_salon(p_id uuid, p_salon uuid)
