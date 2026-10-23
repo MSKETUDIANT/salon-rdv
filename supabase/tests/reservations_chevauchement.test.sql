@@ -9,10 +9,11 @@ select plan(7);
 insert into public.salons (id, nom) values
   ('00000000-0000-0000-0000-000000000001', 'Salon test');
 
-insert into public.utilisateurs (id, nom) values
-  ('00000000-0000-0000-0000-0000000000c1', 'Client'),
-  ('00000000-0000-0000-0000-0000000000a1', 'Coiffeur A'),
-  ('00000000-0000-0000-0000-0000000000b1', 'Coiffeur B');
+-- Comptes auth : le trigger on_auth_user_created crée les lignes utilisateurs.
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000c1', 'client@chevauchement.test',  '{"nom":"Client"}'),
+  ('00000000-0000-0000-0000-0000000000a1', 'coiffeur-a@chevauchement.test', '{"nom":"Coiffeur A"}'),
+  ('00000000-0000-0000-0000-0000000000b1', 'coiffeur-b@chevauchement.test', '{"nom":"Coiffeur B"}');
 
 insert into public.prestations (id, salon_id, nom, prix, duree_minutes) values
   ('00000000-0000-0000-0000-0000000000f1',
