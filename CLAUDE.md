@@ -35,6 +35,7 @@ Règle métier critique : zéro double réservation, garantie par la base
 - Une issue à la fois. Ne touche pas à ce qui est hors de l'issue en cours.
 - Si une consigne te paraît fausse ou contradictoire, dis-le avant d'agir.
 - Si tu ne sais pas, dis-le. Ne devine pas.
+- Ordre de mise en ligne : merge de la PR sur main, puis db push depuis main.
 
 ## 5. Conventions
 - Toute modification de la base passe par une migration de la CLI.
@@ -50,7 +51,12 @@ Règle métier critique : zéro double réservation, garantie par la base
 Une issue est finie quand :
 1. le code répond aux critères de l'issue ;
 2. les tests sont écrits et passent ;
-3. les migrations sont listées en local ET en distant (`supabase migration list`) ;
+3. les migrations sont listées en local (`supabase migration list`) ;
 4. l'issue est passée en « À vérifier » ;
-5. Sparta a vérifié lui-même et mergé la PR (« Closes #<n> ») : le merge vaut
-   validation, l'issue se ferme et passe en « Done » automatiquement.
+5. Sparta a vérifié lui-même et mergé la PR (« Refs #<n> ») : le merge vaut
+   validation du code, mais ne ferme pas l'issue ;
+6. après le merge, db push depuis main, puis `supabase migration list` en local
+   et en distant. L'issue ne passe en « Done » qu'après ce point 6 : je la ferme
+   avec la sortie de `migration list` en commentaire, et l'automatisation la
+   passe en « Done ». Si l'issue n'a pas de migration, ferme-la directement
+   après le merge.
