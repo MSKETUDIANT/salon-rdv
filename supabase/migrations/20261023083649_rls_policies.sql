@@ -8,7 +8,7 @@
 
 create schema if not exists private;
 
-grant usage on schema private to anon, authenticated;
+grant usage on schema private to authenticated;
 
 -- L'utilisateur connecté a-t-il ce rôle dans ce salon ?
 -- security definer : lit roles_utilisateur sans repasser par ses policies.
