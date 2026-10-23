@@ -106,7 +106,7 @@ export default function Charte() {
       <Section titre="Champs de saisie">
         <div className="flex max-w-md flex-col gap-4">
           <Champ libelle="Adresse e-mail" type="email" placeholder="vous@exemple.fr" />
-          <Champ libelle="Code reçu par e-mail" inputMode="numeric" defaultValue="12345" erreur="Le code doit contenir 6 chiffres." />
+          <Champ libelle="Code reçu par e-mail" inputMode="numeric" autoComplete="one-time-code" defaultValue="12345" erreur="Le code doit contenir 6 chiffres." />
         </div>
       </Section>
 

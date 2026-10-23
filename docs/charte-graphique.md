@@ -67,8 +67,10 @@ toute façon les éléments inactifs du seuil de contraste.
 - **Bouton secondaire** : fond `surface`, bordure `bordure`, texte `texte`.
 - **Pas de bouton désactivé dans le parcours.** « Confirmer » reste actif : au
   clic, on affiche ce qui manque (message en `erreur` près du champ concerné).
-- **Champ de saisie** : fond `surface`, bordure `bordure`, libellé toujours
-  visible au-dessus ; en erreur, bordure et message en `erreur`.
+- **Champ de saisie** : fond `surface`, bordure `bordure` de 1 px, libellé
+  toujours visible au-dessus. Placeholder en `texte-secondaire` : c'est du
+  texte, seuil 4,5:1 (jamais la transparence par défaut). En erreur : bordure
+  de 2 px et message en `erreur`.
 - **Carte** : fond `surface`, coins 8 px, bordure `separateur` ou aucune.
 - **Carte cliquable** (ex. sélection d'une prestation, #5) : bordure `bordure`
   (3:1), jamais `separateur`, car elle délimite un élément interactif.

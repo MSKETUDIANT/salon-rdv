@@ -1,7 +1,8 @@
 import { useId, type InputHTMLAttributes } from "react";
 import { focus } from "@/components/ui/styles";
 
-// Champ de saisie : libellé toujours visible au-dessus ; en erreur, bordure et
+// Champ de saisie : libellé toujours visible au-dessus ; placeholder en
+// `texte-secondaire` (c'est du texte : 4,5:1) ; en erreur, bordure de 2 px et
 // message en `erreur`, message relié au champ pour les lecteurs d'écran.
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
   libelle: string;
@@ -22,8 +23,8 @@ export function Champ({ libelle, erreur, className, ...props }: Props) {
         id={id}
         aria-invalid={erreur ? true : undefined}
         aria-describedby={erreur ? idErreur : undefined}
-        className={`h-12 rounded-base border bg-surface px-4 text-base text-texte ${focus} ${
-          erreur ? "border-erreur" : "border-bordure"
+        className={`h-12 rounded-base bg-surface px-4 text-base text-texte placeholder:text-texte-secondaire ${focus} ${
+          erreur ? "border-2 border-erreur" : "border border-bordure"
         } ${className ?? ""}`}
       />
       {erreur && (

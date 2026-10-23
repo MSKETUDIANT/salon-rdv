@@ -15,13 +15,18 @@ describe("Champ", () => {
     expect(champ.className).toContain("border-bordure");
   });
 
-  it("en erreur : aria-invalid, message relié au champ, bordure erreur", () => {
+  it("affiche le placeholder en texte-secondaire (4,5:1), pas en transparence", () => {
+    render(<Champ libelle="Adresse e-mail" placeholder="vous@exemple.fr" />);
+    expect(screen.getByLabelText("Adresse e-mail").className).toContain("placeholder:text-texte-secondaire");
+  });
+
+  it("en erreur : aria-invalid, message relié au champ, bordure erreur de 2 px", () => {
     render(<Champ libelle="Code" erreur="Le code doit contenir 6 chiffres." />);
     const champ = screen.getByLabelText("Code");
     expect(champ.getAttribute("aria-invalid")).toBe("true");
     const message = document.getElementById(champ.getAttribute("aria-describedby")!);
     expect(message?.textContent).toBe("Le code doit contenir 6 chiffres.");
-    expect(champ.className).toContain("border-erreur");
+    expect(champ.className.split(" ")).toEqual(expect.arrayContaining(["border-2", "border-erreur"]));
   });
 
   it("est atteint au clavier et porte le focus de la charte", async () => {
