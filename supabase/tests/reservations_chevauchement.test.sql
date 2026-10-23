@@ -79,15 +79,16 @@ select lives_ok(
   'Plage 10h00-10h30 libérée par l''annulation : nouvelle réservation acceptée'
 );
 
--- 7. Réactiver la réservation annulée recréerait un doublon : refusé.
+-- 7. Réactiver une réservation annulée : interdit par le métier (issue #3,
+-- trigger des transitions de statut). Les doublons restent couverts par 2 et 3.
 select throws_ok(
   $$ update public.reservations
         set statut = 'confirmee'
       where coiffeur_id = '00000000-0000-0000-0000-0000000000a1'
         and statut = 'annulee' $$,
-  '23P01',
+  '23514',
   null,
-  'Réactiver une réservation annulée qui chevauche : refusé'
+  'Réactiver une réservation annulée : transition refusée'
 );
 
 select * from finish();

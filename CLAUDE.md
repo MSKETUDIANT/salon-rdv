@@ -44,6 +44,7 @@ Règle métier critique : zéro double réservation, garantie par la base
   (feat, fix, docs, test, refactor, chore).
 - Commit lié à l'issue : `(#<n>)` dans le message.
 - Pas de secret dans le dépôt : clés dans `.env.local`, ignoré par Git.
+- Les noms des coiffeurs se lisent via coiffeurs_du_salon().
 
 ## 6. Définition de « fini »
 Une issue est finie quand :
