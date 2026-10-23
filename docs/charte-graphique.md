@@ -70,6 +70,11 @@ toute façon les éléments inactifs du seuil de contraste.
 - **Champ de saisie** : fond `surface`, bordure `bordure`, libellé toujours
   visible au-dessus ; en erreur, bordure et message en `erreur`.
 - **Carte** : fond `surface`, coins 8 px, bordure `separateur` ou aucune.
+- **Carte cliquable** (ex. sélection d'une prestation, #5) : bordure `bordure`
+  (3:1), jamais `separateur`, car elle délimite un élément interactif.
+- **Bouton en chargement** : reste actif et focusable (pas de `disabled`), mais
+  ignore les clics, Entrée et Espace tant que le chargement dure ; libellé de
+  chargement et `aria-busy`.
 
 ## 5. Parcours de réservation (BNF-9 : 3 écrans hors authentification)
 
@@ -111,3 +116,32 @@ Source de la photo : *à compléter à l'étape 2*.
 - [Fresha](https://www.fresha.com) : catalogue de prestations en cartes.
 
 Sources d'inspiration, pas des modèles à reproduire.
+
+## 9. Mise en œuvre (`web/`)
+
+- Jetons : `web/app/globals.css` (`@theme`). Les valeurs par défaut de Tailwind
+  (couleurs, tailles de texte, arrondis, ombres, polices) sont désactivées.
+- Composants : `web/components/ui/` (`Bouton`, `BoutonLien`, `Champ`, `Carte`).
+- Garde-fou : `npm run lint` lance `web/scripts/verifier-charte.mjs`, qui échoue
+  si `app/` ou `components/` contient un code hexadécimal, une classe de palette
+  brute (`zinc-500`, `text-white`…), une taille de texte hors charte
+  (`text-sm`…), une ombre, un arrondi autre que `rounded-base` ou `dark:`.
+- Contrastes : `web/lib/charte.test.ts` vérifie que les jetons de
+  `globals.css` sont ceux de ce document et que chaque couple du §2 atteint son
+  seuil WCAG 2.2 AA.
+- Vitrine : la page `/charte` affiche jetons et composants, en local et sur les
+  previews Vercel ; elle répond 404 en production.
+
+## 10. Captures
+
+Emplacement de la photo encore vide : photo d'accueil à choisir (§6).
+
+| | 360 px | 1280 px |
+| --- | --- | --- |
+| Accueil | ![Accueil à 360 px](captures/accueil-360.webp) | ![Accueil à 1280 px](captures/accueil-1280.webp) |
+| Vitrine `/charte` | ![Charte à 360 px](captures/charte-360.webp) | ![Charte à 1280 px](captures/charte-1280.webp) |
+
+Focus clavier sur le bouton « Réserver » (contour accent 2 px, décalé de 2 px) :
+
+![Focus du bouton à 360 px](captures/focus-bouton-360.webp)
+
