@@ -1,5 +1,5 @@
 import { EnTeteSalon } from "@/components/en-tete-salon";
-import { titreAccueil } from "@/lib/accueil";
+import { nomDuSalon } from "@/lib/accueil";
 import { env } from "@/lib/env";
 import { lireSalon } from "@/lib/salon";
 
@@ -12,7 +12,7 @@ export default async function Accueil() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-12 sm:px-8">
-      <EnTeteSalon nom={titreAccueil(salon)} />
+      <EnTeteSalon nom={nomDuSalon(salon, env.salonId)} />
     </main>
   );
 }
