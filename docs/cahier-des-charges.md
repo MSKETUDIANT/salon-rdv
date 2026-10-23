@@ -67,7 +67,7 @@ Le choix de la technologie n'est pas fait ici : il relève de l'étape de concep
 
 ## 5. Besoins non fonctionnels
 
-Les huit critères de l'ISO 25010 ont été confrontés au contexte du salon : clients sur mobile, réseau parfois faible, téléphones modestes, gérant peu à l'aise avec la technique. **Les seuils sont des propositions à valider.**
+Les huit critères de l'ISO 25010 ont été confrontés au contexte du salon : clients sur mobile, réseau parfois faible, téléphones modestes, gérant peu à l'aise avec la technique. L'utilisabilité est précisée par trois exigences d'ergonomie (BNF-9 à BNF-11). **Les seuils sont des propositions à valider.**
 
 | Id | Critère | Priorité | Exigence mesurable | Comment on teste |
 | --- | --- | --- | --- | --- |
@@ -79,6 +79,9 @@ Les huit critères de l'ISO 25010 ont été confrontés au contexte du salon : c
 | BNF-6 | Maintenabilité | Moyenne | Code séparé en modules ; règles de réservation couvertes par des tests automatisés | Revue de code + couverture des tests |
 | BNF-7 | Portabilité | Basse | Fonctionne sur un navigateur d'ordinateur et sur Android | Test manuel sur les deux |
 | BNF-8 | Compatibilité | Basse | Pas d'interopérabilité exigée en v1 | — |
+| BNF-9 | Utilisabilité | Haute | Une réservation tient en 3 écrans maximum, de l'accueil à la confirmation, connexion comprise | Parcours automatisé (Playwright) qui compte les écrans traversés |
+| BNF-10 | Utilisabilité | Haute | Mobile-first : chaque écran est conçu d'abord pour 360 px de large, sans défilement horizontal, avec des zones tactiles d'au moins 44 × 44 px et un texte de base d'au moins 16 px | Tests automatisés à 360 px (largeur de page = largeur d'écran) + revue des écrans |
+| BNF-11 | Utilisabilité | Moyenne | Contrastes conformes à WCAG 2.2 niveau AA : au moins 4,5:1 pour le texte normal, 3:1 pour le grand texte et les composants d'interface | Audit automatisé (axe-core, règle de contraste) sur chaque page du site client |
 
 Compromis assumé : la sécurité ne doit pas alourdir la réservation, d'où la connexion demandée seulement au moment de réserver.
 
@@ -106,7 +109,7 @@ Cinq sprints de 2 à 3 jours, sur deux semaines. Le détail des tâches est dans
 2. Sprint 2 — Site client Next.js : initialisation et déploiement Vercel, créneaux sans compte (BF-C1 à C3), connexion et réservation (BF-C4, C5), consultation et annulation (BF-C6).
 3. Sprint 3 — App pro Flutter : initialisation, configuration du salon (BF-G1 à G3), plannings (BF-K1, K2, BF-G5).
 4. Sprint 4 — Exploitation : clôture, absence et encaissement (BF-K3, K4, BF-G4).
-5. Sprint 5 — Qualité et livraison : vérification des BNF-1 à BNF-8, README et mise en ligne.
+5. Sprint 5 — Qualité et livraison : vérification des BNF-1 à BNF-11, README et mise en ligne.
 
 Les tests s'écrivent dans chaque sprint, pas seulement au dernier.
 
@@ -115,7 +118,7 @@ Les tests s'écrivent dans chaque sprint, pas seulement au dernier.
 Le projet est terminé et validé quand toutes ces cases sont cochées :
 
 - [ ] Les 15 besoins fonctionnels marchent de bout en bout, chacun démontré.
-- [ ] Les besoins non fonctionnels de priorité haute (BNF-1 à BNF-4) passent leurs tests.
+- [ ] Les besoins non fonctionnels de priorité haute (BNF-1 à BNF-4, BNF-9 et BNF-10) passent leurs tests.
 - [ ] Les priorités moyennes et basses sont mesurées, et les écarts expliqués.
 - [ ] Les migrations locales et distantes sont synchronisées, vérifiées soi-même.
 - [ ] L'application tourne en ligne, et le README permet à quelqu'un d'autre de l'installer.
