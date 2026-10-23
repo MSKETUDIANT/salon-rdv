@@ -1,16 +1,14 @@
+import { BoutonLien } from "@/components/ui/bouton-lien";
+
+// Sous la photo d'accueil, sur fond uni : titre court et un seul bouton
+// (charte §6).
 export function EnTeteSalon({ nom }: { nom: string }) {
   return (
-    <header>
-      <p className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-        Réservation en ligne
-      </p>
-      <h1 className="mt-2 text-3xl font-semibold break-words text-foreground sm:text-5xl">
+    <div className="flex flex-col items-start gap-6 py-8">
+      <h1 className="font-titre text-2xl font-medium break-words text-texte sm:text-3xl">
         {nom}
       </h1>
-      <p className="mt-4 text-base text-zinc-600 dark:text-zinc-400">
-        Bientôt : choisissez une prestation, un coiffeur et un créneau, sans
-        application à installer.
-      </p>
-    </header>
+      <BoutonLien href="/reserver">Réserver</BoutonLien>
+    </div>
   );
 }
