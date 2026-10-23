@@ -102,7 +102,12 @@ toute façon les éléments inactifs du seuil de contraste.
 - Sous la photo, sur fond uni : un titre court et un seul bouton « Réserver ».
 - Jamais de texte posé sur la photo.
 
-Source de la photo : *à compléter à l'étape 2*.
+Photo retenue : [fauteuil de barbier, meuble en bois et miroir rond](https://unsplash.com/photos/barber-chair-in-modern-salon-workspace-N15dzf3dAUk),
+par [Stefan Vibes](https://unsplash.com/@eusuntvibes) sur Unsplash ([licence
+Unsplash](https://unsplash.com/license) : usage gratuit, modification permise).
+Recadrée en 4:3, centrée sur le fauteuil et le miroir, écran de télévision
+exclu : zone de 2400 × 1800 px à partir de la ligne 1490 de l'original
+2400 × 3600, exportée en `web/public/accueil-salon.webp` (1600 × 1200, WebP).
 
 ## 7. Cartes de prestations
 
@@ -135,8 +140,6 @@ Sources d'inspiration, pas des modèles à reproduire.
   previews Vercel ; elle répond 404 en production.
 
 ## 10. Captures
-
-Emplacement de la photo encore vide : photo d'accueil à choisir (§6).
 
 | | 360 px | 1280 px |
 | --- | --- | --- |
