@@ -51,4 +51,5 @@ Une issue est finie quand :
 2. les tests sont écrits et passent ;
 3. les migrations sont listées en local ET en distant (`supabase migration list`) ;
 4. l'issue est passée en « À vérifier » ;
-5. Sparta a vérifié lui-même et l'a passée en « Done ».
+5. Sparta a vérifié lui-même et mergé la PR (« Closes #<n> ») : le merge vaut
+   validation, l'issue se ferme et passe en « Done » automatiquement.
