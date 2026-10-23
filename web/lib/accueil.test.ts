@@ -1,20 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { titreAccueil } from "@/lib/accueil";
+import { nomDuSalon } from "@/lib/accueil";
 
-describe("titreAccueil", () => {
-  it("affiche le nom du salon", () => {
-    expect(titreAccueil({ nom: "Salon de démo" })).toBe("Salon de démo");
+const ID = "11111111-1111-1111-1111-111111111111";
+
+describe("nomDuSalon", () => {
+  it("renvoie le nom du salon", () => {
+    expect(nomDuSalon({ nom: "Salon de démo" }, ID)).toBe("Salon de démo");
   });
 
   it("retire les espaces autour du nom", () => {
-    expect(titreAccueil({ nom: "  Salon de démo " })).toBe("Salon de démo");
+    expect(nomDuSalon({ nom: "  Salon de démo " }, ID)).toBe("Salon de démo");
   });
 
-  it("signale un salon absent", () => {
-    expect(titreAccueil(null)).toBe("Salon introuvable");
+  it("échoue si le salon n'existe pas, en nommant l'id", () => {
+    expect(() => nomDuSalon(null, ID)).toThrow(ID);
   });
 
-  it("signale un nom vide", () => {
-    expect(titreAccueil({ nom: "   " })).toBe("Salon introuvable");
+  it("échoue si le nom est vide", () => {
+    expect(() => nomDuSalon({ nom: "   " }, ID)).toThrow(ID);
   });
 });

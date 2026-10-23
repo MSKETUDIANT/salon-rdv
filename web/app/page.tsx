@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { EnTeteSalon } from "@/components/en-tete-salon";
-import { titreAccueil } from "@/lib/accueil";
+import { nomDuSalon } from "@/lib/accueil";
 import { env } from "@/lib/env";
 import { lireSalon } from "@/lib/salon";
 import photoSalon from "@/public/accueil-salon.webp";
@@ -23,7 +23,7 @@ export default async function Accueil() {
         preload
         className="aspect-4/3 h-auto w-full rounded-base object-cover"
       />
-      <EnTeteSalon nom={titreAccueil(salon)} />
+      <EnTeteSalon nom={nomDuSalon(salon, env.salonId)} />
     </main>
   );
 }
