@@ -24,7 +24,11 @@ Règle métier critique : zéro double réservation, garantie par la base
 - Rejouer la base locale : `supabase db reset`
 - État des migrations : `supabase migration list`
 - Envoyer au distant : `supabase db push` (uniquement avec mon accord)
-(Compléter cette section quand le site et l'app existeront.)
+- Types TypeScript de la base (depuis la racine) :
+  `supabase gen types typescript --local > web/lib/database.types.ts`
+- Site client (dans `web/`, variables dans `web/.env.local`, modèle `.env.example`) :
+  `npm run dev` / `npm run build` / `npm run lint` / `npm test`
+(Compléter cette section quand l'app existera.)
 
 ## 4. Règles de travail
 - Montre ton plan avant d'exécuter. Attends ma validation.
@@ -46,6 +50,7 @@ Règle métier critique : zéro double réservation, garantie par la base
 - Commit lié à l'issue : `(#<n>)` dans le message.
 - Pas de secret dans le dépôt : clés dans `.env.local`, ignoré par Git.
 - Les noms des coiffeurs se lisent via coiffeurs_du_salon().
+- Régénérer les types après chaque migration.
 
 ## 6. Définition de « fini »
 Une issue est finie quand :

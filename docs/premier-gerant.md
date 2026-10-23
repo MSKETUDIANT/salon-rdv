@@ -22,26 +22,47 @@ pourrait se proclamer gérant. C'est une faille, d'où ce SQL manuel ponctuel.
 
 ## Procédure
 
-Dans le dashboard Supabase : *SQL Editor*, puis exécuter en remplaçant
-l'e-mail, le nom et l'adresse du salon.
+Dans le dashboard Supabase : *SQL Editor*. Deux étapes, dans cet ordre.
+
+### Étape 1 — Créer le salon
+
+À faire **une seule fois**, avant les premières inscriptions : tant qu'il
+n'existe qu'un salon, le trigger d'inscription donne automatiquement le rôle
+client dans ce salon. Un compte inscrit avant la création du salon n'a aucun rôle.
+
+Vérifier d'abord qu'aucun salon n'existe (0 ligne attendue) :
+
+```sql
+select id, nom from public.salons;
+```
+
+Puis créer le salon, en remplaçant le nom et l'adresse (l'adresse est
+facultative : `null` accepté) :
+
+```sql
+insert into public.salons (nom, adresse)
+values ('Nom du salon', 'Adresse du salon')
+returning id;
+```
+
+**Noter l'`id` renvoyé** : il sert à l'étape 2 et c'est la valeur de
+`NEXT_PUBLIC_SALON_ID` pour le site (Vercel, Production et Preview).
+
+### Étape 2 — Donner le rôle gérant
+
+Exécuter en remplaçant l'`id` du salon (étape 1) et l'e-mail du compte :
 
 ```sql
 begin;
 
--- 1. Le salon (s'il n'existe pas encore).
-insert into public.salons (nom, adresse)
-select 'Nom du salon', 'Adresse du salon'
-where not exists (select 1 from public.salons);
-
--- 2. Rôle gérant pour le compte, dans ce salon.
+-- 1. Rôle gérant pour le compte, dans ce salon.
 insert into public.roles_utilisateur (utilisateur_id, salon_id, role)
-select u.id, s.id, 'gerant'
+select u.id, '00000000-0000-0000-0000-000000000000', 'gerant'
   from public.utilisateurs u
- cross join (select id from public.salons limit 1) s
  where u.email = 'mon.email@exemple.com'
 on conflict do nothing;
 
--- 3. Vérification : doit afficher une ligne « gerant ».
+-- 2. Vérification : doit afficher une ligne « gerant ».
 select u.email, s.nom, r.role
   from public.roles_utilisateur r
   join public.utilisateurs u on u.id = r.utilisateur_id
@@ -53,7 +74,8 @@ commit;
 
 Si la vérification n'affiche rien : le compte n'existe pas dans
 `public.utilisateurs` (e-mail mal saisi, ou compte créé avant la migration
-`auth_utilisateurs_roles`). Faire `rollback;` et corriger avant de recommencer.
+`auth_utilisateurs_roles`), ou l'`id` du salon est faux. Faire `rollback;` et
+corriger avant de recommencer.
 
 Ce SQL ne modifie que des **données**, jamais le schéma. Toute modification du
 schéma reste soumise à la règle de CLAUDE.md : migration via la CLI uniquement.
