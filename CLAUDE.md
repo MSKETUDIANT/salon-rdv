@@ -31,9 +31,12 @@ Règle métier critique : zéro double réservation, garantie par la base
 (Compléter cette section quand l'app existera.)
 
 ## 4. Règles de travail
-- Montre ton plan avant d'exécuter. Attends ma validation.
-- Quand je demande à voir quelque chose avant une action, montre-le,
-  puis arrête-toi et attends mon accord.
+- Enchaîne chaque issue de bout en bout, sans me demander de valider le plan.
+  Tranche seul les petits choix techniques et note-les dans la PR.
+- Arrête-toi seulement pour faire valider une migration avant db push et le
+  rendu sur la preview. Regroupe tes questions à ces moments-là.
+- Quand je demande explicitement à voir quelque chose avant une action,
+  montre-le, puis arrête-toi et attends mon accord.
 - Ne dis jamais « c'est fait » sans preuve : sortie de commande, test, capture.
 - Ne supprime rien (fichier, branche, projet, donnée) sans mon accord explicite.
 - Une issue à la fois. Ne touche pas à ce qui est hors de l'issue en cours.
