@@ -28,6 +28,9 @@ Règle métier critique : zéro double réservation, garantie par la base
   `supabase gen types typescript --local > web/lib/database.types.ts`
 - Site client (dans `web/`, variables dans `web/.env.local`, modèle `.env.example`) :
   `npm run dev` / `npm run build` / `npm run lint` / `npm test`
+- Tests de bout en bout (dans `web/`, base locale démarrée, Chrome installé) :
+  `npm run test:e2e` (construit le site sur la base locale ; codes de
+  connexion lus dans Mailpit)
 (Compléter cette section quand l'app existera.)
 
 ## 4. Règles de travail
