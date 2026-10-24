@@ -70,3 +70,16 @@ Une issue est finie quand :
    avec la sortie de `migration list` en commentaire, et l'automatisation la
    passe en « Done ». Si l'issue n'a pas de migration, ferme-la directement
    après le merge. Le commentaire de fermeture indique ce que Sparta a validé.
+
+### PR avec migration
+Le build Vercel (preview comprise) lit la base distante : la preview d'une PR
+qui dépend d'une migration non poussée échoue. Ordre à suivre :
+1. Sparta valide la migration ;
+2. Claude Code vérifie lint, tests et build sur la base locale (variables de
+   `supabase status -o env`), puis merge la PR ;
+3. db push depuis main, puis `supabase migration list` en local et en distant ;
+4. redéploiement de production sur Vercel (bouton « Redeploy », ou nouveau
+   merge sur main), puis vérification que le déploiement a réussi ;
+5. Sparta valide le rendu sur le site déployé ;
+6. fermeture de l'issue avec la sortie de `migration list` et ce que Sparta a
+   validé (migration et rendu).
