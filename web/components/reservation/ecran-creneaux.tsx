@@ -32,9 +32,14 @@ type Resultat = { cle: string } & (
 // jour disponible), filtre coiffeur (« Peu importe » par défaut, BNF-9). Le catalogue arrive avec la page statique ; seuls les
 // créneaux sont lus au chargement, sans connexion (BF-C1).
 export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
-  const prestationId = useSearchParams().get("prestation") ?? "";
+  const params = useSearchParams();
+  const prestationId = params.get("prestation") ?? "";
   const prestation = catalogue.prestations.find((p) => p.id === prestationId);
-  const [coiffeurId, setCoiffeurId] = useState("");
+  // Filtre repris de l'URL (retour depuis l'écran 3), s'il est valable.
+  const [coiffeurId, setCoiffeurId] = useState(() => {
+    const demande = params.get("coiffeur") ?? "";
+    return coiffeursCompetents(catalogue, prestationId).some((c) => c.id === demande) ? demande : "";
+  });
   const [essai, setEssai] = useState(0);
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const idFiltre = useId();

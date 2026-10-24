@@ -4,8 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EcranCreneaux } from "@/components/reservation/ecran-creneaux";
 import type { Catalogue } from "@/lib/catalogue";
 
+const etat = vi.hoisted(() => ({ recherche: "prestation=p1" }));
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams("prestation=p1"),
+  useSearchParams: () => new URLSearchParams(etat.recherche),
 }));
 
 const catalogue: Catalogue = {
@@ -15,6 +16,7 @@ const catalogue: Catalogue = {
 };
 
 beforeEach(() => {
+  etat.recherche = "prestation=p1";
   // Lundi 26 octobre 2026, 7h à Tunis.
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date("2026-10-26T06:00:00Z"));
@@ -55,5 +57,18 @@ describe("EcranCreneaux", () => {
     fireEvent.click(screen.getByRole("button", { name: "Mercredi 28 octobre" }));
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Mercredi 28 octobre"]);
     expect(screen.getAllByRole("link", { name: /^\d{2}:\d{2}$/ }).map((l) => l.textContent)).toEqual(["10:00", "10:15"]);
+  });
+
+  it("filtre coiffeur repris de l'URL (retour de l'écran 3) ; ignoré s'il n'est pas valable", async () => {
+    etat.recherche = "prestation=p1&coiffeur=a";
+    render(<EcranCreneaux catalogue={catalogue} />);
+    expect((screen.getByLabelText("Coiffeur") as HTMLSelectElement).value).toBe("a");
+    await screen.findByRole("heading", { level: 2 });
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("p_coiffeur=a");
+    cleanup();
+
+    etat.recherche = "prestation=p1&coiffeur=inconnu";
+    render(<EcranCreneaux catalogue={catalogue} />);
+    expect((screen.getByLabelText("Coiffeur") as HTMLSelectElement).value).toBe("");
   });
 });
