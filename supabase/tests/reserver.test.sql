@@ -4,7 +4,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(23);
+select plan(25);
 
 -- Jeu de données : salon à Tunis (UTC+1), lundi 7 janvier 2030.
 --   A et B : coiffeurs, 9h-12h, savent faire Coupe (30 min). A absent 11h-12h.
@@ -108,6 +108,14 @@ select results_eq(
   $$ values ('00000000-0000-0000-0000-0000000000b1'::uuid) $$,
   '« Peu importe » : A pris à 9h, B attribué');
 
+-- 6 bis. Le client vient de la session, jamais d'un paramètre : la
+--        réservation de client 2 est à client 2.
+select results_eq(
+  $$ select client_id from public.reservations
+      where coiffeur_id = '00000000-0000-0000-0000-0000000000b1' and debut = '2030-01-07 09:00+01' $$,
+  $$ values ('00000000-0000-0000-0000-0000000000c2'::uuid) $$,
+  'Client 2 connecté : sa réservation est rattachée à client 2 (auth.uid())');
+
 -- 7. « Peu importe » à 9h une troisième fois : plus personne (C n'est pas compétent).
 select throws_ok(
   $$ select * from public.reserver('00000000-0000-0000-0000-0000000000e1', '2030-01-07 09:00+01') $$,
@@ -203,7 +211,13 @@ select ok(
   and not has_function_privilege('anon', 'public.reserver(uuid, timestamptz, uuid)', 'execute'),
   'reserver() : exécutable par authenticated, pas par anon');
 
--- 21. security definer, search_path vide.
+-- 21. Aucun paramètre pour le client : il ne peut venir que de auth.uid().
+select is(
+  pg_get_function_arguments('public.reserver(uuid, timestamptz, uuid)'::regprocedure),
+  'p_prestation uuid, p_debut timestamp with time zone, p_coiffeur uuid DEFAULT NULL::uuid',
+  'reserver() : paramètres prestation, début, coiffeur ; aucun paramètre client');
+
+-- 22. security definer, search_path vide.
 select is(
   (select prosecdef and proconfig @> array['search_path=""']
      from pg_proc where oid = 'public.reserver(uuid, timestamptz, uuid)'::regprocedure),
