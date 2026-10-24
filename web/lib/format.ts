@@ -1,8 +1,15 @@
-// Prix en dinars tunisiens, 3 décimales (millimes) : « 35,000 DT ».
+// Prix en dinars tunisiens : sans décimales quand les millimes sont à zéro
+// (« 35 DT »), sinon avec les 3 décimales (« 12,500 DT »).
 const formatDinar = new Intl.NumberFormat("fr-TN", { style: "currency", currency: "TND" });
+const formatDinarRond = new Intl.NumberFormat("fr-TN", {
+  style: "currency",
+  currency: "TND",
+  maximumFractionDigits: 0,
+});
 
 export function formatPrix(prix: number): string {
-  return formatDinar.format(prix);
+  const sansMillimes = Math.round(prix * 1000) % 1000 === 0;
+  return (sansMillimes ? formatDinarRond : formatDinar).format(prix);
 }
 
 // Durée lisible : « 30 min », « 1 h », « 1 h 30 ».

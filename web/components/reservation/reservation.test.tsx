@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { BandeJours } from "@/components/reservation/bande-jours";
 import { CartePrestation } from "@/components/reservation/carte-prestation";
 import { ListeCreneaux } from "@/components/reservation/liste-creneaux";
 import { coiffeursCompetents, type Catalogue } from "@/lib/catalogue";
@@ -14,49 +15,80 @@ describe("CartePrestation", () => {
     );
     const lien = screen.getByRole("link");
     expect(lien.getAttribute("href")).toBe("/reserver/creneaux?prestation=p1");
-    expect(lien.textContent?.replace(/\s/g, " ")).toBe("Coupe femme45 min · 35,000 DT");
+    expect(lien.textContent?.replace(/\s/g, " ")).toBe("Coupe femme45 min · 35 DT");
   });
 });
 
+const lundi = {
+  cle: "2026-10-26",
+  libelle: "Lundi 26 octobre",
+  court: "lun.",
+  numero: "26",
+  heures: [
+    { debut: "2026-10-26T08:00:00.000Z", libelle: "09:00" },
+    { debut: "2026-10-26T08:15:00.000Z", libelle: "09:15" },
+  ],
+};
+const mardi = { cle: "2026-10-27", libelle: "Mardi 27 octobre", court: "mar.", numero: "27", heures: [] };
+const mercredi = {
+  cle: "2026-10-28",
+  libelle: "Mercredi 28 octobre",
+  court: "mer.",
+  numero: "28",
+  heures: [{ debut: "2026-10-28T09:00:00.000Z", libelle: "10:00" }],
+};
+
 describe("ListeCreneaux", () => {
-  const jours = [
-    {
-      cle: "2026-10-26",
-      libelle: "Lundi 26 octobre",
-      heures: [
-        { debut: "2026-10-26T08:00:00.000Z", libelle: "09:00" },
-        { debut: "2026-10-26T08:15:00.000Z", libelle: "09:15" },
-      ],
-    },
-    {
-      cle: "2026-10-27",
-      libelle: "Mardi 27 octobre",
-      heures: [{ debut: "2026-10-27T09:00:00.000Z", libelle: "10:00" }],
-    },
-  ];
-
-  it("un titre par jour, une heure cliquable par créneau", () => {
-    render(<ListeCreneaux jours={jours} prestationId="p1" />);
-    const titres = screen.getAllByRole("heading", { level: 2 });
-    expect(titres.map((t) => t.textContent)).toEqual(["Lundi 26 octobre", "Mardi 27 octobre"]);
-
-    const lundi = screen.getByRole("region", { name: "Lundi 26 octobre" });
-    expect(within(lundi).getAllByRole("link").map((l) => l.textContent)).toEqual(["09:00", "09:15"]);
+  it("le jour en titre, une heure cliquable par créneau", () => {
+    render(<ListeCreneaux jour={lundi} prestationId="p1" />);
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Lundi 26 octobre");
+    const region = screen.getByRole("region", { name: "Lundi 26 octobre" });
+    expect(within(region).getAllByRole("link").map((l) => l.textContent)).toEqual(["09:00", "09:15"]);
   });
 
   it("chaque heure mène à la confirmation avec le coiffeur choisi", () => {
-    render(<ListeCreneaux jours={jours} prestationId="p1" coiffeurId="c1" />);
-    const lien = screen.getByRole("link", { name: "10:00" });
-    expect(lien.getAttribute("href")).toBe(
-      "/reserver/confirmation?prestation=p1&debut=2026-10-27T09%3A00%3A00.000Z&coiffeur=c1",
+    render(<ListeCreneaux jour={mercredi} prestationId="p1" coiffeurId="c1" />);
+    expect(screen.getByRole("link", { name: "10:00" }).getAttribute("href")).toBe(
+      "/reserver/confirmation?prestation=p1&debut=2026-10-28T09%3A00%3A00.000Z&coiffeur=c1",
     );
   });
 
   it("zones tactiles de 48 px et chiffres à chasse fixe", () => {
-    render(<ListeCreneaux jours={jours} prestationId="p1" />);
+    render(<ListeCreneaux jour={lundi} prestationId="p1" />);
     const classes = screen.getByRole("link", { name: "09:00" }).className;
     expect(classes).toContain("h-12");
     expect(classes).toContain("tabular-nums");
+  });
+});
+
+describe("BandeJours", () => {
+  it("un bouton par jour disponible, le jour choisi est pressé", () => {
+    render(<BandeJours jours={[lundi, mardi, mercredi]} choisi="2026-10-28" onChoisir={() => {}} />);
+    const boutons = screen.getAllByRole("button");
+    expect(boutons.map((b) => b.getAttribute("aria-label"))).toEqual(["Lundi 26 octobre", "Mercredi 28 octobre"]);
+    expect(boutons.map((b) => b.getAttribute("aria-pressed"))).toEqual(["false", "true"]);
+  });
+
+  it("jour sans créneau : affiché, inactif, non cliquable", () => {
+    render(<BandeJours jours={[lundi, mardi, mercredi]} choisi="2026-10-26" onChoisir={() => {}} />);
+    const sansCreneau = screen.getByLabelText("Mardi 27 octobre : aucun créneau");
+    expect(sansCreneau.tagName).toBe("SPAN");
+    expect(sansCreneau.className).toContain("bg-separateur");
+    expect(sansCreneau.className).toContain("text-texte-secondaire");
+  });
+
+  it("cliquer un jour le choisit", () => {
+    const onChoisir = vi.fn();
+    render(<BandeJours jours={[lundi, mardi, mercredi]} choisi="2026-10-26" onChoisir={onChoisir} />);
+    fireEvent.click(screen.getByRole("button", { name: "Mercredi 28 octobre" }));
+    expect(onChoisir).toHaveBeenCalledWith("2026-10-28");
+  });
+
+  it("zones tactiles d'au moins 44 px (56 × 64)", () => {
+    render(<BandeJours jours={[lundi]} choisi="2026-10-26" onChoisir={() => {}} />);
+    const classes = screen.getByRole("button").className;
+    expect(classes).toContain("h-16");
+    expect(classes).toContain("w-14");
   });
 });
 

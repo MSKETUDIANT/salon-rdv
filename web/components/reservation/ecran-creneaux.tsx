@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { BandeJours } from "@/components/reservation/bande-jours";
 import { ListeCreneaux } from "@/components/reservation/liste-creneaux";
 import { Bouton } from "@/components/ui/bouton";
 import { BoutonLien } from "@/components/ui/bouton-lien";
@@ -14,6 +15,7 @@ import {
   lireCreneaux,
   periode,
   type Creneau,
+  type Jour,
 } from "@/lib/creneaux";
 import { formatDuree, formatPrix } from "@/lib/format";
 import { prendrePrechargement } from "@/lib/precharger-creneaux";
@@ -21,10 +23,13 @@ import { prendrePrechargement } from "@/lib/precharger-creneaux";
 // Résultat d'une lecture, rattaché à sa demande (prestation, coiffeur, essai) :
 // tant que la clé ne correspond pas à la demande en cours, on affiche le
 // chargement.
-type Resultat = { cle: string } & ({ erreur: true } | { erreur: false; creneaux: Creneau[] });
+type Resultat = { cle: string } & (
+  | { erreur: true }
+  | { erreur: false; du: string; creneaux: Creneau[] }
+);
 
-// Écran 2 : créneaux libres par jour, filtre coiffeur (« Peu importe » par
-// défaut, BNF-9). Le catalogue arrive avec la page statique ; seuls les
+// Écran 2 : bande des jours, créneaux du jour choisi (par défaut, le premier
+// jour disponible), filtre coiffeur (« Peu importe » par défaut, BNF-9). Le catalogue arrive avec la page statique ; seuls les
 // créneaux sont lus au chargement, sans connexion (BF-C1).
 export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
   const prestationId = useSearchParams().get("prestation") ?? "";
@@ -34,6 +39,15 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const idFiltre = useId();
   const cle = `${prestationId}|${coiffeurId}|${essai}`;
+  // Recalculés seulement à chaque nouvelle lecture : le jour choisi tient tant
+  // que la lecture ne change pas.
+  const jours = useMemo(
+    () =>
+      resultat && !resultat.erreur
+        ? grouperParJour(resultat.creneaux, catalogue.fuseau, resultat.du)
+        : [],
+    [resultat, catalogue.fuseau],
+  );
 
   useEffect(() => {
     if (!prestation) return;
@@ -46,7 +60,7 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
       lireCreneaux(demande, abandon.signal);
 
     lecture.then(
-      (creneaux) => setResultat({ cle, erreur: false, creneaux }),
+      (creneaux) => setResultat({ cle, erreur: false, du, creneaux }),
       () => {
         if (!abandon.signal.aborted) setResultat({ cle, erreur: true });
       },
@@ -120,7 +134,7 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
         </div>
       ) : (
         <Creneaux
-          jours={grouperParJour(resultat.creneaux, catalogue.fuseau)}
+          jours={jours}
           prestationId={prestation.id}
           coiffeurId={coiffeurId || undefined}
         />
@@ -129,14 +143,41 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
   );
 }
 
-function Creneaux(props: Parameters<typeof ListeCreneaux>[0]) {
-  if (props.jours.length === 0) {
+// Jour affiché : celui choisi dans la bande, sinon le premier jour disponible.
+// Les jours sont recalculés à chaque lecture (autre coiffeur, nouvel essai) :
+// le premier jour disponible reprend alors la main.
+function Creneaux({
+  jours,
+  prestationId,
+  coiffeurId,
+}: {
+  jours: Jour[];
+  prestationId: string;
+  coiffeurId?: string;
+}) {
+  const [choix, setChoix] = useState<{ jours: Jour[]; cle: string } | null>(null);
+  const disponibles = jours.filter((jour) => jour.heures.length > 0);
+
+  if (disponibles.length === 0) {
     return (
       <p role="status" className="text-base text-texte">
         Aucun créneau libre sur les {JOURS_AFFICHES} prochains jours
-        {props.coiffeurId ? " avec ce coiffeur. Essayez « Peu importe »." : "."}
+        {coiffeurId ? " avec ce coiffeur. Essayez « Peu importe »." : "."}
       </p>
     );
   }
-  return <ListeCreneaux {...props} />;
+
+  const jour =
+    (choix?.jours === jours && disponibles.find((j) => j.cle === choix.cle)) || disponibles[0];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <BandeJours
+        jours={jours}
+        choisi={jour.cle}
+        onChoisir={(cle) => setChoix({ jours, cle })}
+      />
+      <ListeCreneaux jour={jour} prestationId={prestationId} coiffeurId={coiffeurId} />
+    </div>
+  );
 }

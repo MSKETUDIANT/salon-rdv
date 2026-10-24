@@ -7,7 +7,9 @@ export type Creneau = Database["public"]["Functions"]["creneaux_disponibles"]["R
 export type Jour = {
   cle: string; // AAAA-MM-JJ, date locale du salon
   libelle: string; // « Lundi 27 octobre »
-  heures: { debut: string; libelle: string }[];
+  court: string; // « lun. »
+  numero: string; // « 27 »
+  heures: { debut: string; libelle: string }[]; // vide : aucun créneau ce jour
 };
 
 // Fenêtre affichée : aujourd'hui et les 13 jours suivants.
@@ -58,41 +60,51 @@ export async function lireCreneaux(
   return reponse.json();
 }
 
-// Regroupe les créneaux par jour local. Une même heure proposée par plusieurs
-// coiffeurs (« Peu importe ») n'apparaît qu'une fois.
-export function grouperParJour(creneaux: Creneau[], fuseau: string): Jour[] {
-  const formatJour = new Intl.DateTimeFormat("fr-FR", {
-    timeZone: fuseau,
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+// Les jours de la période (à partir de `du`), chacun avec ses créneaux. Une
+// même heure proposée par plusieurs coiffeurs (« Peu importe ») n'apparaît
+// qu'une fois.
+export function grouperParJour(
+  creneaux: Creneau[],
+  fuseau: string,
+  du: string,
+  nombreJours = JOURS_AFFICHES,
+): Jour[] {
+  // Les libellés d'un jour ne dépendent que de sa date : midi UTC, lu en UTC.
+  const libelleJour = (cle: string, options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", ...options }).format(
+      new Date(`${cle}T12:00:00Z`),
+    );
   const formatHeure = new Intl.DateTimeFormat("fr-FR", {
     timeZone: fuseau,
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  const jours = new Map<string, Jour>();
+  const jours = Array.from({ length: nombreJours }, (_, i): Jour => {
+    const cle = ajouterJours(du, i);
+    const libelle = libelleJour(cle, { weekday: "long", day: "numeric", month: "long" });
+    return {
+      cle,
+      libelle: libelle.charAt(0).toUpperCase() + libelle.slice(1),
+      court: libelleJour(cle, { weekday: "short" }),
+      numero: libelleJour(cle, { day: "numeric" }),
+      heures: [],
+    };
+  });
+  const parCle = new Map(jours.map((jour) => [jour.cle, jour]));
+
   const vus = new Set<number>();
   const tries = [...creneaux].sort((a, b) => Date.parse(a.debut) - Date.parse(b.debut));
-
   for (const { debut } of tries) {
     const instant = new Date(debut);
     if (vus.has(instant.getTime())) continue;
     vus.add(instant.getTime());
-
-    const cle = jourLocal(instant, fuseau);
-    let jour = jours.get(cle);
-    if (!jour) {
-      const libelle = formatJour.format(instant);
-      jour = { cle, libelle: libelle.charAt(0).toUpperCase() + libelle.slice(1), heures: [] };
-      jours.set(cle, jour);
-    }
-    jour.heures.push({ debut: instant.toISOString(), libelle: formatHeure.format(instant) });
+    parCle
+      .get(jourLocal(instant, fuseau))
+      ?.heures.push({ debut: instant.toISOString(), libelle: formatHeure.format(instant) });
   }
 
-  return [...jours.values()];
+  return jours;
 }
 
 // Lien vers l'écran 3 (confirmation, #6). Sans coiffeur : « Peu importe ».
