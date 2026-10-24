@@ -16,6 +16,7 @@ import {
   type Creneau,
 } from "@/lib/creneaux";
 import { formatDuree, formatPrix } from "@/lib/format";
+import { prendrePrechargement } from "@/lib/precharger-creneaux";
 
 // Résultat d'une lecture, rattaché à sa demande (prestation, coiffeur, essai) :
 // tant que la clé ne correspond pas à la demande en cours, on affiche le
@@ -39,10 +40,12 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
     const abandon = new AbortController();
     const { du, au } = periode(new Date(), catalogue.fuseau);
 
-    lireCreneaux(
-      { prestationId: prestation.id, du, au, coiffeurId: coiffeurId || undefined },
-      abandon.signal,
-    ).then(
+    const demande = { prestationId: prestation.id, du, au, coiffeurId: coiffeurId || undefined };
+    const lecture =
+      (demande.coiffeurId ? undefined : prendrePrechargement(demande)) ??
+      lireCreneaux(demande, abandon.signal);
+
+    lecture.then(
       (creneaux) => setResultat({ cle, erreur: false, creneaux }),
       () => {
         if (!abandon.signal.aborted) setResultat({ cle, erreur: true });
