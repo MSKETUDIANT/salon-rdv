@@ -52,8 +52,10 @@ Depuis la racine du dépôt, sur `main` à jour, projet Supabase lié
 supabase db query --linked -f supabase/demo/donnees-demo.sql
 ```
 
-Réponse attendue : `DO`. À défaut de CLI, coller le contenu du fichier dans le
-dashboard Supabase (*SQL Editor*) et l'exécuter.
+Réponse attendue : un résultat vide (`"rows": []`) avec `--linked`, ou `DO`
+avec `--local`. À défaut de CLI, coller le contenu du fichier dans le
+dashboard Supabase (*SQL Editor*) et l'exécuter. Une erreur s'affiche
+toujours en clair ; le résultat se contrôle à l'étape 2.
 
 Le script est **une seule instruction, atomique** : soit tout est enregistré,
 soit rien. Il se contrôle lui-même à la fin (2 coiffeurs, 4 prestations,
@@ -92,3 +94,9 @@ Pas encore de script : le retrait sera décidé avec Sparta avant la mise en
 service réelle du salon (README et mise en ligne, #13). Une réservation faite
 sur un coiffeur ou une prestation de démo empêchera leur suppression : elle
 protège l'historique.
+
+## Historique
+
+- 2026-10-25 : exécuté en distant depuis `main` (`0e9455b`), avec l'accord de
+  Sparta. Vérification : Amira et Youssef, rôles `client, coiffeur`, 4 et 2
+  compétences, 10 et 6 horaires, 4 prestations de démo.
