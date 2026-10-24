@@ -58,10 +58,12 @@ Une issue est finie quand :
 2. les tests sont écrits et passent ;
 3. les migrations sont listées en local (`supabase migration list`) ;
 4. l'issue est passée en « À vérifier » ;
-5. Sparta a vérifié lui-même et mergé la PR (« Refs #<n> ») : le merge vaut
-   validation du code, mais ne ferme pas l'issue ;
+5. Claude Code merge lui-même les PR (« Refs #<n> »), à condition que lint,
+   tests et build passent. Sparta ne valide que deux choses : le rendu visuel
+   (sur la preview) et les migrations de base, avant tout db push. Le merge ne
+   ferme pas l'issue ;
 6. après le merge, db push depuis main, puis `supabase migration list` en local
    et en distant. L'issue ne passe en « Done » qu'après ce point 6 : je la ferme
    avec la sortie de `migration list` en commentaire, et l'automatisation la
    passe en « Done ». Si l'issue n'a pas de migration, ferme-la directement
-   après le merge.
+   après le merge. Le commentaire de fermeture indique ce que Sparta a validé.
