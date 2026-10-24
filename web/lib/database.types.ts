@@ -324,20 +324,26 @@ export type Database = {
         Row: {
           adresse: string | null
           created_at: string
+          fuseau_horaire: string
           id: string
           nom: string
+          pas_creneau_minutes: number
         }
         Insert: {
           adresse?: string | null
           created_at?: string
+          fuseau_horaire?: string
           id?: string
           nom: string
+          pas_creneau_minutes?: number
         }
         Update: {
           adresse?: string | null
           created_at?: string
+          fuseau_horaire?: string
           id?: string
           nom?: string
+          pas_creneau_minutes?: number
         }
         Relationships: []
       }
@@ -383,6 +389,19 @@ export type Database = {
         Returns: {
           id: string
           nom: string
+        }[]
+      }
+      creneaux_disponibles: {
+        Args: {
+          p_au: string
+          p_coiffeur?: string
+          p_du: string
+          p_prestation: string
+        }
+        Returns: {
+          coiffeur_id: string
+          debut: string
+          fin: string
         }[]
       }
     }
