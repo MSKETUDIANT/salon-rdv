@@ -1,26 +1,54 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Charte graphique (docs/charte-graphique.md) : seule source des couleurs,
+   tailles de texte, arrondis et polices. Les valeurs par défaut de Tailwind
+   sont désactivées : `zinc-500`, `text-sm` ou `shadow-lg` ne produisent rien.
+   scripts/verifier-charte.mjs (npm run lint) interdit les contournements.
+   Mode clair uniquement en v1 : pas de prefers-color-scheme. */
+@theme {
+  --color-*: initial;
+  --text-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --font-*: initial;
+
+  /* Couleurs (contrastes : docs/charte-graphique.md §2, vérifiés par
+     lib/charte.test.ts). */
+  --color-fond: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-texte: #1A1A1A;
+  --color-texte-secondaire: #5C5C5C;
+  --color-bordure: #8A8A8A;
+  --color-separateur: #E5E3DE;
+  --color-accent: #1F5C4A;
+  --color-accent-survol: #174536;
+  --color-erreur: #B42318;
+
+  /* Échelle typographique : 16 / 18 / 22 / 28 / 36 px, interligne 1,5. */
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.5;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.5;
+  --text-3xl: 2.25rem;
+  --text-3xl--line-height: 1.5;
+
+  --radius-base: 8px;
 }
 
+/* Polices chargées par next/font dans app/layout.tsx. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-titre: var(--font-newsreader), Georgia, serif;
+  --font-texte: var(--font-figtree), system-ui, sans-serif;
+  --default-font-family: var(--font-texte);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-fond);
+  color: var(--color-texte);
+  font-size: var(--text-base);
+  line-height: 1.5;
 }
