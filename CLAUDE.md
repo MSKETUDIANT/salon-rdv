@@ -28,6 +28,8 @@ Règle métier critique : zéro double réservation, garantie par la base
   `supabase gen types typescript --local > web/lib/database.types.ts`
 - Site client (dans `web/`, variables dans `web/.env.local`, modèle `.env.example`) :
   `npm run dev` / `npm run build` / `npm run lint` / `npm test`
+- CI (GitHub Actions, `.github/workflows/ci.yml`) : jobs `base` et `web` sur
+  chaque PR ; résultat dans l'onglet *Checks* de la PR ou via `gh pr checks <n>`.
 (Compléter cette section quand l'app existera.)
 
 ## 4. Règles de travail
