@@ -53,8 +53,10 @@ insert into public.absences (id, salon_id, coiffeur_id, debut, fin, motif) value
   ('0000d0b1-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000', '000000b2-0000-0000-0000-000000000000',
    '2026-11-09 09:00+00', '2026-11-09 18:00+00', 'Formation B');
 
--- Réservations : c0a1 (client a3) et c0a2 (client a4) confirmées, c0a3 (a3)
--- terminée ; c0b1 confirmée et c0b2 terminée (client b3).
+-- Réservations : c0a1 et c0a4 (client a3) et c0a2 (client a4) confirmées,
+-- c0a3 (a3) terminée ; c0b1 confirmée et c0b2 terminée (client b3).
+-- Depuis l'issue #6, un client ne crée plus de réservation lui-même : elles
+-- passent par public.reserver() (tests dans reserver.test.sql).
 insert into public.reservations (id, salon_id, client_id, coiffeur_id, prestation_id, debut, fin, statut) values
   ('0000c0a1-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
    '0000f0a1-0000-0000-0000-000000000000', '2026-11-02 10:00+00', '2026-11-02 10:30+00', 'confirmee'),
@@ -62,6 +64,8 @@ insert into public.reservations (id, salon_id, client_id, coiffeur_id, prestatio
    '0000f0a1-0000-0000-0000-000000000000', '2026-11-02 11:00+00', '2026-11-02 11:30+00', 'confirmee'),
   ('0000c0a3-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
    '0000f0a1-0000-0000-0000-000000000000', '2026-10-26 10:00+00', '2026-10-26 10:30+00', 'terminee'),
+  ('0000c0a4-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
+   '0000f0a1-0000-0000-0000-000000000000', '2026-11-03 10:00+00', '2026-11-03 10:30+00', 'confirmee'),
   ('0000c0b1-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000', '000000b3-0000-0000-0000-000000000000', '000000b2-0000-0000-0000-000000000000',
    '0000f0b1-0000-0000-0000-000000000000', '2026-11-02 10:00+00', '2026-11-02 10:30+00', 'confirmee'),
   ('0000c0b2-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000', '000000b3-0000-0000-0000-000000000000', '000000b2-0000-0000-0000-000000000000',
@@ -88,15 +92,17 @@ select is_empty(
 
 select results_eq(
   $$ select id from public.reservations order by id $$,
-  $$ values ('0000c0a1-0000-0000-0000-000000000000'::uuid), ('0000c0a3-0000-0000-0000-000000000000'::uuid) $$,
-  'Client A : ne voit que ses deux réservations'
+  $$ values ('0000c0a1-0000-0000-0000-000000000000'::uuid), ('0000c0a3-0000-0000-0000-000000000000'::uuid), ('0000c0a4-0000-0000-0000-000000000000'::uuid) $$,
+  'Client A : ne voit que ses trois réservations'
 );
 
-select lives_ok(
-  $$ insert into public.reservations (id, salon_id, client_id, coiffeur_id, prestation_id, debut, fin)
-     values ('0000c0a4-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000', '0000f0a1-0000-0000-0000-000000000000',
-             '2026-11-03 10:00+00', '2026-11-03 10:30+00') $$,
-  'Client A : réserve pour lui dans A'
+select throws_ok(
+  $$ insert into public.reservations (salon_id, client_id, coiffeur_id, prestation_id, debut, fin)
+     values ('0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000', '0000f0a1-0000-0000-0000-000000000000',
+             '2026-11-03 14:00+00', '2026-11-03 14:30+00') $$,
+  '42501',
+  null,
+  'Client A : insertion directe refusée, même pour lui (passe par reserver())'
 );
 
 select throws_ok(

@@ -404,6 +404,15 @@ export type Database = {
           fin: string
         }[]
       }
+      reserver: {
+        Args: { p_coiffeur?: string; p_debut: string; p_prestation: string }
+        Returns: {
+          coiffeur_id: string
+          debut: string
+          fin: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       role: "client" | "coiffeur" | "gerant"

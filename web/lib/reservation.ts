@@ -1,0 +1,102 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { coiffeursCompetents, type Catalogue, type Coiffeur, type Prestation } from "@/lib/catalogue";
+import type { Database } from "@/lib/database.types";
+
+// Écran 3 (#6) : ce que le client s'apprête à réserver, lu dans l'URL
+// (?prestation=&debut=&coiffeur=). Sans coiffeur : « Peu importe ».
+export type Demande = { prestation: Prestation; debut: string; coiffeur?: Coiffeur };
+
+export function lireDemande(params: URLSearchParams, catalogue: Catalogue): Demande | null {
+  const prestation = catalogue.prestations.find((p) => p.id === params.get("prestation"));
+  const debut = params.get("debut") ?? "";
+  if (!prestation || Number.isNaN(Date.parse(debut))) return null;
+
+  const coiffeurId = params.get("coiffeur");
+  if (!coiffeurId) return { prestation, debut };
+  const coiffeur = coiffeursCompetents(catalogue, prestation.id).find((c) => c.id === coiffeurId);
+  return coiffeur ? { prestation, debut, coiffeur } : null;
+}
+
+// « Mardi 27 octobre » et « 10:00 », à l'heure du salon.
+export function jourEtHeure(debut: string, fuseau: string): { jour: string; heure: string } {
+  const instant = new Date(debut);
+  const jour = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: fuseau,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(instant);
+  const heure = new Intl.DateTimeFormat("fr-FR", {
+    timeZone: fuseau,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(instant);
+  return { jour: jour.charAt(0).toUpperCase() + jour.slice(1), heure };
+}
+
+// Retour à l'écran 2 sans perdre la prestation ni le filtre coiffeur.
+export function lienCreneaux(prestationId: string, coiffeurId?: string): string {
+  const params = new URLSearchParams({ prestation: prestationId });
+  if (coiffeurId) params.set("coiffeur", coiffeurId);
+  return `/reserver/creneaux?${params}`;
+}
+
+export function emailValide(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export function codeValide(code: string): boolean {
+  return /^\d{6}$/.test(code);
+}
+
+type Client = SupabaseClient<Database>;
+
+// Messages des erreurs d'authentification (codes de Supabase Auth).
+export function messageErreurAuth(code: string | undefined): string {
+  switch (code) {
+    case "otp_expired":
+      return "Code incorrect ou expiré. Vérifiez-le, ou demandez un nouveau code.";
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return "Trop de demandes. Réessayez dans une minute.";
+    default:
+      return "Une erreur est survenue. Réessayez.";
+  }
+}
+
+// Envoie le code à 6 chiffres. Crée le compte s'il n'existe pas ; le nom
+// n'est enregistré que pour un nouveau compte.
+export async function envoyerCode(supabase: Client, email: string, nom: string) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, data: { nom } },
+  });
+  return error ? messageErreurAuth(error.code) : null;
+}
+
+export async function validerCode(supabase: Client, email: string, code: string) {
+  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+  return error ? messageErreurAuth(error.code) : null;
+}
+
+export type ResultatReservation =
+  | { statut: "confirmee"; coiffeurId: string }
+  | { statut: "pris" }
+  | { statut: "deconnecte" }
+  | { statut: "erreur" };
+
+// Enregistre la réservation (fonction SQL reserver, qui revérifie la
+// disponibilité). PT409 : le créneau vient d'être pris.
+export async function reserver(supabase: Client, demande: Demande): Promise<ResultatReservation> {
+  const { data, error } = await supabase.rpc("reserver", {
+    p_prestation: demande.prestation.id,
+    p_debut: demande.debut,
+    p_coiffeur: demande.coiffeur?.id,
+  });
+  if (error) {
+    if (error.code === "PT409") return { statut: "pris" };
+    if (error.code === "PT401") return { statut: "deconnecte" };
+    return { statut: "erreur" };
+  }
+  return data?.[0] ? { statut: "confirmee", coiffeurId: data[0].coiffeur_id } : { statut: "erreur" };
+}
