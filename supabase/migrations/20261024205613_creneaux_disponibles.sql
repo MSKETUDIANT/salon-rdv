@@ -4,14 +4,22 @@
 -- chevauche aucune réservation.
 
 -- ============================================================
--- Fuseau horaire du salon
+-- Fuseau horaire et pas des créneaux du salon
 -- ============================================================
 
 -- Les horaires sont des heures locales (type time) : le fuseau du salon les
 -- convertit en instants. Nom IANA ; Africa/Tunis par défaut (prix à 3
 -- décimales : dinar tunisien).
+-- pas_creneau_minutes : écart entre deux débuts de créneau proposés.
 alter table public.salons
-  add column fuseau_horaire text not null default 'Africa/Tunis';
+  add column fuseau_horaire text not null default 'Africa/Tunis',
+  add column pas_creneau_minutes integer not null default 15,
+  add constraint salons_pas_creneau_positif check (pas_creneau_minutes > 0);
+
+-- Lectures des réservations d'un salon par date (plannings, vue du gérant).
+-- Les recherches par coiffeur et par plage passent par l'index GiST de la
+-- contrainte reservations_sans_chevauchement.
+create index reservations_salon_debut_idx on public.reservations (salon_id, debut);
 
 -- ============================================================
 -- creneaux_disponibles
@@ -19,7 +27,9 @@ alter table public.salons
 
 -- Créneaux libres d'une prestation, pour un coiffeur ou tous (p_coiffeur null :
 -- « Peu importe »), du jour p_du au jour p_au inclus (dates locales du salon).
--- Créneaux tous les quarts d'heure à partir du début de chaque plage d'horaire.
+-- Un créneau tous les pas_creneau_minutes à partir du début de chaque plage
+-- d'horaire. Seuls les horaires du salon de la prestation et les coiffeurs de ce
+-- salon comptent.
 -- Fenêtre bornée à 31 jours, jamais dans le passé.
 -- security definer : anon ne lit ni absences ni réservations ; la fonction ne
 -- renvoie que des créneaux, jamais de client ni de réservation.
@@ -37,6 +47,7 @@ set search_path = ''
 as $$
   with prestation as (
     select p.id, p.salon_id, make_interval(mins => p.duree_minutes) as duree,
+           make_interval(mins => s.pas_creneau_minutes) as pas,
            s.fuseau_horaire as fuseau
       from public.prestations p
       join public.salons s on s.id = p.salon_id
@@ -75,7 +86,7 @@ as $$
     select pl.coiffeur_id, t as debut, t + p.duree as fin
       from prestation p
       cross join plages pl
-      cross join lateral generate_series(pl.debut, pl.fin - p.duree, interval '15 minutes') as t
+      cross join lateral generate_series(pl.debut, pl.fin - p.duree, p.pas) as t
   )
   -- distinct : deux plages d'horaire qui se recouvrent donnent les mêmes créneaux.
   select distinct c.coiffeur_id, c.debut, c.fin

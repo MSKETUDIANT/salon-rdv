@@ -327,6 +327,7 @@ export type Database = {
           fuseau_horaire: string
           id: string
           nom: string
+          pas_creneau_minutes: number
         }
         Insert: {
           adresse?: string | null
@@ -334,6 +335,7 @@ export type Database = {
           fuseau_horaire?: string
           id?: string
           nom: string
+          pas_creneau_minutes?: number
         }
         Update: {
           adresse?: string | null
@@ -341,6 +343,7 @@ export type Database = {
           fuseau_horaire?: string
           id?: string
           nom?: string
+          pas_creneau_minutes?: number
         }
         Relationships: []
       }
