@@ -2,15 +2,17 @@
 
 Points connus, volontairement laissés pour plus tard.
 
-## Sprint 2 — Réservation (BF-C5)
+## Sprint 2 — Réservation (BF-C5) : soldé par #6
 
-La policy INSERT de `reservations` (issue #3) ne contrôle que l'identité du
-client et la cohérence du salon. Restent à vérifier, côté base ou backend :
+La policy INSERT de `reservations` (issue #3) ne contrôlait que l'identité du
+client et la cohérence du salon. Depuis #6, elle est supprimée : la fonction
+`public.reserver()` est le seul chemin d'insertion et vérifie tout
+(tests : `supabase/tests/reserver.test.sql`).
 
-- [ ] la réservation tombe dans les horaires du coiffeur ;
-- [ ] elle est hors de ses absences ;
-- [ ] `fin = debut + duree_minutes` de la prestation ;
-- [ ] le coiffeur a la compétence pour la prestation (`competences`).
+- [x] la réservation tombe dans les horaires du coiffeur ;
+- [x] elle est hors de ses absences ;
+- [x] `fin = debut + duree_minutes` de la prestation ;
+- [x] le coiffeur a la compétence pour la prestation (`competences`).
 
 ## Avant la mise en ligne (#13)
 
