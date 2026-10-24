@@ -5,9 +5,15 @@ import { formatDuree, formatPrix } from "@/lib/format";
 const espaces = (texte: string) => texte.replace(/\s/g, " ");
 
 describe("formatPrix", () => {
-  it("affiche des dinars à 3 décimales", () => {
-    expect(espaces(formatPrix(35))).toBe("35,000 DT");
+  it("sans décimales quand les millimes sont à zéro", () => {
+    expect(espaces(formatPrix(35))).toBe("35 DT");
+    expect(espaces(formatPrix(80))).toBe("80 DT");
+  });
+
+  it("avec les 3 décimales sinon", () => {
     expect(espaces(formatPrix(12.5))).toBe("12,500 DT");
+    expect(espaces(formatPrix(7.25))).toBe("7,250 DT");
+    expect(espaces(formatPrix(0.005))).toBe("0,005 DT");
   });
 });
 

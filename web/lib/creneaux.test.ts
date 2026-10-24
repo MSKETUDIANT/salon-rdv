@@ -64,20 +64,38 @@ describe("grouperParJour", () => {
   const A = "aaaaaaaa-0000-0000-0000-000000000000";
   const B = "bbbbbbbb-0000-0000-0000-000000000000";
 
-  it("regroupe par jour local, dans l'ordre, heures du salon", () => {
+  it("tous les jours de la période, avec leurs créneaux à l'heure du salon", () => {
     const jours = grouperParJour(
       [
-        { coiffeur_id: A, debut: "2026-10-27T09:00:00+00:00", fin: "2026-10-27T09:30:00+00:00" },
-        { coiffeur_id: A, debut: "2026-10-26T08:00:00+00:00", fin: "2026-10-26T08:30:00+00:00" },
+        { coiffeur_id: A, debut: "2026-10-28T09:00:00+00:00", fin: "2026-10-28T09:30:00+00:00" },
         { coiffeur_id: A, debut: "2026-10-26T08:15:00+00:00", fin: "2026-10-26T08:45:00+00:00" },
+        { coiffeur_id: A, debut: "2026-10-26T08:00:00+00:00", fin: "2026-10-26T08:30:00+00:00" },
       ],
       TUNIS,
+      "2026-10-26",
+      3,
     );
 
-    expect(jours.map((j) => j.cle)).toEqual(["2026-10-26", "2026-10-27"]);
-    expect(jours[0].libelle).toBe("Lundi 26 octobre");
+    expect(jours.map((j) => j.cle)).toEqual(["2026-10-26", "2026-10-27", "2026-10-28"]);
+    expect(jours[0]).toMatchObject({ libelle: "Lundi 26 octobre", court: "lun.", numero: "26" });
     expect(jours[0].heures.map((h) => h.libelle)).toEqual(["09:00", "09:15"]);
-    expect(jours[1].heures.map((h) => h.libelle)).toEqual(["10:00"]);
+    expect(jours[1].heures).toEqual([]);
+    expect(jours[2].heures.map((h) => h.libelle)).toEqual(["10:00"]);
+  });
+
+  it("14 jours par défaut", () => {
+    expect(grouperParJour([], TUNIS, "2026-10-26")).toHaveLength(14);
+  });
+
+  it("créneau de 23h30 UTC : rangé au lendemain, jour local du salon", () => {
+    const jours = grouperParJour(
+      [{ coiffeur_id: A, debut: "2026-10-26T23:30:00+00:00", fin: "2026-10-27T00:00:00+00:00" }],
+      TUNIS,
+      "2026-10-26",
+      2,
+    );
+    expect(jours[0].heures).toEqual([]);
+    expect(jours[1].heures.map((h) => h.libelle)).toEqual(["00:30"]);
   });
 
   it("« Peu importe » : une heure proposée par deux coiffeurs n'apparaît qu'une fois", () => {
@@ -87,14 +105,10 @@ describe("grouperParJour", () => {
         { coiffeur_id: B, debut: "2026-10-26T08:00:00+00:00", fin: "2026-10-26T08:30:00+00:00" },
       ],
       TUNIS,
+      "2026-10-26",
+      1,
     );
-
-    expect(jours).toHaveLength(1);
     expect(jours[0].heures).toEqual([{ debut: "2026-10-26T08:00:00.000Z", libelle: "09:00" }]);
-  });
-
-  it("aucun créneau : aucun jour", () => {
-    expect(grouperParJour([], TUNIS)).toEqual([]);
   });
 });
 
