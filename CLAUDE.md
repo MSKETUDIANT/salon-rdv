@@ -47,6 +47,10 @@ Règle métier critique : zéro double réservation, garantie par la base
 ## 5. Conventions
 - Toute modification de la base passe par une migration de la CLI.
   Jamais de SQL appliqué à la main dans le dashboard.
+  Exception : en distant, le seul SQL manuel autorisé est le script de données
+  de démo `supabase/demo/donnees-demo.sql` (procédure : `docs/donnees-demo.md`),
+  avec la procédure du premier gérant (`docs/premier-gerant.md`). Données
+  seulement, jamais le schéma, et toujours avec mon accord.
 - Une branche par issue : `issue-<n>-<sujet-court>`.
 - Commits en français, format : `type: description`
   (feat, fix, docs, test, refactor, chore).
