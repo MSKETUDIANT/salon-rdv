@@ -74,8 +74,19 @@ pour la CI le jour où #19 sera débloquée.
     autre. » en tête ; le retour du navigateur ne ramène pas sur le créneau
     perdu. Test de bout en bout renforcé en conséquence
     (`reservation.spec.ts`).
-  - **Nouvel essai à deux en production** après déploiement : à faire
-    (Sparta), résultat à reporter ici.
+  - **Nouveaux essais à deux en production, après déploiement**
+    (2026-10-25, Sparta et deux testeurs, vérifiés en base en lecture seule) :
+    - **même créneau, « Peu importe »** (samedi 31 octobre, 10:00, Coupe
+      femme) : les deux validations arrivent à 2 ms d'écart ; les deux sont
+      confirmées, l'une avec Amira, l'autre avec Youssef, tous deux libres.
+      Comportement voulu (« Peu importe ») : aucun coiffeur n'a deux
+      rendez-vous en même temps ;
+    - **même créneau, même coiffeuse** (Amira, Coupe homme, mardi 27 octobre,
+      18:30) : une réservation confirmée, l'autre client refusé et renvoyé
+      sur l'écran 2 avec « Ce créneau vient d'être pris. Choisissez-en un
+      autre. » en tête (capture de Sparta) ; une seule ligne en base.
+    - **Contrôle de la base de production** : 0 chevauchement de
+      réservations non annulées pour un même coiffeur.
 - **Autres tests** : `reservations_chevauchement.test.sql` (chevauchements,
   bout à bout autorisé, annulée libère), `reserver.test.sql`, et dans
   `reservation.spec.ts` deux clients qui valident en même temps dans deux
