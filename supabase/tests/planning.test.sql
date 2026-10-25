@@ -5,7 +5,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(29);
+select plan(32);
 
 -- Jeu de données : salons A (Tunis, UTC+1) et B.
 --   gA : gérant de A ; c1, c2 : coiffeurs de A ; cl : client de A (avec
@@ -134,9 +134,18 @@ select results_eq(
   'Coiffeur 1 qui se désigne lui-même : accepté');
 
 select results_eq(
-  $$ select count(*)::int from public.planning('0000000a-0000-0000-0000-000000000010', '2030-01-07', '2030-03-31') $$,
+  $$ select count(*)::int from public.planning('0000000a-0000-0000-0000-000000000010', '2030-01-07', '2030-02-06') $$,
   $$ values (3) $$,
-  'Période limitée à 31 jours : le 20 janvier oui, le 20 février non');
+  'Période de 31 jours : acceptée, le 20 janvier oui, le 20 février non');
+select throws_ok(
+  $$ select * from public.planning('0000000a-0000-0000-0000-000000000010', '2030-01-07', '2030-02-07') $$,
+  'PT400', 'Période de 1 à 31 jours', 'Période de 32 jours : refusée (PT400)');
+select throws_ok(
+  $$ select * from public.planning('0000000a-0000-0000-0000-000000000010', '2030-01-13', '2030-01-07') $$,
+  'PT400', 'Période de 1 à 31 jours', 'Période à l''envers : refusée (PT400)');
+select throws_ok(
+  $$ select * from public.planning('0000000a-0000-0000-0000-000000000010', null, '2030-01-13') $$,
+  'PT400', 'Période de 1 à 31 jours', 'Date de début absente : refusée (PT400)');
 
 -- Refus : le planning d'un collègue.
 select throws_ok(

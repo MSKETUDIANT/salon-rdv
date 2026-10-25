@@ -24,8 +24,9 @@ drop policy "utilisateurs : coiffeur lit ses clients" on public.utilisateurs;
 -- ============================================================
 
 -- Rendez-vous non annulés de p_salon dont le début tombe entre p_du et p_au
--- inclus (dates du salon, 31 jours au plus), avec le nom et le téléphone du
--- client. p_coiffeur null : tous ceux que l'appelant peut voir.
+-- inclus (dates du salon), avec le nom et le téléphone du client.
+-- p_coiffeur null : tous ceux que l'appelant peut voir.
+--   période absente, à l'envers ou de plus de 31 jours → PT400 ;
 --   gérant du salon : tous les coiffeurs, ou p_coiffeur ;
 --   coiffeur du salon (non gérant) : les siens seulement ;
 --     p_coiffeur d'un collègue → PT403 ;
@@ -64,6 +65,10 @@ begin
     raise exception 'Connexion requise' using errcode = 'PT401';
   end if;
 
+  if p_du is null or p_au is null or p_au < p_du or p_au - p_du > 30 then
+    raise exception 'Période de 1 à 31 jours' using errcode = 'PT400';
+  end if;
+
   v_gerant := exists (
     select 1 from public.roles_utilisateur r
      where r.utilisateur_id = v_moi and r.salon_id = p_salon and r.role = 'gerant'
@@ -93,7 +98,7 @@ begin
      where r.salon_id = p_salon
        and r.statut <> 'annulee'
        and (v_cible is null or r.coiffeur_id = v_cible)
-       and (r.debut at time zone v_fuseau)::date between p_du and least(p_au, p_du + 30)
+       and (r.debut at time zone v_fuseau)::date between p_du and p_au
      order by r.debut, r.coiffeur_id;
 end;
 $$;
