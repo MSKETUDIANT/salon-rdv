@@ -3,7 +3,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(28);
+select plan(29);
 
 -- ------------------------------------------------------------
 -- Jeu de données commun aux tests RLS : salons A et B
@@ -150,16 +150,30 @@ select throws_ok(
   'Client A : créer une réservation déjà terminée refusé'
 );
 
-select lives_ok(
-  $$ update public.reservations set statut = 'annulee' where id = '0000c0a1-0000-0000-0000-000000000000' $$,
-  'Client A : annule sa réservation'
+-- Depuis #7, le client annule par annuler_reservation() ; la modification
+-- directe est sans effet (mes_reservations.test.sql).
+select results_eq(
+  $$ with m as (
+       update public.reservations set statut = 'annulee' where id = '0000c0a1-0000-0000-0000-000000000000'
+       returning 1)
+     select count(*)::int from m $$,
+  $$ values (0) $$,
+  'Client A : annuler sa réservation par modification directe sans effet (0 ligne, #7)'
 );
 
-select throws_ok(
-  $$ update public.reservations set statut = 'terminee' where id = '0000c0a4-0000-0000-0000-000000000000' $$,
-  '42501',
-  null,
-  'Client A : marquer sa réservation terminée refusé'
+select results_eq(
+  $$ select statut::text from public.annuler_reservation('0000c0a1-0000-0000-0000-000000000000') $$,
+  $$ values ('annulee') $$,
+  'Client A : annule sa réservation avec annuler_reservation()'
+);
+
+select results_eq(
+  $$ with m as (
+       update public.reservations set statut = 'terminee' where id = '0000c0a4-0000-0000-0000-000000000000'
+       returning 1)
+     select count(*)::int from m $$,
+  $$ values (0) $$,
+  'Client A : marquer sa réservation terminée sans effet (0 ligne)'
 );
 
 select throws_ok(

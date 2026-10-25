@@ -376,6 +376,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      annuler_reservation: {
+        Args: { p_reservation: string }
+        Returns: {
+          id: string
+          statut: Database["public"]["Enums"]["statut_reservation"]
+        }[]
+      }
       attribuer_role: {
         Args: {
           p_role: Database["public"]["Enums"]["role"]
@@ -402,6 +409,20 @@ export type Database = {
           coiffeur_id: string
           debut: string
           fin: string
+        }[]
+      }
+      mes_reservations: {
+        Args: { p_salon: string }
+        Returns: {
+          annulable: boolean
+          coiffeur: string
+          debut: string
+          duree_minutes: number
+          fin: string
+          id: string
+          prestation: string
+          prix: number
+          statut: Database["public"]["Enums"]["statut_reservation"]
         }[]
       }
       reserver: {
