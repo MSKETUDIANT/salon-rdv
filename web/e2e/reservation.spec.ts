@@ -80,6 +80,20 @@ test("BNF-1 : deux validations simultanées du même créneau, une seule réussi
     clients.push(page);
   }
 
+  // Tous les messages affichés à chacun, du clic à la fin (#51).
+  for (const page of clients) {
+    await page.evaluate(() => {
+      const vus: string[] = [];
+      (window as unknown as { __messages: string[] }).__messages = vus;
+      new MutationObserver(() => {
+        for (const el of document.querySelectorAll('[role="alert"]')) {
+          const texte = (el.textContent ?? "").trim();
+          if (texte && (el as HTMLElement).offsetParent !== null && !vus.includes(texte)) vus.push(texte);
+        }
+      }).observe(document.body, { subtree: true, childList: true, characterData: true });
+    });
+  }
+
   // Les deux valident en même temps.
   await Promise.all(
     clients.map((page) => page.getByRole("button", { name: "Confirmer la réservation" }).click()),
@@ -104,6 +118,11 @@ test("BNF-1 : deux validations simultanées du même créneau, une seule réussi
   // relue : des heures proposées, mais plus celle qui vient d'être prise.
   const perdant = clients[issues.indexOf("prise")];
   await expect(perdant).toHaveURL(/\/reserver\/creneaux\?.*pris=1/);
+
+  // Le perdant n'a vu qu'un seul message, celui de la liste : ni « Réessayez »,
+  // ni étape intermédiaire sur l'écran 3.
+  const messages = await perdant.evaluate(() => (window as unknown as { __messages: string[] }).__messages);
+  expect(messages).toEqual(["Ce créneau vient d'être pris. Choisissez-en un autre."]);
   await expect(perdant.getByRole("heading", { level: 1 })).toHaveText("Coupe homme");
   await expect(perdant.getByLabel("Coiffeur")).toHaveValue(SEED.amira);
   const heures = perdant.getByRole("link", { name: /^\d{2}:\d{2}$/ });

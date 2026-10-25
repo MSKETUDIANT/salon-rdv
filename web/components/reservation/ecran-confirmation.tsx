@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CompteConnecte,
   FormulaireConnexion,
@@ -53,6 +53,16 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
   const [enCours, setEnCours] = useState(false);
   const [manque, setManque] = useState<string | null>(null);
   const [resultat, setResultat] = useState<ResultatReservation | null>(null);
+  const lienPris = lienCreneaux(demande.prestation.id, demande.coiffeur?.id, true);
+
+  // Écran 2 préchargé : en cas de refus, le renvoi est immédiat (#51).
+  useEffect(() => {
+    router.prefetch(lienPris);
+  }, [router, lienPris]);
+
+  // Écran mis de côté par Next.js (cacheComponents) après le renvoi : le
+  // bouton ne doit pas rester « Réservation… » s'il réapparaît.
+  useEffect(() => () => setEnCours(false), []);
 
   async function confirmer() {
     if (!compte) {
@@ -66,14 +76,16 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
     setManque(null);
     setEnCours(true);
     const reponse = await reserver(supabase, demande);
+    // Créneau pris entretemps (#51) : renvoi direct à l'écran 2, qui relit la
+    // liste et annonce le refus. Rien ne s'affiche ici entre-temps : le bouton
+    // reste « Réservation… » jusqu'à la liste. replace : le retour du
+    // navigateur ne ramène pas sur ce créneau perdu.
+    if (reponse.statut === "pris") {
+      router.replace(lienPris);
+      return;
+    }
     setEnCours(false);
     setResultat(reponse);
-    // Créneau pris entretemps (#51) : retour automatique à l'écran 2, qui relit
-    // la liste et l'annonce. replace : le retour du navigateur ne ramène pas
-    // sur ce créneau perdu.
-    if (reponse.statut === "pris") {
-      router.replace(lienCreneaux(demande.prestation.id, demande.coiffeur?.id, true));
-    }
   }
 
   if (resultat?.statut === "confirmee") {
@@ -141,18 +153,6 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
             {manque}
           </p>
         )}
-        {/* Affiché le temps du retour automatique à l'écran 2 ; le lien sert
-            si la navigation tarde. */}
-        {resultat?.statut === "pris" && (
-          <div role="alert" className="flex flex-col items-start gap-3">
-            <p className="text-base text-erreur">
-              Ce créneau vient d&apos;être pris. Retour aux créneaux…
-            </p>
-            <BoutonLien href={lienCreneaux(demande.prestation.id, demande.coiffeur?.id, true)}>
-              Choisir un autre créneau
-            </BoutonLien>
-          </div>
-        )}
         {resultat?.statut === "deconnecte" && (
           <p role="alert" className="text-base text-erreur">
             Votre connexion a expiré. Changez de compte pour recevoir un nouveau code.
@@ -163,15 +163,9 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
             La réservation n&apos;a pas pu être enregistrée. Réessayez.
           </p>
         )}
-        {resultat?.statut !== "pris" && (
-          <Bouton
-            onClick={confirmer}
-            chargement={enCours}
-            libelleChargement="Réservation…"
-          >
-            Confirmer la réservation
-          </Bouton>
-        )}
+        <Bouton onClick={confirmer} chargement={enCours} libelleChargement="Réservation…">
+          Confirmer la réservation
+        </Bouton>
       </div>
     </div>
   );
