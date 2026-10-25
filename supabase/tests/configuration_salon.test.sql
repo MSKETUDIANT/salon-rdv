@@ -5,7 +5,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(58);
+select plan(71);
 
 -- Jeu de données : salons A et B, à Tunis (UTC+1).
 --   gA : gérant de A ; cA : coiffeur de A (pas gérant) ; clA : client de A.
@@ -73,7 +73,38 @@ create function pg_temp.creneaux_lundi() returns bigint language sql as $$
     '0000f0a1-0000-0000-0000-000000000009', '2030-01-07', '2030-01-07');
 $$;
 
+-- ------------------------------------------------------------
+-- Socle : btree_gist (contraintes d'exclusion), activée par la migration #1
+-- ------------------------------------------------------------
+
+select has_extension('extensions', 'btree_gist', 'btree_gist activée (migration 20261022224513, #1)');
+
+-- ------------------------------------------------------------
+-- Lecture : horaires et absences jamais sans compte
+-- ------------------------------------------------------------
+
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select throws_ok($$ select count(*) from public.horaires $$, '42501', null, 'Sans compte : horaires illisibles');
+select throws_ok($$ select count(*) from public.absences $$, '42501', null, 'Sans compte : absences illisibles');
+reset role;
+
 set local role authenticated;
+
+select pg_temp.connecter('00000a03-0000-0000-0000-000000000009');
+select is((select count(*)::int from public.horaires where salon_id = '0000000a-0000-0000-0000-000000000009'),
+  1, 'Client de A : lit les horaires de A');
+select is((select count(*)::int from public.absences), 0, 'Client de A : aucune absence lisible');
+
+select pg_temp.connecter('00000b02-0000-0000-0000-000000000009');
+select is((select count(*)::int from public.horaires where salon_id = '0000000a-0000-0000-0000-000000000009'),
+  0, 'Coiffeur de B : horaires de A illisibles');
+select is((select count(*)::int from public.absences where salon_id = '0000000a-0000-0000-0000-000000000009'),
+  0, 'Coiffeur de B : absences de A illisibles');
+
+select pg_temp.connecter('00000a02-0000-0000-0000-000000000009');
+select is((select count(*)::int from public.horaires), 1, 'Coiffeur de A : lit les horaires de son salon');
+select is((select count(*)::int from public.absences), 1, 'Coiffeur de A : lit son absence');
 
 -- ------------------------------------------------------------
 -- Coiffeur non gérant : aucune écriture (BNF-3)
@@ -289,6 +320,32 @@ select lives_ok(
      values ('00000a02-0000-0000-0000-000000000009', '0000f0a1-0000-0000-0000-000000000009') $$,
   'Gérant A : rend la Coupe à cA');
 select is(pg_temp.creneaux_lundi(), 3::bigint, 'Compétence rendue : 3 créneaux de nouveau');
+
+-- ------------------------------------------------------------
+-- Allonger une prestation ne change pas les rendez-vous existants : la fin
+-- est enregistrée au moment de la réservation (reserver(), #6)
+-- ------------------------------------------------------------
+
+select pg_temp.connecter('00000a03-0000-0000-0000-000000000009');
+select results_eq(
+  $$ select fin from public.reserver('0000f0a1-0000-0000-0000-000000000009', '2030-01-07 09:00+01') $$,
+  $$ values ('2030-01-07 09:30+01'::timestamptz) $$,
+  'Client A réserve la Coupe (30 min) lundi 9h : fin 9h30');
+
+select pg_temp.connecter('00000a01-0000-0000-0000-000000000009');
+select is(pg_temp.lignes($$ update public.prestations set duree_minutes = 60 where id = '0000f0a1-0000-0000-0000-000000000009' $$),
+  1, 'Gérant A : allonge la Coupe à 60 min');
+
+reset role;
+select results_eq(
+  $$ select debut, fin from public.reservations
+      where prestation_id = '0000f0a1-0000-0000-0000-000000000009' and statut <> 'annulee' $$,
+  $$ values ('2030-01-07 09:00+01'::timestamptz, '2030-01-07 09:30+01'::timestamptz) $$,
+  'Le rendez-vous garde sa fin (9h30), pas debut + nouvelle durée');
+set local role authenticated;
+select pg_temp.connecter('00000a01-0000-0000-0000-000000000009');
+-- 60 min dans la plage 9h-10h : seul 9h00 tiendrait, et il chevauche le rendez-vous.
+select is(pg_temp.creneaux_lundi(), 0::bigint, 'La nouvelle durée vaut pour les nouveaux créneaux seulement');
 
 -- ------------------------------------------------------------
 -- Après coup, hors RLS : ce que les autres ont tenté n'a rien changé

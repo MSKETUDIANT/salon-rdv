@@ -1,4 +1,5 @@
--- Issue #3 : RLS de horaires (lecture publique, gestion par le gérant du salon).
+-- Issue #3 : RLS de horaires (gestion par le gérant du salon). Depuis #9,
+-- lecture réservée aux comptes du salon (configuration_salon.test.sql).
 begin;
 
 create extension if not exists pgtap with schema extensions;
@@ -76,10 +77,11 @@ reset role;
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 
-select is(
-  (select count(*)::int from public.horaires where id in ('0000e0a1-0000-0000-0000-000000000000', '0000e0b1-0000-0000-0000-000000000000')),
-  2,
-  'anon : lit les horaires de A et B'
+select throws_ok(
+  $$ select count(*) from public.horaires $$,
+  '42501',
+  null,
+  'anon : lecture des horaires refusée (#9)'
 );
 
 select throws_ok(

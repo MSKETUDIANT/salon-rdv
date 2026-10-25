@@ -76,9 +76,11 @@ reset role;
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
 
-select is_empty(
+select throws_ok(
   $$ select id from public.absences $$,
-  'anon : aucune absence visible'
+  '42501',
+  null,
+  'anon : aucune absence lisible (droit de lecture retiré en #9)'
 );
 
 -- Agit en tant que Client A (a3).

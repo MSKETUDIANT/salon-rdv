@@ -111,7 +111,7 @@ select policies_are('public', 'competences', array[
 ], 'competences : liste exacte des policies');
 
 select policies_are('public', 'horaires', array[
-  'horaires : lecture publique',
+  'horaires : lecture par les comptes du salon',
   'horaires : gérant crée',
   'horaires : gérant modifie',
   'horaires : gérant supprime'

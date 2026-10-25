@@ -3,8 +3,8 @@
 -- Les écritures sur horaires, absences, prestations et compétences sont déjà
 -- réservées au gérant du salon par les policies de l'issue #3 (relues pour
 -- #9, sans faille trouvée ; tests : supabase/tests/configuration_salon.test.sql).
--- Cette migration ne touche à aucune policy : elle ferme trois cas que les
--- policies laissaient passer.
+-- Cette migration ferme trois cas que les policies laissaient passer, et
+-- réserve la lecture des horaires et des absences aux comptes du salon.
 
 -- ============================================================
 -- prestations : le salon d'une prestation ne change pas
@@ -36,3 +36,28 @@ alter table public.horaires
     jour_semaine with =,
     tsrange(date '2000-01-03' + heure_debut, date '2000-01-03' + heure_fin, '[)') with &&
   );
+
+-- ============================================================
+-- horaires et absences : jamais lisibles sans compte
+-- ============================================================
+
+-- Les horaires de l'équipe étaient lisibles par tous (#3). Le site n'en a pas
+-- besoin : creneaux_disponibles et reserver() les lisent eux-mêmes (security
+-- definer). Lecture réservée aux comptes qui ont un rôle dans le salon
+-- (gérant, coiffeur, client), par la policy « lecture de ses rôles » (#3).
+drop policy "horaires : lecture publique" on public.horaires;
+
+create policy "horaires : lecture par les comptes du salon"
+  on public.horaires for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.roles_utilisateur ru
+       where ru.utilisateur_id = (select auth.uid())
+         and ru.salon_id = horaires.salon_id
+    )
+  );
+
+-- Absences : aucune policy pour anon depuis #3 ; le droit de lecture est
+-- retiré aussi, comme pour les horaires (double protection).
+revoke select on public.horaires, public.absences from anon;
