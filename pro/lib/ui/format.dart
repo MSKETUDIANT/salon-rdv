@@ -64,3 +64,13 @@ String formatDate(DateTime d) {
   final texte = DateFormat('EEEE d MMMM', 'fr').format(d);
   return texte[0].toUpperCase() + texte.substring(1);
 }
+
+// Téléphone tel que Supabase Auth le stocke (« 21620000000 ») : « +216 20 000
+// 000 » pour un numéro tunisien, sinon « + » suivi des chiffres.
+String formatTelephone(String brut) {
+  final chiffres = brut.replaceAll(RegExp(r'\D'), '');
+  if (chiffres.length == 11 && chiffres.startsWith('216')) {
+    return '+216 ${chiffres.substring(3, 5)} ${chiffres.substring(5, 8)} ${chiffres.substring(8)}';
+  }
+  return chiffres.isEmpty ? brut : '+$chiffres';
+}

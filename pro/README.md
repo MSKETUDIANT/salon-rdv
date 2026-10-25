@@ -47,7 +47,11 @@ En distant, le gérant est créé selon `docs/premier-gerant.md`.
 - `lib/features/` : écrans (connexion, aiguillage selon les rôles, espaces).
   `lib/features/gerant/` : configuration du salon (#9), c'est-à-dire
   prestations, équipe, et pour chaque coiffeur ses horaires, absences et
-  compétences.
+  compétences. `lib/features/planning/` : plannings (#10), « Mon planning »
+  du coiffeur (jour, semaine, détail) et planning de l'équipe pour le
+  gérant.
+- `lib/data/planning.dart` : rendez-vous par la fonction SQL `planning()` (le
+  coiffeur ne reçoit que les siens, nom et téléphone du client seulement).
 - `lib/data/salon.dart` : lectures et écritures de la configuration. Les
   droits sont vérifiés par la base (RLS) : l'app ne fait qu'afficher les
   refus.

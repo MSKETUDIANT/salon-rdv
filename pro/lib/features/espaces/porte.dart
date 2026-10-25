@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../data/roles.dart';
+import '../../data/planning.dart';
 import '../../data/salon.dart';
 import '../../data/session.dart';
 import '../../ui/charte.dart';
@@ -20,11 +21,13 @@ class Porte extends StatefulWidget {
     required this.auth,
     required this.roles,
     required this.salon,
+    required this.planning,
   });
 
   final ServiceAuth auth;
   final DepotRoles roles;
   final DepotSalon salon;
+  final DepotPlanning planning;
 
   @override
   State<Porte> createState() => _PorteState();
@@ -164,6 +167,7 @@ class _PorteState extends State<Porte> {
     final autres = espaces.where((e) => e != espace).toList();
     return EcranEspace(
       salon: widget.salon,
+      planning: widget.planning,
       espace: espace,
       compte: _compte!,
       autreEspace: autres.isEmpty ? null : autres.first,
