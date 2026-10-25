@@ -53,13 +53,16 @@ insert into public.absences (id, salon_id, coiffeur_id, debut, fin, motif) value
   ('0000d0b1-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000', '000000b2-0000-0000-0000-000000000000',
    '2026-11-09 09:00+00', '2026-11-09 18:00+00', 'Formation B');
 
--- Réservations : c0a1 (client a3) et c0a2 (client a4) confirmées, c0a3 (a3)
--- terminée ; c0b1 confirmée et c0b2 terminée (client b3).
+-- Réservations : c0a1 (client a3) confirmée ; c0a2 (client a4) et c0a5 (a3),
+-- passées sans encaissement, et c0a3 (a3) terminées ; c0b1 confirmée et c0b2 terminée
+-- (client b3). Depuis #11, seul un rendez-vous terminé est encaissable.
 insert into public.reservations (id, salon_id, client_id, coiffeur_id, prestation_id, debut, fin, statut) values
   ('0000c0a1-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
    '0000f0a1-0000-0000-0000-000000000000', '2026-11-02 10:00+00', '2026-11-02 10:30+00', 'confirmee'),
   ('0000c0a2-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a4-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
-   '0000f0a1-0000-0000-0000-000000000000', '2026-11-02 11:00+00', '2026-11-02 11:30+00', 'confirmee'),
+   '0000f0a1-0000-0000-0000-000000000000', now() - interval '30 days', now() - interval '30 days' + interval '30 minutes', 'terminee'),
+  ('0000c0a5-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
+   '0000f0a1-0000-0000-0000-000000000000', now() - interval '31 days', now() - interval '31 days' + interval '30 minutes', 'terminee'),
   ('0000c0a3-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
    '0000f0a1-0000-0000-0000-000000000000', '2026-10-26 10:00+00', '2026-10-26 10:30+00', 'terminee'),
   ('0000c0b1-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000', '000000b3-0000-0000-0000-000000000000', '000000b2-0000-0000-0000-000000000000',
@@ -90,7 +93,7 @@ select lives_ok(
 
 select throws_ok(
   $$ insert into public.encaissements (reservation_id, montant, encaisse_par)
-     values ('0000c0a1-0000-0000-0000-000000000000', 20, '000000a2-0000-0000-0000-000000000000') $$,
+     values ('0000c0a5-0000-0000-0000-000000000000', 20, '000000a2-0000-0000-0000-000000000000') $$,
   '42501',
   null,
   'Gérant A : encaissement au nom d''un autre refusé'
@@ -142,7 +145,7 @@ select is_empty(
 
 select throws_ok(
   $$ insert into public.encaissements (reservation_id, montant, encaisse_par)
-     values ('0000c0a1-0000-0000-0000-000000000000', 20, '000000a2-0000-0000-0000-000000000000') $$,
+     values ('0000c0a5-0000-0000-0000-000000000000', 20, '000000a2-0000-0000-0000-000000000000') $$,
   '42501',
   null,
   'Coiffeur A : enregistrer un encaissement refusé'
@@ -172,7 +175,8 @@ select is_empty(
 reset role;
 
 select results_eq(
-  $$ select id, montant from public.encaissements order by id $$,
+  $$ select id, montant from public.encaissements
+      where reservation_id::text like '0000c0%' order by id $$,
   $$ values ('0000b0a1-0000-0000-0000-000000000000'::uuid, 22.000), ('0000b0a2-0000-0000-0000-000000000000'::uuid, 20.000), ('0000b0b1-0000-0000-0000-000000000000'::uuid, 30.000) $$,
   'Encaissements : A modifié et ajouté, B intact, rien de supprimé'
 );

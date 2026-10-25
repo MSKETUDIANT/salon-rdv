@@ -411,6 +411,27 @@ export type Database = {
           fin: string
         }[]
       }
+      historique: {
+        Args: {
+          p_au: string
+          p_coiffeur?: string
+          p_du: string
+          p_salon: string
+        }
+        Returns: {
+          client_nom: string
+          coiffeur: string
+          coiffeur_id: string
+          debut: string
+          encaisse_le: string
+          fin: string
+          id: string
+          montant: number
+          prestation: string
+          prix: number
+          statut: Database["public"]["Enums"]["statut_reservation"]
+        }[]
+      }
       mes_reservations: {
         Args: { p_salon: string }
         Returns: {
@@ -440,7 +461,9 @@ export type Database = {
           duree_minutes: number
           fin: string
           id: string
+          montant_encaisse: number
           prestation: string
+          prix: number
           statut: Database["public"]["Enums"]["statut_reservation"]
         }[]
       }
