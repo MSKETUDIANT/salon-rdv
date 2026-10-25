@@ -7,7 +7,8 @@ import '../../ui/format.dart';
 import 'elements_planning.dart';
 
 // Planning du coiffeur connecté (BF-K1) : vue Jour (heures hors horaires
-// grisées) et vue Semaine ; appui sur un rendez-vous pour le détail (BF-K2).
+// grisées) et vue Semaine ; appui sur un rendez-vous pour le détail (BF-K2)
+// et la clôture : terminé, client absent (BF-K3, BF-K4).
 // Relu à l'ouverture, à chaque changement de date, en tirant la liste vers
 // le bas ou avec le bouton « Actualiser ».
 class EcranMonPlanning extends StatefulWidget {
@@ -22,14 +23,14 @@ enum _Vue { jour, semaine }
 
 class _EcranMonPlanningState extends State<EcranMonPlanning> {
   _Vue _vue = _Vue.jour;
+  DateTime? _maintenant;
   DateTime? _aujourdhui;
   DateTime? _jour;
   int _version = 0;
 
   Future<(DateTime, DonneesPlanning)> _lire() async {
-    _aujourdhui ??= DateUtils.dateOnly(
-      await widget.planning.maintenantAuSalon(),
-    );
+    _maintenant = await widget.planning.maintenantAuSalon();
+    _aujourdhui ??= DateUtils.dateOnly(_maintenant!);
     final jour = _jour ??= _aujourdhui!;
     final du = _vue == _Vue.jour ? jour : lundiDe(jour);
     final au = _vue == _Vue.jour ? jour : du.add(const Duration(days: 6));
@@ -47,6 +48,20 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
   });
 
   void _actualiser() => setState(() => _version++);
+
+  // Fiche d'un rendez-vous ; après une clôture, message et relecture.
+  Future<void> _ouvrir(RendezVous r) async {
+    final message = await afficherRendezVous(
+      context,
+      r,
+      planning: widget.planning,
+      maintenant: _maintenant!,
+      gerant: false,
+    );
+    if (message == null || !mounted) return;
+    confirmer(context, message);
+    _actualiser();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +128,12 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
                     ),
                     const SizedBox(height: Espaces.s3),
                     if (_vue == _Vue.jour)
-                      _VueJour(jour: jour, donnees: donnees, coiffeur: moi)
+                      _VueJour(
+                        jour: jour,
+                        donnees: donnees,
+                        coiffeur: moi,
+                        surRendezVous: _ouvrir,
+                      )
                     else
                       _VueSemaine(
                         lundi: lundi,
@@ -141,10 +161,12 @@ class _VueJour extends StatelessWidget {
     required this.jour,
     required this.donnees,
     required this.coiffeur,
+    required this.surRendezVous,
   });
   final DateTime jour;
   final DonneesPlanning donnees;
   final String coiffeur;
+  final ValueChanged<RendezVous> surRendezVous;
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +201,7 @@ class _VueJour extends StatelessWidget {
                   plages: plages,
                   absences: donnees.absencesDu(coiffeur, jour),
                   rendezVous: rdv,
-                  surRendezVous: (r) => afficherRendezVous(context, r),
+                  surRendezVous: surRendezVous,
                 ),
               ),
             ],

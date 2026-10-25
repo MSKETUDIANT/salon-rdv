@@ -185,6 +185,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Espace gérant'), findsOneWidget);
 
+      // Depuis #11 (carte Historique), le bouton est sous le pli à 800 × 600.
+      await tester.ensureVisible(find.text('Passer à l\'espace coiffeur'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Passer à l\'espace coiffeur'));
       await tester.pumpAndSettle();
       expect(find.text('Espace coiffeur'), findsOneWidget);

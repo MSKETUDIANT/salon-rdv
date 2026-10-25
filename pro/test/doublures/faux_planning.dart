@@ -25,6 +25,7 @@ class FauxPlanning implements DepotPlanning {
       dureeMinutes: 30,
       clientNom: 'Salma',
       clientTelephone: '21620000000',
+      prix: 20,
     ),
     RendezVous(
       id: 'r2',
@@ -35,6 +36,7 @@ class FauxPlanning implements DepotPlanning {
       prestation: 'Couleur',
       dureeMinutes: 45,
       clientNom: 'Karim',
+      prix: 80,
     ),
     RendezVous(
       id: 'r3',
@@ -45,6 +47,7 @@ class FauxPlanning implements DepotPlanning {
       prestation: 'Brushing',
       dureeMinutes: 30,
       clientNom: 'Nour',
+      prix: 25,
     ),
   ];
   List<AbsencePlanning> absences = [
@@ -86,7 +89,44 @@ class FauxPlanning implements DepotPlanning {
     ),
   ];
   ErreurSalon? erreur;
+  // Refus de la base pour les actions (clôture, encaissement).
+  ErreurSalon? erreurAction;
   final appels = <String>[];
+  // « r1 terminee », « r2 encaisse 18.5 », « r2 corrige 19.0 ».
+  final actions = <String>[];
+  List<LigneHistorique> lignesHistorique = [
+    LigneHistorique(
+      id: 'r2',
+      coiffeurId: 'c2',
+      coiffeur: 'Youssef',
+      debut: DateTime(2030, 1, 7, 9),
+      statut: StatutRendezVous.terminee,
+      prestation: 'Couleur',
+      prix: 80,
+      clientNom: 'Karim',
+      montant: 75,
+    ),
+    LigneHistorique(
+      id: 'r4',
+      coiffeurId: 'c1',
+      coiffeur: 'Amira',
+      debut: DateTime(2030, 1, 7, 9, 30),
+      statut: StatutRendezVous.terminee,
+      prestation: 'Coupe',
+      prix: 20,
+      clientNom: 'Salma',
+    ),
+    LigneHistorique(
+      id: 'r5',
+      coiffeurId: 'c1',
+      coiffeur: 'Amira',
+      debut: DateTime(2030, 1, 8, 11),
+      statut: StatutRendezVous.absent,
+      prestation: 'Brushing',
+      prix: 25,
+      clientNom: 'Nour',
+    ),
+  ];
 
   String _date(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
@@ -123,5 +163,38 @@ class FauxPlanning implements DepotPlanning {
           if (pourLui(p.coiffeurId)) p,
       ],
     );
+  }
+
+  Future<void> _action(String texte) async {
+    final e = erreurAction;
+    if (e != null) throw e;
+    actions.add(texte);
+  }
+
+  @override
+  Future<void> cloturer(String rendezVousId, StatutRendezVous statut) =>
+      _action('$rendezVousId ${statut.name}');
+
+  @override
+  Future<void> encaisser(String rendezVousId, double montant) =>
+      _action('$rendezVousId encaisse $montant');
+
+  @override
+  Future<void> corrigerEncaissement(String rendezVousId, double montant) =>
+      _action('$rendezVousId corrige $montant');
+
+  @override
+  Future<List<LigneHistorique>> historique(
+    DateTime du,
+    DateTime au, {
+    String? coiffeurId,
+  }) async {
+    appels.add('historique ${_date(du)}..${_date(au)} ${coiffeurId ?? 'tous'}');
+    final e = erreur;
+    if (e != null) throw e;
+    return [
+      for (final l in lignesHistorique)
+        if (coiffeurId == null || l.coiffeurId == coiffeurId) l,
+    ];
   }
 }
