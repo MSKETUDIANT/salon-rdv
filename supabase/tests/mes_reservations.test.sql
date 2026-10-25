@@ -4,7 +4,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(23);
+select plan(28);
 
 -- Jeu de données : salon 1 à Tunis (UTC+1), salon 2.
 --   A : coiffeur du salon 1, lundi 9h-12h, sait faire Coupe (30 min).
@@ -98,6 +98,18 @@ select is(
   pg_get_function_arguments('public.annuler_reservation(uuid)'::regprocedure),
   'p_reservation uuid',
   'annuler_reservation : aucun paramètre client (le client vient de auth.uid())');
+
+select ok(
+  not has_function_privilege('anon', 'public.mes_reservations(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.annuler_reservation(uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.mes_reservations(uuid)', 'execute')
+  and has_function_privilege('authenticated', 'public.annuler_reservation(uuid)', 'execute')
+  and not exists (
+    select 1 from pg_proc p, aclexplode(p.proacl) a
+     where p.oid in ('public.mes_reservations(uuid)'::regprocedure,
+                     'public.annuler_reservation(uuid)'::regprocedure)
+       and a.grantee = 0),
+  'Exécution : authenticated seulement (ni public ni anon)');
 
 -- ------------------------------------------------------------
 -- Sans compte
@@ -216,6 +228,38 @@ select is(pg_temp.creneau_9h_libre(), 1::bigint, 'Après : 9h est de nouveau pro
 select throws_ok(
   $$ select * from public.annuler_reservation('00000000-0000-0000-0000-0000000000f1') $$,
   'PT409', 'Cette réservation ne peut plus être annulée', 'Annuler deux fois : PT409');
+
+-- ------------------------------------------------------------
+-- Réserver, annuler, puis réserver le même créneau : réussit
+-- (creneaux_disponibles, reserver() et la contrainte d'exclusion ignorent
+-- les réservations annulées). Lundi 7 janvier 2030 11h30, coiffeur A.
+-- ------------------------------------------------------------
+
+select results_eq(
+  $$ select coiffeur_id from public.reserver('00000000-0000-0000-0000-0000000000e1',
+       '2030-01-07 11:30+01', '00000000-0000-0000-0000-0000000000a1') $$,
+  $$ values ('00000000-0000-0000-0000-0000000000a1'::uuid) $$,
+  'Client 1 réserve A à 11h30');
+
+select pg_temp.connecter('00000000-0000-0000-0000-0000000000c2');
+select throws_ok(
+  $$ select * from public.reserver('00000000-0000-0000-0000-0000000000e1',
+       '2030-01-07 11:30+01', '00000000-0000-0000-0000-0000000000a1') $$,
+  'PT409', 'Ce créneau n''est plus disponible', 'Client 2 : 11h30 chez A est pris');
+
+select pg_temp.connecter('00000000-0000-0000-0000-0000000000c1');
+select lives_ok(
+  $$ select public.annuler_reservation(r.id)
+       from public.mes_reservations('00000000-0000-0000-0000-000000000001') r
+      where r.debut = '2030-01-07 11:30+01' and r.statut = 'confirmee' $$,
+  'Client 1 annule sa réservation de 11h30');
+
+select pg_temp.connecter('00000000-0000-0000-0000-0000000000c2');
+select results_eq(
+  $$ select coiffeur_id, debut from public.reserver('00000000-0000-0000-0000-0000000000e1',
+       '2030-01-07 11:30+01', '00000000-0000-0000-0000-0000000000a1') $$,
+  $$ values ('00000000-0000-0000-0000-0000000000a1'::uuid, '2030-01-07 11:30+01'::timestamptz) $$,
+  'Client 2 réserve le même créneau après l''annulation : réussi');
 
 reset role;
 
