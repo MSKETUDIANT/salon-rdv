@@ -50,6 +50,7 @@ describe("formats et liens", () => {
   it("retour aux créneaux avec la prestation et le filtre coiffeur", () => {
     expect(lienCreneaux("p1", "a")).toBe("/reserver/creneaux?prestation=p1&coiffeur=a");
     expect(lienCreneaux("p1")).toBe("/reserver/creneaux?prestation=p1");
+    expect(lienCreneaux("p1", "a", true)).toBe("/reserver/creneaux?prestation=p1&coiffeur=a&pris=1");
   });
 
   it("e-mail et code à 6 chiffres", () => {

@@ -84,10 +84,12 @@ test("BNF-1 : deux validations simultanées du même créneau, une seule réussi
   await Promise.all(
     clients.map((page) => page.getByRole("button", { name: "Confirmer la réservation" }).click()),
   );
+  // Le gagnant voit la confirmation ; le perdant est renvoyé tout seul sur
+  // l'écran 2 (#51). Jamais d'écran sans l'un ou l'autre.
   const issues = await Promise.all(
     clients.map(async (page) => {
       const confirmee = page.getByRole("heading", { name: "Réservation confirmée" });
-      const prise = page.getByText("Ce créneau vient d'être pris. Choisissez-en un autre.");
+      const prise = page.getByRole("alert").filter({ hasText: "Ce créneau vient d'être pris. Choisissez-en un autre." });
       await expect(confirmee.or(prise)).toBeVisible();
       return (await confirmee.isVisible()) ? "confirmee" : "prise";
     }),
@@ -98,10 +100,18 @@ test("BNF-1 : deux validations simultanées du même créneau, une seule réussi
   const enBase = (await reservationsA(debut)).filter((r) => r.coiffeur_id === SEED.amira);
   expect(enBase).toHaveLength(1);
 
-  // Le perdant revient aux créneaux sans perdre la prestation ni le coiffeur.
+  // Le perdant est sur l'écran 2, prestation et coiffeur conservés, liste
+  // relue : des heures proposées, mais plus celle qui vient d'être prise.
   const perdant = clients[issues.indexOf("prise")];
-  await perdant.getByRole("link", { name: "Choisir un autre créneau" }).click();
-  await expect(perdant).toHaveURL(/\/reserver\/creneaux\?/);
+  await expect(perdant).toHaveURL(/\/reserver\/creneaux\?.*pris=1/);
   await expect(perdant.getByRole("heading", { level: 1 })).toHaveText("Coupe homme");
   await expect(perdant.getByLabel("Coiffeur")).toHaveValue(SEED.amira);
+  const heures = perdant.getByRole("link", { name: /^\d{2}:\d{2}$/ });
+  await expect(heures.first()).toBeVisible();
+  const liens = await heures.evaluateAll((elements) => elements.map((e) => e.getAttribute("href") ?? ""));
+  expect(liens.some((href) => href.includes(encodeURIComponent(debut)))).toBe(false);
+
+  // Le retour du navigateur ne ramène pas sur le créneau perdu.
+  await perdant.goBack();
+  await expect(perdant).not.toHaveURL(new RegExp(encodeURIComponent(debut).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });

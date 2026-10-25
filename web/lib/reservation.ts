@@ -34,10 +34,13 @@ export function jourEtHeure(debut: string, fuseau: string): { jour: string; heur
   return { jour: jour.charAt(0).toUpperCase() + jour.slice(1), heure };
 }
 
-// Retour à l'écran 2 sans perdre la prestation ni le filtre coiffeur.
-export function lienCreneaux(prestationId: string, coiffeurId?: string): string {
+// Retour à l'écran 2 sans perdre la prestation ni le filtre coiffeur. pris :
+// le créneau choisi vient d'être pris (#51) ; l'écran 2 relit alors la liste
+// et l'annonce en tête.
+export function lienCreneaux(prestationId: string, coiffeurId?: string, pris = false): string {
   const params = new URLSearchParams({ prestation: prestationId });
   if (coiffeurId) params.set("coiffeur", coiffeurId);
+  if (pris) params.set("pris", "1");
   return `/reserver/creneaux?${params}`;
 }
 
