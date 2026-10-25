@@ -3,7 +3,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(38);
 
 -- Jeu de données : salon à Tunis (UTC+1, sans heure d'été).
 --   A : coiffeur, lundi 9h-12h et 14h-18h (horaire coupé), mardi 9h-17h ;
@@ -312,7 +312,70 @@ select is(
     where oid = 'public.creneaux_disponibles(uuid, date, date, uuid)'::regprocedure),
   true, 'security definer, search_path fixé à vide');
 
--- 30. BF-C1 : un visiteur sans compte voit les créneaux...
+-- Issue #12 (BNF-2) : branches de la règle encore sans test.
+
+-- 30. Prestation inconnue : aucun créneau (pas d'erreur).
+select is_empty(
+  $$ select * from public.creneaux_disponibles(
+       '00000000-0000-0000-0000-00000000dead', '2030-01-07', '2030-01-07') $$,
+  'Prestation inconnue : aucun créneau');
+
+-- 31-32. Seule une réservation annulée libère le créneau : une réservation
+--        terminée ou « client absent » bloque comme une confirmée (A, mardi
+--        14h et 15h ; ajoutées ici pour ne pas changer les décomptes plus haut).
+insert into public.reservations (salon_id, client_id, coiffeur_id, prestation_id, debut, fin, statut) values
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000c1',
+   '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000f1',
+   '2030-01-08 14:00+01', '2030-01-08 14:30+01', 'terminee'),
+  ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000c1',
+   '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000f1',
+   '2030-01-08 15:00+01', '2030-01-08 15:30+01', 'absent');
+
+select is((select count(*) from public.creneaux_disponibles(
+            '00000000-0000-0000-0000-0000000000f1', '2030-01-08', '2030-01-08',
+            '00000000-0000-0000-0000-0000000000a1')
+          where debut < '2030-01-08 14:30+01' and fin > '2030-01-08 14:00+01'),
+  0::bigint, 'Réservation terminée : aucun créneau ne la chevauche');
+
+select is((select count(*) from public.creneaux_disponibles(
+            '00000000-0000-0000-0000-0000000000f1', '2030-01-08', '2030-01-08',
+            '00000000-0000-0000-0000-0000000000a1')
+          where debut < '2030-01-08 15:30+01' and fin > '2030-01-08 15:00+01'),
+  0::bigint, 'Réservation « client absent » : aucun créneau ne la chevauche');
+
+-- 33-35. Changement d'heure (salon 3 à Paris, préparation du multi-salons) :
+--        G travaille le dimanche 9h-10h, heure de Paris. Dimanche 24 mars 2030
+--        (UTC+1) : 9h = 8h UTC ; dimanche 31 mars 2030, jour du passage à
+--        l'heure d'été (UTC+2) : 9h = 7h UTC. Même nombre de créneaux.
+insert into public.salons (id, nom, fuseau_horaire) values
+  ('00000000-0000-0000-0000-000000000003', 'Salon Paris', 'Europe/Paris');
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000a7', 'coiffeur-g@creneaux.test', '{"nom":"Coiffeur G"}');
+insert into public.roles_utilisateur (utilisateur_id, salon_id, role) values
+  ('00000000-0000-0000-0000-0000000000a7', '00000000-0000-0000-0000-000000000003', 'coiffeur');
+insert into public.prestations (id, salon_id, nom, prix, duree_minutes) values
+  ('00000000-0000-0000-0000-0000000000f7', '00000000-0000-0000-0000-000000000003', 'Coupe Paris', 20, 30);
+insert into public.competences (coiffeur_id, prestation_id) values
+  ('00000000-0000-0000-0000-0000000000a7', '00000000-0000-0000-0000-0000000000f7');
+insert into public.horaires (salon_id, coiffeur_id, jour_semaine, heure_debut, heure_fin) values
+  ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-0000000000a7', 7, '09:00', '10:00');
+
+select is((select min(debut) from public.creneaux_disponibles(
+            '00000000-0000-0000-0000-0000000000f7', '2030-03-24', '2030-03-24')),
+  '2030-03-24 08:00+00'::timestamptz, 'Paris, heure d''hiver : 9h = 8h UTC');
+
+select is((select min(debut) from public.creneaux_disponibles(
+            '00000000-0000-0000-0000-0000000000f7', '2030-03-31', '2030-03-31')),
+  '2030-03-31 07:00+00'::timestamptz, 'Paris, jour du passage à l''heure d''été : 9h = 7h UTC');
+
+select results_eq(
+  $$ select count(*) from public.creneaux_disponibles(
+       '00000000-0000-0000-0000-0000000000f7', '2030-03-24', '2030-03-31')
+      group by (debut at time zone 'Europe/Paris')::date order by 1 $$,
+  $$ values (3::bigint), (3::bigint) $$,
+  'Paris : 3 créneaux (9h, 9h15, 9h30) chaque dimanche, avant et après le changement d''heure');
+
+-- 36. BF-C1 : un visiteur sans compte voit les créneaux...
 reset role;
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -321,7 +384,7 @@ select is((select count(*) from public.creneaux_disponibles(
             '00000000-0000-0000-0000-0000000000f1', '2030-01-07', '2030-01-07')),
   21::bigint, 'Visiteur sans compte : voit les 21 créneaux');
 
--- 31. ... sans lire les réservations ni les absences.
+-- 37. ... sans lire les réservations ni les absences.
 -- Absences : droit de lecture retiré à anon en #9 (configuration_salon.test.sql).
 select is((select count(*) from public.reservations), 0::bigint,
   'Visiteur sans compte : aucune réservation ni absence lisible');

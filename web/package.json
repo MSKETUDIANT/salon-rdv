@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint && node scripts/verifier-charte.mjs",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:couverture": "vitest run --coverage",
+    "verifier:bnf": "node scripts/verifier-bnf.mjs",
+    "mesurer:bnf5": "node scripts/bnf5-performance.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
@@ -18,6 +21,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@playwright/test": "1.64.0",
     "@tailwindcss/turbopack": "^4",
     "@testing-library/dom": "^10.4.2",
@@ -26,6 +30,7 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "5.0.5",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "jsdom": "^29.1.1",
