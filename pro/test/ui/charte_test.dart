@@ -129,6 +129,11 @@ void main() {
       );
 
       expect(theme.cardTheme.elevation, 0);
+      expect(
+        (theme.dialogTheme.shape! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.circular(8),
+      );
+      expect(theme.dialogTheme.backgroundColor, Couleurs.surface);
       expect(theme.colorScheme.surfaceTint, Colors.transparent);
     },
   );

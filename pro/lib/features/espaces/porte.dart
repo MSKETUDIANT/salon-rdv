@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../data/roles.dart';
+import '../../data/salon.dart';
 import '../../data/session.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
@@ -14,10 +15,16 @@ import 'ecran_espace.dart';
 //   aucun rôle pro (client seul, ou rien) → accès refusé ;
 //   un seul espace → cet espace ; gérant et coiffeur → choix, puis bascule.
 class Porte extends StatefulWidget {
-  const Porte({super.key, required this.auth, required this.roles});
+  const Porte({
+    super.key,
+    required this.auth,
+    required this.roles,
+    required this.salon,
+  });
 
   final ServiceAuth auth;
   final DepotRoles roles;
+  final DepotSalon salon;
 
   @override
   State<Porte> createState() => _PorteState();
@@ -156,6 +163,7 @@ class _PorteState extends State<Porte> {
 
     final autres = espaces.where((e) => e != espace).toList();
     return EcranEspace(
+      salon: widget.salon,
       espace: espace,
       compte: _compte!,
       autreEspace: autres.isEmpty ? null : autres.first,

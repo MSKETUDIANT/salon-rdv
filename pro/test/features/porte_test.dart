@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salon_pro/app.dart';
 import 'package:salon_pro/data/session.dart';
 
+import '../doublures/faux_salon.dart';
+
 // Doublures : comptes du seed (supabase/seed.sql) et leurs rôles.
 class FausseAuth implements ServiceAuth {
   FausseAuth(this.comptes);
@@ -67,7 +69,7 @@ Future<void> lancer(WidgetTester tester) async {
     'client@salon.test': ['client'],
     'patron@salon.test': ['gerant', 'coiffeur'],
   });
-  await tester.pumpWidget(AppPro(auth: auth, roles: roles));
+  await tester.pumpWidget(AppPro(auth: auth, roles: roles, salon: FauxSalon()));
 }
 
 Future<void> seConnecter(

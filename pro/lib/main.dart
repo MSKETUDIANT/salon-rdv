@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'data/config.dart';
+import 'data/salon.dart';
 import 'data/session.dart';
 import 'ui/charte.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('fr');
 
   final manquantes = Config.manquantes();
   if (manquantes.isNotEmpty) {
@@ -26,6 +29,7 @@ Future<void> main() async {
     AppPro(
       auth: AuthSupabase(client),
       roles: RolesSupabase(client, config.salonId),
+      salon: SalonSupabase(client, config.salonId),
     ),
   );
 }
