@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CartePrestation } from "@/components/reservation/carte-prestation";
 import { BoutonLien } from "@/components/ui/bouton-lien";
+import { LienRetour } from "@/components/ui/lien-retour";
 import { lireCatalogue } from "@/lib/lire-catalogue";
 import { env } from "@/lib/env";
 
@@ -17,6 +18,7 @@ export default async function Reserver() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-4 py-8 sm:px-8">
+      <LienRetour href="/" vers="à l'accueil" />
       <h1 className="font-titre text-2xl font-medium text-texte sm:text-3xl">
         Choisissez une prestation
       </h1>

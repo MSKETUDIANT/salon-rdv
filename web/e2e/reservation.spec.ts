@@ -16,7 +16,7 @@ test("parcours complet en 3 écrans, connexion seulement à l'écran 3, réserva
 
   await page.goto("/");
   const debut = Date.now();
-  await page.getByRole("link", { name: "Réserver" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Réserver" }).click();
 
   // Écran 1 : aucune connexion demandée.
   await page.getByRole("link", { name: /Coupe homme/ }).click();
