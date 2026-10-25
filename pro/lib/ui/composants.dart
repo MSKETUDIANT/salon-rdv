@@ -4,8 +4,9 @@ import 'charte.dart';
 
 // Composants de base de la charte (§4), équivalents de web/components/ui/.
 
-// Champ de saisie : libellé toujours visible au-dessus du champ.
-class Champ extends StatelessWidget {
+// Champ de saisie : libellé toujours visible au-dessus du champ. Un champ mot
+// de passe a un bouton pour afficher ou masquer la saisie.
+class Champ extends StatefulWidget {
   const Champ({
     super.key,
     required this.libelle,
@@ -16,6 +17,7 @@ class Champ extends StatelessWidget {
     this.autofill,
     this.actionClavier,
     this.surValidation,
+    this.focus,
   });
 
   final String libelle;
@@ -25,35 +27,63 @@ class Champ extends StatelessWidget {
   final TextInputType? clavier;
   final Iterable<String>? autofill;
   final TextInputAction? actionClavier;
+  // Touche Entrée (ou action du clavier) : champ suivant, ou validation.
   final VoidCallback? surValidation;
+  final FocusNode? focus;
+
+  @override
+  State<Champ> createState() => _ChampState();
+}
+
+class _ChampState extends State<Champ> {
+  late bool _masque = widget.motDePasse;
 
   @override
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
-    // Libellé visible au-dessus du champ (charte §4), fusionné avec le champ
-    // en un seul nœud d'accessibilité : TalkBack et les lecteurs d'écran du web
-    // annoncent « E-mail, champ de texte », vide ou rempli
-    // (test/ui/champ_semantique_test.dart).
-    return MergeSemantics(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(libelle, style: textes.labelLarge),
-          const SizedBox(height: Espaces.s2),
-          TextField(
-            controller: controleur,
-            obscureText: motDePasse,
-            keyboardType: clavier,
-            autofillHints: autofill,
+    final surValidation = widget.surValidation;
+    // Le libellé visible (exclu de l'accessibilité) est repris sur le nœud du
+    // champ : TalkBack et les lecteurs d'écran du web annoncent « E-mail,
+    // champ de texte », vide ou rempli, puis le message d'erreur ; le bouton
+    // œil reste un bouton distinct (test/ui/champ_semantique_test.dart).
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ExcludeSemantics(child: Text(widget.libelle, style: textes.labelLarge)),
+        const SizedBox(height: Espaces.s2),
+        Semantics(
+          label: widget.libelle,
+          child: TextField(
+            controller: widget.controleur,
+            focusNode: widget.focus,
+            obscureText: _masque,
+            keyboardType: widget.clavier,
+            autofillHints: widget.autofill,
             autocorrect: false,
-            enableSuggestions: !motDePasse,
-            textInputAction: actionClavier,
-            onSubmitted: surValidation == null ? null : (_) => surValidation!(),
+            enableSuggestions: !widget.motDePasse,
+            textInputAction: widget.actionClavier,
+            onSubmitted: surValidation == null ? null : (_) => surValidation(),
             style: textes.bodyLarge,
-            decoration: InputDecoration(errorText: erreur),
+            decoration: InputDecoration(
+              errorText: widget.erreur,
+              suffixIcon: widget.motDePasse
+                  ? IconButton(
+                      onPressed: () => setState(() => _masque = !_masque),
+                      tooltip: _masque
+                          ? 'Afficher le mot de passe'
+                          : 'Masquer le mot de passe',
+                      icon: Icon(
+                        _masque
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: Couleurs.texteSecondaire,
+                      ),
+                    )
+                  : null,
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -68,6 +98,7 @@ class Bouton extends StatelessWidget {
     this.chargement = false,
     this.libelleChargement = 'Chargement…',
     this.secondaire = false,
+    this.pleineLargeur = false,
   });
 
   final String libelle;
@@ -75,6 +106,7 @@ class Bouton extends StatelessWidget {
   final bool chargement;
   final String libelleChargement;
   final bool secondaire;
+  final bool pleineLargeur;
 
   @override
   Widget build(BuildContext context) {
@@ -83,13 +115,16 @@ class Bouton extends StatelessWidget {
     }
 
     final contenu = Text(chargement ? libelleChargement : libelle);
-    return Semantics(
+    final bouton = Semantics(
       // Équivalent de aria-busy.
       liveRegion: chargement,
       child: secondaire
           ? OutlinedButton(onPressed: appui, child: contenu)
           : FilledButton(onPressed: appui, child: contenu),
     );
+    return pleineLargeur
+        ? SizedBox(width: double.infinity, child: bouton)
+        : bouton;
   }
 }
 

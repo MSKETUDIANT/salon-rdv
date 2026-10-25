@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../data/session.dart';
 import '../../ui/charte.dart';
@@ -6,7 +7,8 @@ import '../../ui/composants.dart';
 
 // Connexion de l'équipe : e-mail et mot de passe (comptes créés via #2).
 // « Se connecter » n'est jamais désactivé : au clic, ce qui manque est indiqué
-// près du champ concerné.
+// près du champ concerné. Entrée passe de l'e-mail au mot de passe, puis
+// valide. En cas d'échec, le message ne dit pas lequel des deux est faux.
 class EcranConnexion extends StatefulWidget {
   const EcranConnexion({super.key, required this.auth});
 
@@ -19,6 +21,7 @@ class EcranConnexion extends StatefulWidget {
 class _EcranConnexionState extends State<EcranConnexion> {
   final _email = TextEditingController();
   final _motDePasse = TextEditingController();
+  final _focusMotDePasse = FocusNode();
   String? _erreurEmail;
   String? _erreurMotDePasse;
   String? _erreur;
@@ -28,6 +31,7 @@ class _EcranConnexionState extends State<EcranConnexion> {
   void dispose() {
     _email.dispose();
     _motDePasse.dispose();
+    _focusMotDePasse.dispose();
     super.dispose();
   }
 
@@ -47,6 +51,8 @@ class _EcranConnexionState extends State<EcranConnexion> {
     setState(() => _enCours = true);
     final erreur = await widget.auth.seConnecter(email, _motDePasse.text);
     if (!mounted) return;
+    // Succès : le système propose d'enregistrer les identifiants (autofill).
+    if (erreur == null) TextInput.finishAutofillContext();
     // En cas de succès, la porte (porte.dart) remplace cet écran.
     setState(() {
       _enCours = false;
@@ -83,8 +89,9 @@ class _EcranConnexionState extends State<EcranConnexion> {
                 controleur: _email,
                 erreur: _erreurEmail,
                 clavier: TextInputType.emailAddress,
-                autofill: const [AutofillHints.email],
+                autofill: const [AutofillHints.email, AutofillHints.username],
                 actionClavier: TextInputAction.next,
+                surValidation: _focusMotDePasse.requestFocus,
               ),
               const SizedBox(height: Espaces.s4),
               Champ(
@@ -92,6 +99,7 @@ class _EcranConnexionState extends State<EcranConnexion> {
                 controleur: _motDePasse,
                 erreur: _erreurMotDePasse,
                 motDePasse: true,
+                focus: _focusMotDePasse,
                 autofill: const [AutofillHints.password],
                 actionClavier: TextInputAction.done,
                 surValidation: _seConnecter,
@@ -111,6 +119,7 @@ class _EcranConnexionState extends State<EcranConnexion> {
           const SizedBox(height: Espaces.s3),
         ],
         Bouton(
+          pleineLargeur: true,
           libelle: 'Se connecter',
           libelleChargement: 'Connexion…',
           chargement: _enCours,

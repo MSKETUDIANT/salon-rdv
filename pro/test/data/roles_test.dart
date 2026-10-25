@@ -37,6 +37,14 @@ void main() {
       messageErreurConnexion('invalid_credentials'),
       'E-mail ou mot de passe incorrect.',
     );
+    // Neutre : ne dit pas si l'adresse existe ou si elle est confirmée.
+    for (final code in [
+      'email_not_confirmed',
+      'user_not_found',
+      'user_banned',
+    ]) {
+      expect(messageErreurConnexion(code), 'E-mail ou mot de passe incorrect.');
+    }
     expect(messageErreurConnexion('reseau'), contains('Vérifiez le réseau'));
     expect(
       messageErreurConnexion('autre'),

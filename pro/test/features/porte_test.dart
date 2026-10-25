@@ -108,6 +108,39 @@ void main() {
     },
   );
 
+  testWidgets("Entrée : de l'e-mail au mot de passe, puis connexion", (
+    tester,
+  ) async {
+    await lancer(tester);
+    await tester.tap(find.byType(TextField).at(0));
+    await tester.enterText(find.byType(TextField).at(0), 'amira@salon.test');
+    await tester.testTextInput.receiveAction(TextInputAction.next);
+    await tester.pump();
+    final motDePasse = tester.widget<TextField>(find.byType(TextField).at(1));
+    expect(motDePasse.focusNode!.hasFocus, isTrue);
+
+    await tester.enterText(find.byType(TextField).at(1), 'motdepasse');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('Espace coiffeur'), findsOneWidget);
+  });
+
+  testWidgets('connexion : clavier e-mail, autofill, bouton pleine largeur', (
+    tester,
+  ) async {
+    await lancer(tester);
+    final email = tester.widget<TextField>(find.byType(TextField).at(0));
+    final motDePasse = tester.widget<TextField>(find.byType(TextField).at(1));
+    expect(email.keyboardType, TextInputType.emailAddress);
+    expect(email.autofillHints, contains(AutofillHints.email));
+    expect(motDePasse.autofillHints, [AutofillHints.password]);
+    expect(motDePasse.obscureText, isTrue);
+    expect(
+      tester.getSize(find.byType(FilledButton)).width,
+      tester.getSize(find.byType(TextField).at(0)).width,
+    );
+  });
+
   testWidgets('coiffeur : directement dans son espace, sans bascule', (
     tester,
   ) async {

@@ -49,13 +49,16 @@ class AuthSupabase implements ServiceAuth {
   Future<void> seDeconnecter() => _client.auth.signOut();
 }
 
-// Messages des erreurs de connexion (codes de Supabase Auth).
+// Messages des erreurs de connexion (codes de Supabase Auth). Message neutre
+// pour tout ce qui touche au compte : il ne révèle ni si l'adresse existe, ni
+// si elle est confirmée.
 String messageErreurConnexion(String? code) {
   switch (code) {
     case 'invalid_credentials':
-      return 'E-mail ou mot de passe incorrect.';
     case 'email_not_confirmed':
-      return 'Adresse e-mail pas encore confirmée.';
+    case 'user_not_found':
+    case 'user_banned':
+      return 'E-mail ou mot de passe incorrect.';
     case 'over_request_rate_limit':
       return 'Trop de tentatives. Réessayez dans une minute.';
     case 'reseau':
