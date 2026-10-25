@@ -87,6 +87,15 @@ pour la CI le jour où #19 sera débloquée.
       autre. » en tête (capture de Sparta) ; une seule ligne en base.
     - **Contrôle de la base de production** : 0 chevauchement de
       réservations non annulées pour un même coiffeur.
+    - **Étape intermédiaire relevée par Sparta** : avant la liste, le perdant
+      voyait d'abord, sur l'écran 3, « Ce créneau vient d'être pris. Retour
+      aux créneaux… » et un bouton « Choisir un autre créneau », le temps du
+      renvoi (visible plus longtemps en production sur téléphone).
+      **Corrigé** (#51, seconde PR) : rien ne s'affiche plus sur l'écran 3 ;
+      le bouton reste « Réservation… » jusqu'à la liste, préchargée dès
+      l'ouverture de l'écran 3. Le test de bout en bout enregistre tous les
+      messages vus par le perdant : un seul, celui de la liste (le test
+      échoue avec l'ancien comportement).
 - **Autres tests** : `reservations_chevauchement.test.sql` (chevauchements,
   bout à bout autorisé, annulée libère), `reserver.test.sql`, et dans
   `reservation.spec.ts` deux clients qui valident en même temps dans deux
