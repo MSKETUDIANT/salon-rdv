@@ -225,6 +225,25 @@ ThemeData themeCharte() {
         side: const BorderSide(color: Couleurs.separateur),
       ),
     ),
+    // Dialogue : surface, coins de 8 px (Material 3 en met 28), sans teinte.
+    dialogTheme: DialogThemeData(
+      backgroundColor: Couleurs.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(rayon)),
+      titleTextStyle: textes.titleLarge,
+      contentTextStyle: textes.bodyLarge,
+    ),
+    // Sélecteurs de date et d'heure : mêmes coins, sans teinte.
+    datePickerTheme: DatePickerThemeData(
+      backgroundColor: Couleurs.surface,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(rayon)),
+    ),
+    timePickerTheme: TimePickerThemeData(
+      backgroundColor: Couleurs.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(rayon)),
+    ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: Couleurs.accent,
     ),

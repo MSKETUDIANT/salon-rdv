@@ -140,23 +140,94 @@ class PageCharte extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: actions.isEmpty ? null : AppBar(actions: actions),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: Espaces.s4,
-            vertical: Espaces.s8,
+      body: ListeCharte(enfants: enfants, haut: Espaces.s8),
+    );
+  }
+}
+
+// Corps défilant d'un écran, pour les écrans qui ont leur propre barre de
+// titre (retour) : mêmes marges et même largeur que PageCharte.
+class ListeCharte extends StatelessWidget {
+  const ListeCharte({super.key, required this.enfants, this.haut = Espaces.s4});
+
+  final List<Widget> enfants;
+  final double haut;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(Espaces.s4, haut, Espaces.s4, Espaces.s8),
+        // Toute la largeur disponible jusqu'à 672 px, même quand le contenu
+        // est étroit : le texte reste aligné à gauche, comme sur le site.
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 672),
+            child: SizedBox(
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: enfants,
+              ),
+            ),
           ),
-          // Toute la largeur disponible jusqu'à 672 px, même quand le contenu
-          // est étroit : le texte reste aligné à gauche, comme sur le site.
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 672),
-              child: SizedBox(
-                width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: enfants,
-                ),
+        ),
+      ),
+    );
+  }
+}
+
+// Entrée de menu : carte entière cliquable (bordure `bordure`, charte §4),
+// titre, description et chevron.
+class CarteLien extends StatelessWidget {
+  const CarteLien({
+    super.key,
+    required this.titre,
+    required this.description,
+    required this.surAppui,
+  });
+
+  final String titre;
+  final String description;
+  final VoidCallback surAppui;
+
+  @override
+  Widget build(BuildContext context) {
+    final textes = Theme.of(context).textTheme;
+    return Semantics(
+      button: true,
+      child: Material(
+        color: Couleurs.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(rayon),
+          side: const BorderSide(color: Couleurs.bordure),
+        ),
+        child: InkWell(
+          onTap: surAppui,
+          borderRadius: BorderRadius.circular(rayon),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: zoneTactileMin),
+            child: Padding(
+              padding: const EdgeInsets.all(Espaces.s4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(titre, style: textes.titleMedium),
+                        const SizedBox(height: Espaces.s1),
+                        Text(description, style: textes.bodySmall),
+                      ],
+                    ),
+                  ),
+                  const ExcludeSemantics(
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: Couleurs.texteSecondaire,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

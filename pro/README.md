@@ -32,7 +32,7 @@ Mot de passe : `motdepasse`.
 | Compte | Rôles | Ce que montre l'app |
 | --- | --- | --- |
 | `amira@salon.test` | coiffeur | espace coiffeur |
-| `gerant@salon.test` | gérant, client | espace gérant |
+| `gerant@salon.test` | gérant, client | espace gérant : prestations, équipe |
 | `patron@salon.test` | gérant, coiffeur, client | choix de l'espace, puis bascule |
 | `client@salon.test` | client | accès refusé |
 
@@ -45,4 +45,10 @@ En distant, le gérant est créé selon `docs/premier-gerant.md`.
 - `lib/data/` : configuration, accès à Supabase (`session.dart`), espaces selon
   les rôles (`roles.dart`).
 - `lib/features/` : écrans (connexion, aiguillage selon les rôles, espaces).
+  `lib/features/gerant/` : configuration du salon (#9), c'est-à-dire
+  prestations, équipe, et pour chaque coiffeur ses horaires, absences et
+  compétences.
+- `lib/data/salon.dart` : lectures et écritures de la configuration. Les
+  droits sont vérifiés par la base (RLS) : l'app ne fait qu'afficher les
+  refus.
 - Polices Newsreader et Figtree embarquées (`assets/fonts/`, licence OFL).

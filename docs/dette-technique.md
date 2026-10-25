@@ -36,3 +36,13 @@ client et la cohérence du salon. Depuis #6, elle est supprimée : la fonction
   `salons.delai_annulation_minutes` (défaut 0), modifiable par le gérant dans
   l'app pro (configuration du salon, BF-G1 à G3), utilisée par les deux
   fonctions, avec un message clair sur le site quand le délai est dépassé.
+
+## Absence posée sur un rendez-vous déjà confirmé (#9)
+
+- [ ] **Le client n'est pas prévenu.** Le gérant peut poser une absence qui
+  recouvre un rendez-vous confirmé : la base l'accepte, le rendez-vous reste
+  confirmé, et seul le gérant est averti dans l'app pro (sans blocage). Le
+  client, lui, n'apprend rien et se présentera au salon. Piste : prévenir le
+  client par e-mail (avec le SMTP de #13) et lui proposer d'annuler ou de
+  choisir un autre créneau, ou demander au gérant de traiter ces rendez-vous
+  avant de valider l'absence.

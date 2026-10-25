@@ -322,8 +322,9 @@ select is((select count(*) from public.creneaux_disponibles(
   21::bigint, 'Visiteur sans compte : voit les 21 créneaux');
 
 -- 31. ... sans lire les réservations ni les absences.
-select is((select count(*) from public.reservations) + (select count(*) from public.absences),
-  0::bigint, 'Visiteur sans compte : aucune réservation ni absence lisible');
+-- Absences : droit de lecture retiré à anon en #9 (configuration_salon.test.sql).
+select is((select count(*) from public.reservations), 0::bigint,
+  'Visiteur sans compte : aucune réservation ni absence lisible');
 
 select * from finish();
 rollback;
