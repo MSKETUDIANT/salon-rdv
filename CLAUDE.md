@@ -47,6 +47,9 @@ Règle métier critique : zéro double réservation, garantie par la base
 - Ne supprime rien (fichier, branche, projet, donnée) sans mon accord explicite.
 - Jamais de `git checkout`, `git restore` ou `git reset` sur des modifications
   non commitées sans mon accord. Pour mettre de côté un essai, `git stash`.
+- Pas d'outil absent du projet lancé par `npx` (ou équivalent qui télécharge
+  un paquet) sans mon accord : seulement les outils déjà installés dans le
+  projet.
 - Une issue à la fois. Ne touche pas à ce qui est hors de l'issue en cours.
 - Si une consigne te paraît fausse ou contradictoire, dis-le avant d'agir.
 - Si tu ne sais pas, dis-le. Ne devine pas.
