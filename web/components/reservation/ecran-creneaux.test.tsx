@@ -71,4 +71,29 @@ describe("EcranCreneaux", () => {
     render(<EcranCreneaux catalogue={catalogue} />);
     expect((screen.getByLabelText("Coiffeur") as HTMLSelectElement).value).toBe("");
   });
+
+  it("retour après un refus (pris=1) : message en tête, liste relue sans la lecture anticipée", async () => {
+    // Lecture anticipée périmée qui proposerait encore le créneau pris.
+    const perime = [{ coiffeur_id: "a", debut: "2026-10-27T07:00:00+00:00", fin: "2026-10-27T07:45:00+00:00" }];
+    (window as unknown as Record<string, unknown>).__creneauxPrecharges = {
+      prestation: "p1",
+      du: "2026-10-26",
+      au: "2026-11-08",
+      promesse: Promise.resolve(perime),
+    };
+    etat.recherche = "prestation=p1&pris=1";
+    render(<EcranCreneaux catalogue={catalogue} />);
+
+    expect(screen.getByRole("alert").textContent).toBe("Ce créneau vient d'être pris. Choisissez-en un autre.");
+    await screen.findByRole("heading", { level: 2 });
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByRole("link", { name: /^\d{2}:\d{2}$/ }).map((l) => l.textContent)).toEqual(["09:00"]);
+    delete (window as unknown as Record<string, unknown>).__creneauxPrecharges;
+  });
+
+  it("sans refus : pas de message", async () => {
+    render(<EcranCreneaux catalogue={catalogue} />);
+    await screen.findByRole("heading", { level: 2 });
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
 });

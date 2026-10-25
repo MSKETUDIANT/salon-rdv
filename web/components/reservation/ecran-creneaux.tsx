@@ -43,7 +43,9 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
   const [essai, setEssai] = useState(0);
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const idFiltre = useId();
-  const cle = `${prestationId}|${coiffeurId}|${essai}`;
+  // Retour de l'écran 3 après un refus (#51) : liste relue, message en tête.
+  const pris = params.get("pris") === "1";
+  const cle = `${prestationId}|${coiffeurId}|${essai}|${pris}`;
   // Recalculés seulement à chaque nouvelle lecture : le jour choisi tient tant
   // que la lecture ne change pas.
   const jours = useMemo(
@@ -60,8 +62,9 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
     const { du, au } = periode(new Date(), catalogue.fuseau);
 
     const demande = { prestationId: prestation.id, du, au, coiffeurId: coiffeurId || undefined };
+    // Après un refus, jamais de lecture anticipée : la liste vient de la base.
     const lecture =
-      (demande.coiffeurId ? undefined : prendrePrechargement(demande)) ??
+      (demande.coiffeurId || pris ? undefined : prendrePrechargement(demande)) ??
       lireCreneaux(demande, abandon.signal);
 
     lecture.then(
@@ -72,7 +75,7 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
     );
 
     return () => abandon.abort();
-  }, [cle, prestation, coiffeurId, catalogue.fuseau]);
+  }, [cle, prestation, coiffeurId, pris, catalogue.fuseau]);
 
   if (!prestation) {
     return (
@@ -95,6 +98,12 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
       >
         ← Changer de prestation
       </Link>
+
+      {pris && (
+        <p role="alert" className="text-base font-semibold text-erreur">
+          Ce créneau vient d&apos;être pris. Choisissez-en un autre.
+        </p>
+      )}
 
       <div className="flex flex-col gap-1">
         <h1 className="font-titre text-2xl font-medium break-words text-texte sm:text-3xl">

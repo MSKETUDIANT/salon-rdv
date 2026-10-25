@@ -4,9 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from "vite
 import { EcranConfirmation } from "@/components/reservation/ecran-confirmation";
 import type { Catalogue } from "@/lib/catalogue";
 
-const etat = vi.hoisted(() => ({ recherche: "" }));
+const etat = vi.hoisted(() => ({ recherche: "", replace: null as unknown as Mock<(url: string) => void> }));
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(etat.recherche),
+  useRouter: () => ({ replace: (url: string) => etat.replace(url) }),
 }));
 
 // Faux client Supabase : session, code e-mail et fonction reserver.
@@ -45,6 +46,7 @@ const debut = "2026-10-27T09:00:00.000Z";
 
 beforeEach(() => {
   etat.recherche = new URLSearchParams({ prestation: "p1", debut }).toString();
+  etat.replace = vi.fn();
   faux.session = null;
   faux.signInWithOtp = vi.fn().mockResolvedValue({ error: null });
   faux.verifyOtp = vi.fn().mockImplementation(() => {
@@ -129,7 +131,7 @@ describe("EcranConfirmation", () => {
     expect(screen.getByText("Youssef")).toBeTruthy();
   });
 
-  it("créneau pris entretemps : message clair, retour aux créneaux avec prestation et coiffeur", async () => {
+  it("créneau pris entretemps : message, retour automatique aux créneaux (prestation, coiffeur, pris)", async () => {
     etat.recherche = new URLSearchParams({ prestation: "p1", debut, coiffeur: "a" }).toString();
     faux.session = { user: { email: "salma@exemple.tn" } };
     faux.rpc = vi.fn().mockResolvedValue({ data: null, error: { code: "PT409" } });
@@ -139,10 +141,24 @@ describe("EcranConfirmation", () => {
     await act(async () =>
       fireEvent.click(screen.getByRole("button", { name: "Confirmer la réservation" })),
     );
-    expect(screen.getByRole("alert").textContent).toContain("Ce créneau vient d'être pris");
+    expect(screen.getByRole("alert").textContent).toContain("Ce créneau vient d'être pris. Retour aux créneaux");
+    // Retour automatique (#51), sans entrée d'historique vers le créneau perdu.
+    expect(etat.replace).toHaveBeenCalledWith("/reserver/creneaux?prestation=p1&coiffeur=a&pris=1");
     expect(screen.getByRole("link", { name: "Choisir un autre créneau" }).getAttribute("href")).toBe(
-      "/reserver/creneaux?prestation=p1&coiffeur=a",
+      "/reserver/creneaux?prestation=p1&coiffeur=a&pris=1",
     );
+    expect(screen.queryByRole("button", { name: "Confirmer la réservation" })).toBeNull();
+  });
+
+  it("réservation confirmée : pas de retour automatique", async () => {
+    faux.session = { user: { email: "salma@exemple.tn" } };
+    render(<EcranConfirmation catalogue={catalogue} />);
+    await screen.findByText("salma@exemple.tn");
+    await act(async () =>
+      fireEvent.click(screen.getByRole("button", { name: "Confirmer la réservation" })),
+    );
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Réservation confirmée");
+    expect(etat.replace).not.toHaveBeenCalled();
   });
 
   it("lien invalide : créneau introuvable", () => {
