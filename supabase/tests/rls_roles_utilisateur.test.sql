@@ -3,7 +3,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(9);
+select plan(11);
 
 -- ------------------------------------------------------------
 -- Jeu de données commun aux tests RLS : salons A et B
@@ -135,6 +135,24 @@ select lives_ok(
 select lives_ok(
   $$ delete from public.roles_utilisateur where salon_id in ('0000000a-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000') $$,
   'Gérant A : suppression de rôles sans effet (0 ligne)'
+);
+
+-- Agit en tant que visiteur sans compte (anon) (ajouté en #12, BNF-3).
+reset role;
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+
+select is_empty(
+  $$ select 1 from public.roles_utilisateur $$,
+  'anon : aucun rôle visible'
+);
+
+select throws_ok(
+  $$ insert into public.roles_utilisateur (utilisateur_id, salon_id, role)
+     values ('000000a3-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', 'gerant') $$,
+  '42501',
+  null,
+  'anon : attribution de rôle en direct refusée'
 );
 
 -- Vérifications après coup, hors RLS.

@@ -3,7 +3,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(7);
+select plan(9);
 
 -- ------------------------------------------------------------
 -- Jeu de données commun aux tests RLS : salons A et B
@@ -98,6 +98,26 @@ select is(
   (select count(*)::int from public.salons where id in ('0000000a-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000')),
   2,
   'Client A : lit les salons A et B'
+);
+
+-- Agit en tant que Coiffeur A (a2) (ajouté en #12, BNF-3).
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"000000a2-0000-0000-0000-000000000000","role":"authenticated"}', true);
+
+select is(
+  (select count(*)::int from public.salons where id in ('0000000a-0000-0000-0000-000000000000', '0000000b-0000-0000-0000-000000000000')),
+  2,
+  'Coiffeur A : lit les salons A et B'
+);
+
+select results_eq(
+  $$ with m as (
+       update public.salons set nom = 'Piraté' where id = '0000000a-0000-0000-0000-000000000000'
+       returning 1)
+     select count(*)::int from m $$,
+  $$ values (0) $$,
+  'Coiffeur A : modification de son salon sans effet (0 ligne)'
 );
 
 -- Agit en tant que Gérant A (a1).
