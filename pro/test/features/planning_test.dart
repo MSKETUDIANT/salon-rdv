@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:salon_pro/data/planning.dart';
 import 'package:salon_pro/data/salon.dart';
 import 'package:salon_pro/features/planning/ecran_mon_planning.dart';
 import 'package:salon_pro/features/planning/ecran_planning_equipe.dart';
@@ -111,6 +112,39 @@ void main() {
       expect(planning.appels.last, '2030-1-9..2030-1-9 c1');
       expect(
         find.bySemanticsLabel('11:00, Nour, Brushing, Confirmé'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('semaine : plages du jour triées par heure de début', (
+      tester,
+    ) async {
+      // Vendredi en horaire coupé, plage de l'après-midi renvoyée d'abord.
+      planning.plages = [
+        ...planning.plages,
+        const PlageCoiffeur(
+          coiffeurId: 'c1',
+          plage: Plage(
+            id: 'h5',
+            jour: 5,
+            debut: TimeOfDay(hour: 14, minute: 0),
+            fin: TimeOfDay(hour: 19, minute: 0),
+          ),
+        ),
+        const PlageCoiffeur(
+          coiffeurId: 'c1',
+          plage: Plage(
+            id: 'h4',
+            jour: 5,
+            debut: TimeOfDay(hour: 9, minute: 0),
+            fin: TimeOfDay(hour: 13, minute: 0),
+          ),
+        ),
+      ];
+      await ouvrir(tester, EcranMonPlanning(planning: planning));
+      await appuyer(tester, find.text('Semaine'));
+      expect(
+        find.text('Aucun rendez-vous · 09:00–13:00, 14:00–19:00'),
         findsOneWidget,
       );
     });

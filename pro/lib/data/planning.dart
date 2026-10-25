@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../ui/format.dart';
 import 'fuseau.dart';
 import 'salon.dart';
 
@@ -93,10 +94,11 @@ class DonneesPlanning {
     ];
   }
 
+  // Triées par heure de début (la base ne les renvoie pas dans l'ordre).
   List<Plage> plagesDu(String coiffeurId, DateTime jour) => [
     for (final p in plages)
       if (p.coiffeurId == coiffeurId && p.plage.jour == jour.weekday) p.plage,
-  ];
+  ]..sort((a, b) => minutesDuJour(a.debut).compareTo(minutesDuJour(b.debut)));
 }
 
 bool memeJour(DateTime a, DateTime b) =>
