@@ -15,7 +15,35 @@ Supabase. Ne pas utiliser `supabase config push` : il pousserait tout
 
 ## Procédure (une fois, avec l'accord de Sparta)
 
-### 1. Longueur du code
+Faite par Sparta en distant le 2026-10-25, dans l'ordre ci-dessous.
+
+### 1. Site URL
+
+*Authentication → URL Configuration* : **Site URL** =
+`https://salon-rdv-one.vercel.app` (elle valait `http://localhost:3000`, la
+valeur par défaut). Le code n'utilise pas de lien, mais Supabase se sert de
+cette adresse comme adresse par défaut dans ses e-mails et ses redirections.
+
+### 2. Serveur SMTP externe
+
+Le dashboard ne permet de modifier les modèles d'e-mail qu'avec un SMTP
+externe : cette étape vient donc avant les modèles.
+
+*Authentication → Emails → SMTP Settings* : activer **Enable Custom SMTP**,
+avec le SMTP de Gmail :
+
+- **Host** : `smtp.gmail.com`, **Port** : `465` (ou `587`) ;
+- **Username** : l'adresse Gmail d'envoi ;
+- **Password** : un **mot de passe d'application** Google (compte Google →
+  Sécurité → Validation en deux étapes → Mots de passe des applications),
+  jamais le mot de passe du compte ;
+- **Sender email** : la même adresse Gmail ; **Sender name** : le nom du salon.
+
+Le mot de passe d'application ne vit que dans le dashboard : jamais dans le
+dépôt ni dans `.env.local`. Pour le révoquer : compte Google → Mots de passe
+des applications.
+
+### 3. Longueur du code
 
 *Authentication → Sign In / Providers → Email* :
 
@@ -23,7 +51,7 @@ Supabase. Ne pas utiliser `supabase config push` : il pousserait tout
 - **Email OTP Expiration** : `3600` secondes (comme en local) ;
 - le fournisseur Email reste activé (le gérant s'en sert aussi).
 
-### 2. Modèles d'e-mail
+### 4. Modèles d'e-mail
 
 *Authentication → Emails → Templates*. Supabase envoie le modèle
 **Magic Link** à un compte existant et **Confirm signup** à un nouveau compte :
@@ -35,19 +63,21 @@ Pour **chacun** des deux modèles :
 - **Body** : le contenu de `supabase/templates/code-connexion.html`, tel quel
   (il affiche `{{ .Token }}`, le code).
 
-### 3. Vérifier
+### 5. Vérifier
 
 1. Sur le site déployé, aller jusqu'à l'écran de confirmation, saisir un nom et
    une adresse e-mail, puis « Recevoir le code ».
 2. L'e-mail reçu a pour objet « Votre code de connexion », contient 6 chiffres
    et aucun lien.
 3. Saisir le code : « Connecté avec … » s'affiche.
+4. Refaire le test avec une adresse **jamais utilisée** (navigation privée) :
+   c'est le modèle « Confirm signup » qui part, il doit aussi contenir le code.
 
 ## Limite d'envoi
 
-Sans serveur SMTP externe, Supabase n'envoie que peu d'e-mails par heure (et,
-selon sa documentation, seulement à certaines adresses autorisées, comme celles
-des membres de l'organisation : à vérifier dans le dashboard, *Authentication →
-Emails → SMTP Settings*). Suffisant pour vérifier le parcours, pas pour de
-vrais clients : SMTP externe obligatoire avant la mise en service
-(`docs/dette-technique.md`, #13).
+Le SMTP intégré de Supabase n'envoie que quelques e-mails par heure : il a été
+remplacé par Gmail (étape 2). Gmail suffit pour les tests et la démo, mais
+plafonne autour de quelques centaines d'envois par jour, et les e-mails partent
+d'une adresse personnelle. Avant la mise en service, passer à un service
+d'envoi transactionnel avec le domaine du salon (`docs/dette-technique.md`,
+#13).
