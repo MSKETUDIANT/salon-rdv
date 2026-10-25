@@ -169,3 +169,34 @@ select '11111111-1111-1111-1111-111111111111', r.client_id::uuid, r.coiffeur_id:
    (1, time '12:00', time '12:30', '22222222-2222-2222-2222-222222222222',
     '55555555-5555-5555-5555-555555555555', '66666666-0000-0000-0000-000000000002', 'confirmee')
  ) as r(jour, debut, fin, client_id, coiffeur_id, prestation_id, statut);
+
+-- ============================================================
+-- Issue #11 : de quoi tester la clôture, l'encaissement et l'historique
+-- ============================================================
+
+-- Hier (jamais le « prochain mardi » ci-dessus) : rendez-vous passés.
+--   Amira 9h : confirmé, à clôturer ; 10h : terminé, à encaisser.
+--   Youssef 10h : terminé, encaissé 18 DT (prix 20) ; 14h : client absent ;
+--   16h : confirmé, à clôturer.
+insert into public.reservations (id, salon_id, client_id, coiffeur_id, prestation_id, debut, fin, statut)
+select r.id::uuid, '11111111-1111-1111-1111-111111111111', r.client_id::uuid, r.coiffeur_id::uuid,
+       r.prestation_id::uuid,
+       (d.hier + r.debut) at time zone 'Africa/Tunis',
+       (d.hier + r.fin) at time zone 'Africa/Tunis',
+       r.statut::public.statut_reservation
+  from (select (now() at time zone 'Africa/Tunis')::date - 1 as hier) as d
+ cross join (values
+   ('88888888-0000-0000-0000-000000000001', time '09:00', time '09:45', '33333333-3333-3333-3333-333333333333',
+    '44444444-4444-4444-4444-444444444444', '66666666-0000-0000-0000-000000000001', 'confirmee'),
+   ('88888888-0000-0000-0000-000000000002', time '10:00', time '10:30', '22222222-2222-2222-2222-222222222222',
+    '44444444-4444-4444-4444-444444444444', '66666666-0000-0000-0000-000000000003', 'terminee'),
+   ('88888888-0000-0000-0000-000000000003', time '10:00', time '10:30', '33333333-3333-3333-3333-333333333333',
+    '55555555-5555-5555-5555-555555555555', '66666666-0000-0000-0000-000000000002', 'terminee'),
+   ('88888888-0000-0000-0000-000000000004', time '14:00', time '14:30', '22222222-2222-2222-2222-222222222222',
+    '55555555-5555-5555-5555-555555555555', '66666666-0000-0000-0000-000000000002', 'absent'),
+   ('88888888-0000-0000-0000-000000000005', time '16:00', time '16:45', '33333333-3333-3333-3333-333333333333',
+    '55555555-5555-5555-5555-555555555555', '66666666-0000-0000-0000-000000000001', 'confirmee')
+ ) as r(id, debut, fin, client_id, coiffeur_id, prestation_id, statut);
+
+insert into public.encaissements (reservation_id, montant, encaisse_par) values
+  ('88888888-0000-0000-0000-000000000003', 18, '22222222-2222-2222-2222-222222222222');
