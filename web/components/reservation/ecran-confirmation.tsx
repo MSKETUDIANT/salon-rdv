@@ -2,23 +2,24 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState } from "react";
+import {
+  CompteConnecte,
+  FormulaireConnexion,
+  useCompte,
+  type EtapeConnexion,
+} from "@/components/connexion/connexion-code";
 import { Bouton } from "@/components/ui/bouton";
 import { BoutonLien } from "@/components/ui/bouton-lien";
 import { Carte } from "@/components/ui/carte";
-import { Champ } from "@/components/ui/champ";
 import { focus } from "@/components/ui/styles";
 import type { Catalogue } from "@/lib/catalogue";
 import { formatDuree, formatPrix } from "@/lib/format";
 import {
-  codeValide,
-  emailValide,
-  envoyerCode,
   jourEtHeure,
   lienCreneaux,
   lireDemande,
   reserver,
-  validerCode,
   type Demande,
   type ResultatReservation,
 } from "@/lib/reservation";
@@ -45,58 +46,11 @@ export function EcranConfirmation({ catalogue }: { catalogue: Catalogue }) {
 
 function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Catalogue }) {
   const [supabase] = useState(createClient);
-  // undefined : session pas encore lue ; null : pas connecté.
-  const [compte, setCompte] = useState<string | null | undefined>(undefined);
-  const [etape, setEtape] = useState<"email" | "code">("email");
-  const [nom, setNom] = useState("");
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [erreurs, setErreurs] = useState<{ nom?: string; email?: string; code?: string }>({});
-  const [enCours, setEnCours] = useState<"code" | "validation" | "reservation" | null>(null);
+  const compte = useCompte(supabase);
+  const [etape, setEtape] = useState<EtapeConnexion>("email");
+  const [enCours, setEnCours] = useState(false);
   const [manque, setManque] = useState<string | null>(null);
   const [resultat, setResultat] = useState<ResultatReservation | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setCompte(data.session?.user.email ?? null));
-    const { data } = supabase.auth.onAuthStateChange((_evenement, session) =>
-      setCompte(session?.user.email ?? null),
-    );
-    return () => data.subscription.unsubscribe();
-  }, [supabase]);
-
-  async function demanderCode(evenement: FormEvent) {
-    evenement.preventDefault();
-    const nouvelles = {
-      nom: nom.trim() ? undefined : "Indiquez votre nom.",
-      email: emailValide(email.trim()) ? undefined : "Indiquez une adresse e-mail valide.",
-    };
-    setErreurs(nouvelles);
-    if (nouvelles.nom || nouvelles.email) return;
-
-    setEnCours("code");
-    const erreur = await envoyerCode(supabase, email.trim(), nom.trim());
-    setEnCours(null);
-    if (erreur) {
-      setErreurs({ email: erreur });
-      return;
-    }
-    setManque(null);
-    setCode("");
-    setEtape("code");
-  }
-
-  async function verifierCode(evenement: FormEvent) {
-    evenement.preventDefault();
-    if (!codeValide(code)) {
-      setErreurs({ code: "Le code compte 6 chiffres." });
-      return;
-    }
-    setEnCours("validation");
-    const erreur = await validerCode(supabase, email.trim(), code);
-    setEnCours(null);
-    setErreurs(erreur ? { code: erreur } : {});
-    if (!erreur) setManque(null);
-  }
 
   async function confirmer() {
     if (!compte) {
@@ -108,9 +62,9 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
       return;
     }
     setManque(null);
-    setEnCours("reservation");
+    setEnCours(true);
     const reponse = await reserver(supabase, demande);
-    setEnCours(null);
+    setEnCours(false);
     setResultat(reponse);
   }
 
@@ -123,7 +77,13 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
         </h1>
         <Recapitulatif demande={demande} fuseau={catalogue.fuseau} coiffeur={coiffeur?.nom} />
         <p className="text-base text-texte">À bientôt au salon.</p>
-        <BoutonLien href="/">Retour à l&apos;accueil</BoutonLien>
+        <BoutonLien href="/mes-reservations">Voir mes réservations</BoutonLien>
+        <Link
+          href="/"
+          className={`inline-flex min-h-11 items-center rounded-base text-base font-semibold text-accent underline ${focus}`}
+        >
+          Retour à l&apos;accueil
+        </Link>
       </div>
     );
   }
@@ -157,90 +117,23 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
         {compte === undefined ? (
           <p className="text-base text-texte-secondaire">Vérification de la connexion…</p>
         ) : compte ? (
-          <div className="flex flex-col items-start gap-2">
-            <p className="text-base text-texte">
-              Connecté avec <span className="font-semibold break-all">{compte}</span>
-            </p>
-            <button
-              type="button"
-              onClick={() => supabase.auth.signOut()}
-              className={`inline-flex min-h-11 items-center rounded-base text-base font-semibold text-accent underline ${focus}`}
-            >
-              Changer de compte
-            </button>
-          </div>
-        ) : etape === "email" ? (
-          <form onSubmit={demanderCode} noValidate className="flex flex-col gap-4">
-            <p className="text-base text-texte">
-              Recevez un code à 6 chiffres par e-mail pour confirmer. Pas de mot de passe.
-            </p>
-            <Champ
-              libelle="Nom"
-              autoComplete="name"
-              value={nom}
-              onChange={(e) => setNom(e.target.value)}
-              erreur={erreurs.nom}
-            />
-            <Champ
-              libelle="E-mail"
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              erreur={erreurs.email}
-            />
-            <Bouton
-              type="submit"
-              variante="secondaire"
-              chargement={enCours === "code"}
-              libelleChargement="Envoi du code…"
-              className="self-start"
-            >
-              Recevoir le code
-            </Bouton>
-          </form>
+          <CompteConnecte supabase={supabase} compte={compte} />
         ) : (
-          <form onSubmit={verifierCode} noValidate className="flex flex-col gap-4">
-            <p className="text-base text-texte">
-              Code envoyé à <span className="font-semibold break-all">{email.trim()}</span>. Il
-              expire dans une heure.
-            </p>
-            <Champ
-              libelle="Code à 6 chiffres"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              autoFocus
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              erreur={erreurs.code}
-            />
-            <Bouton
-              type="submit"
-              variante="secondaire"
-              chargement={enCours === "validation"}
-              libelleChargement="Vérification…"
-              className="self-start"
-            >
-              Valider le code
-            </Bouton>
-            <button
-              type="button"
-              onClick={() => {
-                setEtape("email");
-                setErreurs({});
-              }}
-              className={`inline-flex min-h-11 items-center self-start rounded-base text-base font-semibold text-accent underline ${focus}`}
-            >
-              Changer d&apos;e-mail ou renvoyer le code
-            </button>
-          </form>
+          <FormulaireConnexion
+            supabase={supabase}
+            demanderNom
+            introduction="Recevez un code à 6 chiffres par e-mail pour confirmer. Pas de mot de passe."
+            onEtape={(nouvelle) => {
+              setEtape(nouvelle);
+              if (nouvelle === "code") setManque(null);
+            }}
+          />
         )}
       </section>
 
       <div className="flex flex-col items-start gap-3">
-        {manque && (
+        {/* Une fois connecté, ce qui manquait ne manque plus. */}
+        {manque && !compte && (
           <p role="alert" className="text-base text-erreur">
             {manque}
           </p>
@@ -266,7 +159,7 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
         {resultat?.statut !== "pris" && (
           <Bouton
             onClick={confirmer}
-            chargement={enCours === "reservation"}
+            chargement={enCours}
             libelleChargement="Réservation…"
           >
             Confirmer la réservation

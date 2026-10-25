@@ -16,7 +16,8 @@ export function emailUnique(prefixe: string): string {
 }
 
 // Code à 6 chiffres du dernier e-mail reçu par cette adresse (Mailpit).
-export async function lireCode(email: string): Promise<string> {
+// precedent : code déjà reçu, à ignorer (attendre le nouvel e-mail).
+export async function lireCode(email: string, precedent?: string): Promise<string> {
   for (let essai = 0; essai < 20; essai++) {
     const recherche = await fetch(
       `${mailpit()}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`,
@@ -25,7 +26,7 @@ export async function lireCode(email: string): Promise<string> {
     if (dernier) {
       const message = await fetch(`${mailpit()}/api/v1/message/${dernier.ID}`).then((r) => r.json());
       const code = String(message.Text).match(/\b\d{6}\b/)?.[0];
-      if (code) return code;
+      if (code && code !== precedent) return code;
     }
     await new Promise((fin) => setTimeout(fin, 500));
   }
@@ -77,4 +78,65 @@ export async function reservationsA(
     headers: { apikey: cle, Authorization: `Bearer ${cle}` },
   });
   return reponse.json();
+}
+
+// Statuts des réservations d'un client sur un créneau, annulées comprises
+// (clé service, base locale uniquement).
+export async function statutsDuClient(debut: string, email: string): Promise<string[]> {
+  const params = new URLSearchParams({
+    select: "statut,client:utilisateurs!reservations_client_id_fkey!inner(email)",
+    debut: `eq.${debut}`,
+    "client.email": `eq.${email}`,
+  });
+  const cle = process.env.E2E_SERVICE_ROLE_KEY!;
+  const reponse = await fetch(`${api()}/rest/v1/reservations?${params}`, {
+    headers: { apikey: cle, Authorization: `Bearer ${cle}` },
+  });
+  return ((await reponse.json()) as { statut: string }[]).map((r) => r.statut);
+}
+
+// Le créneau est-il proposé (fonction SQL creneaux_disponibles, clé anon) ?
+export async function creneauPropose(prestation: string, coiffeur: string, debut: string) {
+  const jour = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Tunis" }).format(new Date(debut));
+  const reponse = await fetch(`${api()}/rest/v1/rpc/creneaux_disponibles`, {
+    method: "POST",
+    headers: { apikey: process.env.E2E_ANON_KEY!, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_prestation: prestation, p_du: jour, p_au: jour, p_coiffeur: coiffeur }),
+  });
+  const creneaux: { debut: string }[] = await reponse.json();
+  return creneaux.some((c) => new Date(c.debut).getTime() === new Date(debut).getTime());
+}
+
+// Jeton d'un client par l'API Auth, sans navigateur : code demandé, lu dans
+// Mailpit, puis vérifié. Crée le compte s'il n'existe pas.
+export async function jetonClient(email: string, nom: string): Promise<string> {
+  const entetes = { apikey: process.env.E2E_ANON_KEY!, "Content-Type": "application/json" };
+  const otp = await fetch(`${api()}/auth/v1/otp`, {
+    method: "POST",
+    headers: entetes,
+    body: JSON.stringify({ email, create_user: true, data: { nom } }),
+  });
+  if (!otp.ok) throw new Error(`Envoi du code impossible : ${otp.status}`);
+  const verification = await fetch(`${api()}/auth/v1/verify`, {
+    method: "POST",
+    headers: entetes,
+    body: JSON.stringify({ type: "email", email, token: await lireCode(email) }),
+  });
+  const { access_token } = await verification.json();
+  if (!access_token) throw new Error(`Code refusé pour ${email}`);
+  return access_token;
+}
+
+// Appel de l'API REST de la base au nom d'un client (son jeton) ; sans jeton,
+// en visiteur (clé anon).
+export function apiClient(jeton: string | null, chemin: string, init: RequestInit = {}) {
+  return fetch(`${api()}/rest/v1/${chemin}`, {
+    ...init,
+    headers: {
+      apikey: process.env.E2E_ANON_KEY!,
+      ...(jeton ? { Authorization: `Bearer ${jeton}` } : {}),
+      "Content-Type": "application/json",
+      ...init.headers,
+    },
+  });
 }

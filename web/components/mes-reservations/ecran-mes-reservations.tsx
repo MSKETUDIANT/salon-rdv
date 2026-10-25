@@ -1,0 +1,263 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import {
+  CompteConnecte,
+  FormulaireConnexion,
+  useCompte,
+} from "@/components/connexion/connexion-code";
+import { Bouton } from "@/components/ui/bouton";
+import { BoutonLien } from "@/components/ui/bouton-lien";
+import { Carte } from "@/components/ui/carte";
+import { focus } from "@/components/ui/styles";
+import { formatDuree, formatPrix } from "@/lib/format";
+import {
+  annuler,
+  libelleStatut,
+  lireMesReservations,
+  separer,
+  type MaReservation,
+  type ResultatAnnulation,
+} from "@/lib/mes-reservations";
+import { jourEtHeure } from "@/lib/reservation";
+import { createClient } from "@/lib/supabase/client";
+
+// « Mes réservations » (BF-C6) : à venir et historique, annulation des
+// réservations à venir avec confirmation. Connexion par code e-mail sur le
+// même écran si besoin.
+export function EcranMesReservations({ salonId, fuseau }: { salonId: string; fuseau: string }) {
+  const [supabase] = useState(createClient);
+  const compte = useCompte(supabase);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Link
+        href="/"
+        className={`inline-flex min-h-11 items-center self-start rounded-base text-base font-semibold text-accent underline ${focus}`}
+      >
+        ← Accueil
+      </Link>
+
+      <h1 className="font-titre text-2xl font-medium text-texte sm:text-3xl">Mes réservations</h1>
+
+      {compte === undefined ? (
+        <p className="text-base text-texte-secondaire">Vérification de la connexion…</p>
+      ) : compte ? (
+        <>
+          <CompteConnecte supabase={supabase} compte={compte} />
+          {/* key : relit tout au changement de compte. */}
+          <Reservations key={compte} supabase={supabase} salonId={salonId} fuseau={fuseau} />
+        </>
+      ) : (
+        <FormulaireConnexion
+          supabase={supabase}
+          demanderNom={false}
+          introduction="Connectez-vous avec l'e-mail utilisé pour réserver : vous recevrez un code à 6 chiffres. Pas de mot de passe."
+        />
+      )}
+    </div>
+  );
+}
+
+type Client = ReturnType<typeof createClient>;
+
+function Reservations({
+  supabase,
+  salonId,
+  fuseau,
+}: {
+  supabase: Client;
+  salonId: string;
+  fuseau: string;
+}) {
+  // undefined : en cours de lecture ; null : erreur.
+  const [reservations, setReservations] = useState<MaReservation[] | null | undefined>(undefined);
+  const [maintenant, setMaintenant] = useState(() => new Date());
+  const [annulee, setAnnulee] = useState<string | null>(null);
+
+  async function relire() {
+    const lues = await lireMesReservations(supabase, salonId);
+    setMaintenant(new Date());
+    setReservations(lues);
+  }
+
+  useEffect(() => {
+    let actif = true;
+    lireMesReservations(supabase, salonId).then((lues) => {
+      if (!actif) return;
+      setMaintenant(new Date());
+      setReservations(lues);
+    });
+    return () => {
+      actif = false;
+    };
+  }, [supabase, salonId]);
+
+  if (reservations === undefined) {
+    return <p className="text-base text-texte-secondaire">Chargement des réservations…</p>;
+  }
+  if (reservations === null) {
+    return (
+      <div role="alert" className="flex flex-col items-start gap-3">
+        <p className="text-base text-erreur">Impossible de lire vos réservations.</p>
+        <Bouton variante="secondaire" onClick={relire}>
+          Réessayer
+        </Bouton>
+      </div>
+    );
+  }
+
+  const { aVenir, historique } = separer(reservations, maintenant);
+
+  return (
+    <>
+      {annulee && (
+        <p role="status" className="text-base font-semibold text-accent">
+          {annulee}
+        </p>
+      )}
+
+      <section aria-labelledby="titre-a-venir" className="flex flex-col gap-4">
+        <h2 id="titre-a-venir" className="font-titre text-xl font-medium text-texte">
+          À venir
+        </h2>
+        {aVenir.length === 0 ? (
+          <div className="flex flex-col items-start gap-4">
+            <p className="text-base text-texte-secondaire">Aucune réservation à venir.</p>
+            <BoutonLien href="/reserver">Réserver</BoutonLien>
+          </div>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {aVenir.map((r) => (
+              <li key={r.id}>
+                <CarteReservation
+                  reservation={r}
+                  fuseau={fuseau}
+                  maintenant={maintenant}
+                  supabase={supabase}
+                  onAnnulee={(message) => {
+                    setAnnulee(message);
+                    relire();
+                  }}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {historique.length > 0 && (
+        <section aria-labelledby="titre-historique" className="flex flex-col gap-4">
+          <h2 id="titre-historique" className="font-titre text-xl font-medium text-texte">
+            Passées et annulées
+          </h2>
+          <ul className="flex flex-col gap-4">
+            {historique.map((r) => (
+              <li key={r.id}>
+                <CarteReservation reservation={r} fuseau={fuseau} maintenant={maintenant} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </>
+  );
+}
+
+// Détail d'une réservation ; « Annuler » si elle est annulable, avec une
+// confirmation sur la carte même.
+function CarteReservation({
+  reservation,
+  fuseau,
+  maintenant,
+  supabase,
+  onAnnulee,
+}: {
+  reservation: MaReservation;
+  fuseau: string;
+  maintenant: Date;
+  supabase?: Client;
+  onAnnulee?: (message: string) => void;
+}) {
+  const [confirmation, setConfirmation] = useState(false);
+  const [enCours, setEnCours] = useState(false);
+  const [echec, setEchec] = useState<Exclude<ResultatAnnulation, "annulee"> | null>(null);
+
+  const { jour, heure } = jourEtHeure(reservation.debut, fuseau);
+  const lignes: [string, string][] = [
+    ["Coiffeur", reservation.coiffeur],
+    ["Date", jour],
+    ["Heure", heure],
+    ["Durée", formatDuree(reservation.dureeMinutes)],
+    ["Prix", formatPrix(reservation.prix)],
+    ["Statut", libelleStatut(reservation.statut, reservation.debut, maintenant)],
+  ];
+
+  async function confirmerAnnulation() {
+    if (!supabase) return;
+    setEnCours(true);
+    const resultat = await annuler(supabase, reservation.id);
+    setEnCours(false);
+    if (resultat === "annulee") {
+      onAnnulee?.(`Réservation du ${jour.toLowerCase()} à ${heure} annulée.`);
+      return;
+    }
+    setEchec(resultat);
+  }
+
+  return (
+    <Carte className="flex flex-col gap-4">
+      <h3 className="text-lg font-semibold text-texte">{reservation.prestation}</h3>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+        {lignes.map(([terme, valeur]) => (
+          <div key={terme} className="contents">
+            <dt className="text-base text-texte-secondaire">{terme}</dt>
+            <dd className="text-base font-semibold text-texte tabular-nums">{valeur}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {reservation.annulable && supabase && (
+        <div className="flex flex-col items-start gap-3">
+          {echec && (
+            <p role="alert" className="text-base text-erreur">
+              {echec === "impossible"
+                ? "Cette réservation ne peut plus être annulée."
+                : echec === "deconnecte"
+                  ? "Votre connexion a expiré. Changez de compte pour recevoir un nouveau code."
+                  : "L'annulation n'a pas pu être enregistrée. Réessayez."}
+            </p>
+          )}
+          {confirmation ? (
+            <div
+              role="group"
+              aria-label="Confirmer l'annulation"
+              className="flex flex-col items-start gap-3"
+            >
+              <p className="text-base text-texte">
+                Annuler cette réservation ? Le créneau sera proposé à d&apos;autres clients.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Bouton
+                  onClick={confirmerAnnulation}
+                  chargement={enCours}
+                  libelleChargement="Annulation…"
+                >
+                  Oui, annuler
+                </Bouton>
+                <Bouton variante="secondaire" onClick={() => setConfirmation(false)}>
+                  Non, garder
+                </Bouton>
+              </div>
+            </div>
+          ) : (
+            <Bouton variante="secondaire" onClick={() => setConfirmation(true)}>
+              Annuler la réservation
+            </Bouton>
+          )}
+        </div>
+      )}
+    </Carte>
+  );
+}

@@ -129,10 +129,9 @@ select policies_are('public', 'reservations', array[
   'reservations : client lit les siennes',
   'reservations : coiffeur lit les siennes',
   'reservations : gérant lit son salon',
-  'reservations : client modifie les siennes',
   'reservations : coiffeur modifie les siennes',
   'reservations : gérant modifie son salon'
-], 'reservations : liste exacte des policies (pas d''INSERT depuis #6 : reserver() ; pas de DELETE)');
+], 'reservations : liste exacte des policies (client : ni INSERT depuis #6, ni UPDATE depuis #7 ; pas de DELETE)');
 
 select policies_are('public', 'encaissements', array[
   'encaissements : gérant lit son salon',

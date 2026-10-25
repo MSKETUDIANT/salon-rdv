@@ -56,6 +56,8 @@ export function messageErreurAuth(code: string | undefined): string {
   switch (code) {
     case "otp_expired":
       return "Code incorrect ou expiré. Vérifiez-le, ou demandez un nouveau code.";
+    case "otp_disabled":
+      return "Aucun compte avec cette adresse. Le compte est créé lors de la première réservation.";
     case "over_email_send_rate_limit":
     case "over_request_rate_limit":
       return "Trop de demandes. Réessayez dans une minute.";
@@ -64,12 +66,14 @@ export function messageErreurAuth(code: string | undefined): string {
   }
 }
 
-// Envoie le code à 6 chiffres. Crée le compte s'il n'existe pas ; le nom
-// n'est enregistré que pour un nouveau compte.
-export async function envoyerCode(supabase: Client, email: string, nom: string) {
+// Envoie le code à 6 chiffres. Avec un nom (écran de confirmation), crée le
+// compte s'il n'existe pas ; le nom n'est enregistré que pour un nouveau
+// compte. Sans nom (« Mes réservations », #7), connexion à un compte existant
+// seulement.
+export async function envoyerCode(supabase: Client, email: string, nom: string | null) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true, data: { nom } },
+    options: nom === null ? { shouldCreateUser: false } : { shouldCreateUser: true, data: { nom } },
   });
   return error ? messageErreurAuth(error.code) : null;
 }
