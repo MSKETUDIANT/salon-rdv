@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -62,16 +65,40 @@ void main() {
     expect(find.text('Corriger le montant'), findsOneWidget);
   });
 
-  testWidgets('périodes : ce mois, puis mois précédent', (tester) async {
+  testWidgets('périodes : mois, puis mois dernier', (tester) async {
     await ouvrir(tester);
-    await appuyer(tester, find.text('Ce mois'));
+    await appuyer(tester, find.text('Mois'));
     expect(planning.appels.last, 'historique 2030-1-1..2030-1-31 tous');
-    await appuyer(tester, find.text('Mois précédent'));
+    await appuyer(tester, find.text('Mois dernier'));
     expect(planning.appels.last, 'historique 2029-12-1..2029-12-31 tous');
     expect(
       find.text('Du samedi 1 décembre au lundi 31 décembre'),
       findsOneWidget,
     );
+  });
+
+  // Avec la vraie police (la police de test donne 16 px à chaque caractère,
+  // bien plus large que Figtree) : chaque libellé de période tient sur une
+  // ligne à 360 px.
+  testWidgets('360 px : chaque libellé de période tient sur une ligne', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final police = File('assets/fonts/Figtree.ttf').readAsBytesSync();
+      await (FontLoader(
+        policeTexte,
+      )..addFont(Future.value(ByteData.sublistView(police)))).load();
+    });
+    await ouvrir(tester); // 1080 px à 3 px par point : 360 px de large
+    expect(tester.view.physicalSize.width / tester.view.devicePixelRatio, 360);
+    for (final libelle in ['Semaine', 'Mois', 'Mois dernier']) {
+      // Une ligne de texte de base : 16 px × 1,5 d'interligne = 24 px.
+      expect(
+        tester.getSize(find.text(libelle)).height,
+        lessThan(30),
+        reason: libelle,
+      );
+    }
   });
 
   testWidgets('filtre coiffeur : Amira seulement', (tester) async {

@@ -20,9 +20,10 @@ class EcranHistorique extends StatefulWidget {
 }
 
 enum _Periode {
-  semaine('Cette semaine'),
-  mois('Ce mois'),
-  moisPrecedent('Mois précédent');
+  // Libellés courts : une ligne chacun à 360 px.
+  semaine('Semaine'),
+  mois('Mois'),
+  moisPrecedent('Mois dernier');
 
   const _Periode(this.libelle);
   final String libelle;
@@ -125,6 +126,13 @@ class _EcranHistoriqueState extends State<EcranHistorique> {
             ],
             selected: {_periode},
             showSelectedIcon: false,
+            // Marge latérale réduite : « Mois dernier » tient sur une ligne à
+            // 360 px (test/features/historique_test.dart).
+            style: const ButtonStyle(
+              padding: WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: Espaces.s1),
+              ),
+            ),
             onSelectionChanged: (choix) => setState(() {
               _periode = choix.first;
               _version++;
