@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   CompteConnecte,
@@ -9,8 +8,8 @@ import {
 } from "@/components/connexion/connexion-code";
 import { Bouton } from "@/components/ui/bouton";
 import { BoutonLien } from "@/components/ui/bouton-lien";
+import { LienRetour } from "@/components/ui/lien-retour";
 import { Carte } from "@/components/ui/carte";
-import { focus } from "@/components/ui/styles";
 import { formatDuree, formatPrix } from "@/lib/format";
 import {
   annuler,
@@ -32,12 +31,7 @@ export function EcranMesReservations({ salonId, fuseau }: { salonId: string; fus
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href="/"
-        className={`inline-flex min-h-11 items-center self-start rounded-base text-base font-semibold text-accent underline ${focus}`}
-      >
-        ← Accueil
-      </Link>
+      <LienRetour href="/" vers="à l'accueil" libelle="Accueil" />
 
       <h1 className="font-titre text-2xl font-medium text-texte sm:text-3xl">Mes réservations</h1>
 
@@ -213,7 +207,20 @@ function CarteReservation({
         {lignes.map(([terme, valeur]) => (
           <div key={terme} className="contents">
             <dt className="text-base text-texte-secondaire">{terme}</dt>
-            <dd className="text-base font-semibold text-texte tabular-nums">{valeur}</dd>
+            <dd className="text-base font-semibold text-texte tabular-nums">
+              {terme === "Statut" ? (
+                // Statut en pastille (#55) : `accent` si confirmée, gris sinon.
+                <span
+                  className={`inline-block rounded-pastille border px-3 ${
+                    valeur === "Confirmée" ? "border-accent text-accent" : "border-bordure text-texte-secondaire"
+                  }`}
+                >
+                  {valeur}
+                </span>
+              ) : (
+                valeur
+              )}
+            </dd>
           </div>
         ))}
       </dl>

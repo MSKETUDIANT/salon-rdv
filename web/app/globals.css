@@ -37,6 +37,8 @@
   --text-3xl--line-height: 1.5;
 
   --radius-base: 8px;
+  /* Pastilles et ronds (#55) : statut, onglet courant, marque de réussite. */
+  --radius-pastille: 9999px;
 }
 
 /* Polices chargées par next/font dans app/layout.tsx. */

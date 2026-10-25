@@ -13,3 +13,8 @@ export const classesBouton = {
 } as const;
 
 export type VarianteBouton = keyof typeof classesBouton;
+
+// Lien secondaire (#55) : « Retour », « Retour à l'accueil », « Changer de
+// compte »… Texte `accent` en gras, sans soulignement au repos, souligné au
+// survol ; zone tactile de 44 px.
+export const lienSecondaire = `inline-flex min-h-11 items-center gap-1 self-start rounded-base text-base font-semibold text-accent underline-offset-4 hover:underline ${focus}`;

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { LogoSalonRdv } from "@/components/marque/logo-salon-rdv";
 import { focus } from "@/components/ui/styles";
 
 // Navigation du site client (#53, charte §4) : les mêmes trois destinations,
@@ -69,20 +70,18 @@ function estCourante(href: string, chemin: string): boolean {
   return href === "/" ? chemin === "/" : chemin === href || chemin.startsWith(`${href}/`);
 }
 
-// Ordinateur : liens dans l'en-tête, avec le nom du salon.
-export function EnTeteNavigation({ nomSalon }: { nomSalon: string }) {
+// Ordinateur : logo du produit vers l'accueil (#55), liens dans l'en-tête.
+// Le nom du salon reste le titre de l'accueil.
+export function EnTeteNavigation() {
   const chemin = usePathname();
   return (
     <header className="hidden border-b border-separateur bg-surface md:block">
       <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-6 px-8 py-2">
-        <Link
-          href="/"
-          className={`inline-flex min-h-11 items-center rounded-base font-titre text-xl font-medium text-texte ${focus}`}
-        >
-          {nomSalon}
+        <Link href="/" className={`inline-flex min-h-11 items-center rounded-base ${focus}`}>
+          <LogoSalonRdv className="h-7 w-auto text-accent" />
         </Link>
         <nav aria-label="Navigation principale">
-          <ul className="flex items-center gap-6">
+          <ul className="flex items-center gap-2">
             {DESTINATIONS.map(({ href, libelle }) => {
               const courante = estCourante(href, chemin);
               return (
@@ -90,8 +89,10 @@ export function EnTeteNavigation({ nomSalon }: { nomSalon: string }) {
                   <Link
                     href={href}
                     aria-current={courante ? "page" : undefined}
-                    className={`inline-flex min-h-11 items-center rounded-base text-base font-semibold ${focus} ${
-                      courante ? "text-accent underline underline-offset-4" : "text-texte hover:text-accent"
+                    className={`inline-flex min-h-11 items-center px-3 text-base font-semibold ${focus} ${
+                      courante
+                        ? "border-b-2 border-accent pt-0.5 text-accent"
+                        : "rounded-base text-texte hover:bg-separateur hover:text-accent"
                     }`}
                   >
                     {libelle}
@@ -123,13 +124,12 @@ export function BarreOnglets() {
               <Link
                 href={href}
                 aria-current={courante ? "page" : undefined}
-                className={`flex min-h-16 flex-auto flex-col items-center justify-center gap-0.5 border-t-2 px-2 py-1 text-base whitespace-nowrap ${focus} ${
-                  courante
-                    ? "border-accent font-semibold text-accent"
-                    : "border-transparent text-texte-secondaire hover:text-texte"
+                className={`flex min-h-16 flex-auto flex-col items-center justify-center gap-0.5 px-2 py-1 text-base whitespace-nowrap ${focus} ${
+                  courante ? "font-semibold text-accent" : "text-texte-secondaire hover:text-texte"
                 }`}
               >
-                {icone}
+                {/* Onglet courant : pastille `separateur` derrière l'icône (#55). */}
+                <span className={`rounded-pastille px-4 py-0.5 ${courante ? "bg-separateur" : ""}`}>{icone}</span>
                 {libelle}
               </Link>
             </li>

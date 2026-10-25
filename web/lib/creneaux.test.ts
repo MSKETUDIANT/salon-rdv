@@ -5,7 +5,9 @@ import {
   jourLocal,
   lienConfirmation,
   lireCreneaux,
+  moisDeLaBande,
   periode,
+  repereMois,
 } from "@/lib/creneaux";
 
 afterEach(() => {
@@ -121,5 +123,24 @@ describe("lienConfirmation", () => {
 
   it("« Peu importe » : pas de coiffeur dans le lien", () => {
     expect(lienConfirmation("p1", "2026-10-26T08:00:00.000Z")).not.toContain("coiffeur");
+  });
+});
+
+describe("mois de la bande de jours (#55)", () => {
+  const bande = (du: string) => grouperParJour([], "Africa/Tunis", du);
+
+  it("un seul mois, deux mois, deux années", () => {
+    expect(moisDeLaBande(bande("2026-10-05"))).toBe("Octobre 2026");
+    expect(moisDeLaBande(bande("2026-10-25"))).toBe("Octobre – novembre 2026");
+    expect(moisDeLaBande(bande("2026-12-25"))).toBe("Décembre 2026 – janvier 2027");
+    expect(moisDeLaBande([])).toBe("");
+  });
+
+  it("repère devant le 1er d'un nouveau mois seulement, jamais sur le premier jour de la bande", () => {
+    const jours = bande("2026-10-25");
+    const reperes = jours.map((_, i) => repereMois(jours, i)).map((r, i) => (r ? `${jours[i].cle} ${r}` : null));
+    expect(reperes.filter(Boolean)).toEqual(["2026-11-01 nov."]);
+    const debutDeMois = bande("2026-11-01");
+    expect(repereMois(debutDeMois, 0)).toBeNull();
   });
 });

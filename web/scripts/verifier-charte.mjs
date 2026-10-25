@@ -18,7 +18,7 @@ const regles = [
   { nom: "classe de palette brute", motif: new RegExp(`\\b[a-z]+(?:-[a-z]+)*-(?:${palette})(?:-\\d{2,3})?(?:\\/\\d+)?\\b`, "g") },
   { nom: "taille de texte hors charte", motif: /\btext-(?:xs|sm|[4-9]xl)\b/g },
   { nom: "ombre", motif: /\bshadow(?:-[a-z0-9-]+)?(?![\w-])/g },
-  { nom: "arrondi hors charte", motif: /\brounded(?:-(?!base\b|none\b)[a-z0-9-]+)?(?![\w-])/g },
+  { nom: "arrondi hors charte", motif: /\brounded(?:-(?!base\b|none\b|pastille\b)[a-z0-9-]+)?(?![\w-])/g },
   { nom: "mode sombre", motif: /\bdark:/g },
 ];
 

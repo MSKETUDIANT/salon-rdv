@@ -113,3 +113,32 @@ export function lienConfirmation(prestationId: string, debut: string, coiffeurId
   if (coiffeurId) params.set("coiffeur", coiffeurId);
   return `/reserver/confirmation?${params}`;
 }
+
+// Mois de la bande de jours (#55) : « Octobre 2026 », « Octobre – novembre
+// 2026 », ou « Décembre 2026 – janvier 2027 » à cheval sur deux années.
+export function moisDeLaBande(jours: Jour[]): string {
+  if (jours.length === 0) return "";
+  const nom = (cle: string, options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", ...options }).format(
+      new Date(`${cle}T12:00:00Z`),
+    );
+  const premier = jours[0].cle;
+  const dernier = jours[jours.length - 1].cle;
+  const capitale = (texte: string) => texte.charAt(0).toUpperCase() + texte.slice(1);
+  if (premier.slice(0, 7) === dernier.slice(0, 7)) {
+    return capitale(nom(premier, { month: "long", year: "numeric" }));
+  }
+  if (premier.slice(0, 4) === dernier.slice(0, 4)) {
+    return `${capitale(nom(premier, { month: "long" }))} – ${nom(dernier, { month: "long", year: "numeric" })}`;
+  }
+  return `${capitale(nom(premier, { month: "long", year: "numeric" }))} – ${nom(dernier, { month: "long", year: "numeric" })}`;
+}
+
+// Repère « nov. » devant le premier jour d'un nouveau mois dans la bande
+// (#55) ; null pour les autres jours et pour le premier jour de la bande.
+export function repereMois(jours: Jour[], index: number): string | null {
+  if (index === 0 || !jours[index].cle.endsWith("-01")) return null;
+  return new Intl.DateTimeFormat("fr-FR", { timeZone: "UTC", month: "short" }).format(
+    new Date(`${jours[index].cle}T12:00:00Z`),
+  );
+}
