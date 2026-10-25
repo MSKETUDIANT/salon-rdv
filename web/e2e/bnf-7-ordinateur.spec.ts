@@ -10,7 +10,7 @@ test.use({ viewport: { width: 1366, height: 768 }, isMobile: false, hasTouch: fa
 
 test("BNF-7 : réservation complète dans Chrome sur ordinateur", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Réserver" }).click();
+  await page.getByRole("main").getByRole("link", { name: "Réserver" }).click();
   await page.getByRole("link", { name: /Coupe homme/ }).click();
 
   const heure = page.getByRole("link", { name: /^\d{2}:\d{2}$/ }).first();

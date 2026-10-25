@@ -12,6 +12,7 @@ import {
 import { Bouton } from "@/components/ui/bouton";
 import { BoutonLien } from "@/components/ui/bouton-lien";
 import { Carte } from "@/components/ui/carte";
+import { LienRetour } from "@/components/ui/lien-retour";
 import { focus } from "@/components/ui/styles";
 import type { Catalogue } from "@/lib/catalogue";
 import { formatDuree, formatPrix } from "@/lib/format";
@@ -99,12 +100,7 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href={retour}
-        className={`inline-flex min-h-11 items-center self-start rounded-base text-base font-semibold text-accent underline ${focus}`}
-      >
-        ← Changer de créneau
-      </Link>
+      <LienRetour href={retour} vers="aux créneaux" />
 
       <h1 className="font-titre text-2xl font-medium text-texte sm:text-3xl">
         Confirmer la réservation

@@ -77,6 +77,24 @@ toute façon les éléments inactifs du seuil de contraste.
 - **Bouton en chargement** : reste actif et focusable (pas de `disabled`), mais
   ignore les clics, Entrée et Espace tant que le chargement dure ; libellé de
   chargement et `aria-busy`.
+- **Navigation** (#53, `components/navigation/navigation-site.tsx`) : trois
+  destinations, Accueil, Réserver, Mes réservations.
+  - **Téléphone (moins de 768 px)** : barre d'onglets fixe en bas, fond
+    `surface`, filet `separateur` en haut ; chaque onglet a une icône au trait
+    de 24 px et son libellé de 16 px, sur au moins 64 px de haut. Onglet
+    courant : texte et icône `accent`, gras, trait `accent` de 2 px en haut ;
+    les autres en `texte-secondaire`. La barre tient compte de la zone système
+    du bas (safe area) et la page réserve sa hauteur : rien n'est masqué
+    dessous.
+  - **Ordinateur (768 px et plus)** : en-tête fond `surface`, filet
+    `separateur` en bas, nom du salon (police des titres) vers l'accueil et les
+    mêmes liens à droite ; lien courant `accent` et souligné.
+  - Onglet ou lien courant signalé aussi par `aria-current="page"` ; icônes
+    décoratives (`aria-hidden`).
+- **« ← Retour »** (`components/ui/lien-retour.tsx`) : en haut de chaque étape
+  du parcours, même place et même libellé visible ; lien `accent` souligné,
+  vers l'étape précédente (et non l'historique), nom complet pour les lecteurs
+  d'écran (« Retour aux créneaux »).
 
 ## 5. Parcours de réservation (BNF-9 : 3 écrans hors authentification)
 

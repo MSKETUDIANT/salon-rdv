@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useId, useMemo, useState } from "react";
 import { BandeJours } from "@/components/reservation/bande-jours";
 import { ListeCreneaux } from "@/components/reservation/liste-creneaux";
 import { Bouton } from "@/components/ui/bouton";
 import { BoutonLien } from "@/components/ui/bouton-lien";
+import { LienRetour } from "@/components/ui/lien-retour";
 import { focus } from "@/components/ui/styles";
 import { coiffeursCompetents, type Catalogue } from "@/lib/catalogue";
 import {
@@ -92,12 +92,7 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link
-        href="/reserver"
-        className={`inline-flex min-h-11 items-center self-start rounded-base text-base font-semibold text-accent underline ${focus}`}
-      >
-        ← Changer de prestation
-      </Link>
+      <LienRetour href="/reserver" vers="aux prestations" />
 
       {pris && (
         <p role="alert" className="text-base font-semibold text-erreur">
