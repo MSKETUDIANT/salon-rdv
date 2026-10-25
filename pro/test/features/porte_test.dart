@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:salon_pro/app.dart';
 import 'package:salon_pro/data/session.dart';
 
+import '../doublures/faux_planning.dart';
 import '../doublures/faux_salon.dart';
 
 // Doublures : comptes du seed (supabase/seed.sql) et leurs rôles.
@@ -69,7 +70,14 @@ Future<void> lancer(WidgetTester tester) async {
     'client@salon.test': ['client'],
     'patron@salon.test': ['gerant', 'coiffeur'],
   });
-  await tester.pumpWidget(AppPro(auth: auth, roles: roles, salon: FauxSalon()));
+  await tester.pumpWidget(
+    AppPro(
+      auth: auth,
+      roles: roles,
+      salon: FauxSalon(),
+      planning: FauxPlanning(),
+    ),
+  );
 }
 
 Future<void> seConnecter(
@@ -150,6 +158,8 @@ void main() {
     await seConnecter(tester, 'amira@salon.test');
     expect(find.text('Espace coiffeur'), findsOneWidget);
     expect(find.text('Connecté avec amira@salon.test'), findsOneWidget);
+    expect(find.text('Mon planning'), findsOneWidget);
+    expect(find.text('Prestations'), findsNothing);
     expect(find.textContaining('Passer à'), findsNothing);
   });
 
@@ -157,6 +167,10 @@ void main() {
     await lancer(tester);
     await seConnecter(tester, 'gerant@salon.test');
     expect(find.text('Espace gérant'), findsOneWidget);
+    expect(find.text("Planning de l'équipe"), findsOneWidget);
+    expect(find.text('Prestations'), findsOneWidget);
+    expect(find.text('Équipe'), findsOneWidget);
+    expect(find.text('Mon planning'), findsNothing);
     expect(find.textContaining('Passer à'), findsNothing);
   });
 

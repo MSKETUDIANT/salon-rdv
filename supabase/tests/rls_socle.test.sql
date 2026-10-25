@@ -87,7 +87,6 @@ select policies_are('public', 'salons', array[
 
 select policies_are('public', 'utilisateurs', array[
   'utilisateurs : lecture de sa ligne',
-  'utilisateurs : coiffeur lit ses clients',
   'utilisateurs : gérant lit les membres de son salon',
   'utilisateurs : modification de sa ligne'
 ], 'utilisateurs : liste exacte des policies');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'data/planning.dart';
 import 'data/salon.dart';
 import 'data/session.dart';
 import 'features/espaces/porte.dart';
@@ -12,11 +13,13 @@ class AppPro extends StatelessWidget {
     required this.auth,
     required this.roles,
     required this.salon,
+    required this.planning,
   });
 
   final ServiceAuth auth;
   final DepotRoles roles;
   final DepotSalon salon;
+  final DepotPlanning planning;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +31,7 @@ class AppPro extends StatelessWidget {
       locale: const Locale('fr'),
       supportedLocales: const [Locale('fr')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: Porte(auth: auth, roles: roles, salon: salon),
+      home: Porte(auth: auth, roles: roles, salon: salon, planning: planning),
     );
   }
 }

@@ -425,6 +425,25 @@ export type Database = {
           statut: Database["public"]["Enums"]["statut_reservation"]
         }[]
       }
+      planning: {
+        Args: {
+          p_au: string
+          p_coiffeur?: string
+          p_du: string
+          p_salon: string
+        }
+        Returns: {
+          client_nom: string
+          client_telephone: string
+          coiffeur_id: string
+          debut: string
+          duree_minutes: number
+          fin: string
+          id: string
+          prestation: string
+          statut: Database["public"]["Enums"]["statut_reservation"]
+        }[]
+      }
       reserver: {
         Args: { p_coiffeur?: string; p_debut: string; p_prestation: string }
         Returns: {

@@ -121,3 +121,51 @@ select '11111111-1111-1111-1111-111111111111', '33333333-3333-3333-3333-33333333
        (mardi + time '10:45') at time zone 'Africa/Tunis'
   from (select aujourdhui + 1 + (9 - extract(isodow from aujourdhui + 1)::int) % 7 as mardi
           from (select (now() at time zone 'Africa/Tunis')::date as aujourdhui) as t) as d;
+
+-- ============================================================
+-- Issue #10 : de quoi tester les plannings de l'app pro
+-- ============================================================
+
+-- Téléphone du client démo (affiché dans la fiche d'un rendez-vous). Unique :
+-- différent de ceux des tests SQL.
+update public.utilisateurs set telephone = '21698765432'
+ where id = '33333333-3333-3333-3333-333333333333';
+
+-- Même mardi : Amira a aussi une absence (16h-17h) ; mercredi : deux rendez-vous.
+insert into public.absences (salon_id, coiffeur_id, debut, fin, motif)
+select '11111111-1111-1111-1111-111111111111', '44444444-4444-4444-4444-444444444444',
+       (mardi + time '16:00') at time zone 'Africa/Tunis',
+       (mardi + time '17:00') at time zone 'Africa/Tunis',
+       'Rendez-vous médical'
+  from (select aujourdhui + 1 + (9 - extract(isodow from aujourdhui + 1)::int) % 7 as mardi
+          from (select (now() at time zone 'Africa/Tunis')::date as aujourdhui) as t) as d;
+
+-- Clients : 3333… (Client Démo, avec téléphone), 2222… (Gérant Démo, sans).
+-- Le rendez-vous annulé d'Amira (17h30) ne doit apparaître dans aucun planning.
+insert into public.reservations (salon_id, client_id, coiffeur_id, prestation_id, debut, fin, statut)
+select '11111111-1111-1111-1111-111111111111', r.client_id::uuid, r.coiffeur_id::uuid,
+       r.prestation_id::uuid,
+       (d.mardi + r.jour + r.debut) at time zone 'Africa/Tunis',
+       (d.mardi + r.jour + r.fin) at time zone 'Africa/Tunis',
+       r.statut::public.statut_reservation
+  from (select aujourdhui + 1 + (9 - extract(isodow from aujourdhui + 1)::int) % 7 as mardi
+          from (select (now() at time zone 'Africa/Tunis')::date as aujourdhui) as t) as d
+ cross join (values
+   -- Amira, mardi
+   (0, time '11:00', time '12:30', '22222222-2222-2222-2222-222222222222',
+    '44444444-4444-4444-4444-444444444444', '66666666-0000-0000-0000-000000000004', 'confirmee'),
+   (0, time '14:30', time '15:00', '33333333-3333-3333-3333-333333333333',
+    '44444444-4444-4444-4444-444444444444', '66666666-0000-0000-0000-000000000003', 'confirmee'),
+   (0, time '17:30', time '18:15', '33333333-3333-3333-3333-333333333333',
+    '44444444-4444-4444-4444-444444444444', '66666666-0000-0000-0000-000000000001', 'annulee'),
+   -- Youssef, mardi (absent 14h-16h)
+   (0, time '10:30', time '11:00', '33333333-3333-3333-3333-333333333333',
+    '55555555-5555-5555-5555-555555555555', '66666666-0000-0000-0000-000000000002', 'confirmee'),
+   (0, time '16:30', time '17:15', '22222222-2222-2222-2222-222222222222',
+    '55555555-5555-5555-5555-555555555555', '66666666-0000-0000-0000-000000000001', 'confirmee'),
+   -- Mercredi
+   (1, time '09:00', time '09:30', '33333333-3333-3333-3333-333333333333',
+    '44444444-4444-4444-4444-444444444444', '66666666-0000-0000-0000-000000000002', 'confirmee'),
+   (1, time '12:00', time '12:30', '22222222-2222-2222-2222-222222222222',
+    '55555555-5555-5555-5555-555555555555', '66666666-0000-0000-0000-000000000002', 'confirmee')
+ ) as r(jour, debut, fin, client_id, coiffeur_id, prestation_id, statut);

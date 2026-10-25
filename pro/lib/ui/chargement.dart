@@ -20,7 +20,13 @@ class Chargement<T> extends StatefulWidget {
 class _ChargementState<T> extends State<Chargement<T>> {
   late Future<T> _lecture = widget.lire();
 
-  void _relire() => setState(() => _lecture = widget.lire());
+  // Corps en accolades : setState ne doit pas recevoir une fonction qui
+  // renvoie la Future (Flutter refuserait, et l'écran resterait sur l'erreur).
+  void _relire() {
+    setState(() {
+      _lecture = widget.lire();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

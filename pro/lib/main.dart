@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
 import 'data/config.dart';
+import 'data/planning.dart';
 import 'data/salon.dart';
 import 'data/session.dart';
 import 'ui/charte.dart';
@@ -30,6 +31,7 @@ Future<void> main() async {
       auth: AuthSupabase(client),
       roles: RolesSupabase(client, config.salonId),
       salon: SalonSupabase(client, config.salonId),
+      planning: PlanningSupabase(client, config.salonId),
     ),
   );
 }

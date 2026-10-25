@@ -180,10 +180,11 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"000000a2-0000-0000-0000-000000000000","role":"authenticated"}', true);
 
-select results_eq(
-  $$ select id from public.utilisateurs where id in ('000000a3-0000-0000-0000-000000000000', '000000a4-0000-0000-0000-000000000000', '000000b3-0000-0000-0000-000000000000') order by id $$,
-  $$ values ('000000a3-0000-0000-0000-000000000000'::uuid), ('000000a4-0000-0000-0000-000000000000'::uuid) $$,
-  'Coiffeur A : voit ses clients a3 et a4, pas le client de B'
+-- Depuis #10, le coiffeur ne lit plus la ligne de ses clients (e-mail) : nom et
+-- téléphone passent par planning() (planning.test.sql).
+select is_empty(
+  $$ select id from public.utilisateurs where id in ('000000a3-0000-0000-0000-000000000000', '000000a4-0000-0000-0000-000000000000', '000000b3-0000-0000-0000-000000000000') $$,
+  'Coiffeur A : aucune ligne client lisible, même celles de ses clients (#10)'
 );
 
 -- ------------------------------------------------------------
