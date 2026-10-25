@@ -91,6 +91,15 @@ describe("connexion par code", () => {
     });
   });
 
+  it("sans nom : connexion à un compte existant seulement", async () => {
+    const supabase = client({ otp: { error: { code: "otp_disabled" } } });
+    expect(await envoyerCode(supabase, "c@exemple.tn", null)).toContain("Aucun compte");
+    expect(supabase.auth.signInWithOtp).toHaveBeenCalledWith({
+      email: "c@exemple.tn",
+      options: { shouldCreateUser: false },
+    });
+  });
+
   it("valide le code de type e-mail ; code faux : message clair", async () => {
     const supabase = client({ verify: { error: { code: "otp_expired" } } });
     expect(await validerCode(supabase, "c@exemple.tn", "123456")).toContain("Code incorrect");
