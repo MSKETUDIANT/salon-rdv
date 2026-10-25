@@ -144,6 +144,12 @@ class FauxSalon implements DepotSalon {
     }
   }
 
+  // Date et heure au salon renvoyées par maintenantAuSalon.
+  DateTime maintenant = DateTime(2030, 1, 6, 15, 30);
+
+  @override
+  Future<DateTime> maintenantAuSalon() async => maintenant;
+
   @override
   Future<List<Absence>> absences(String coiffeurId) async => [
     ...?absencesEnregistrees[coiffeurId],

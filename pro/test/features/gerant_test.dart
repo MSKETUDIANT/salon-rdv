@@ -194,14 +194,7 @@ void main() {
       'absence sur des rendez-vous confirmés : avertissement, sans blocage',
       (tester) async {
         salon.rendezVous = 2;
-        await ouvrir(
-          tester,
-          FormulaireAbsence(
-            salon: salon,
-            coiffeur: amira,
-            maintenant: DateTime(2030, 1, 6),
-          ),
-        );
+        await ouvrir(tester, FormulaireAbsence(salon: salon, coiffeur: amira));
         // Par défaut : demain 9h-19h.
         expect(find.text('Lundi 7 janvier'), findsNWidgets(2));
         expect(find.text('09:00'), findsOneWidget);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'fuseau.dart';
+
 // Configuration du salon par le gérant (#9) : prestations, équipe, horaires,
 // absences, compétences. Les droits sont vérifiés par la base (RLS, migration
 // 20261025043854_configuration_salon.sql) : l'app ne fait qu'afficher.
@@ -42,6 +44,7 @@ class Plage {
   final TimeOfDay fin;
 }
 
+// debut et fin : heures du salon (dates « murales », voir fuseau.dart).
 class Absence {
   const Absence({
     required this.id,
@@ -89,7 +92,11 @@ abstract interface class DepotSalon {
   });
   Future<void> supprimerPlage(String id);
 
-  // Absences en cours ou à venir, la plus proche d'abord.
+  // Date et heure actuelles au salon (pas celles du téléphone).
+  Future<DateTime> maintenantAuSalon();
+
+  // Absences en cours ou à venir, la plus proche d'abord. Toutes les heures
+  // d'absence (lues, écrites, comparées) sont des heures du salon.
   Future<List<Absence>> absences(String coiffeurId);
   Future<void> ajouterAbsence(
     String coiffeurId, {
@@ -141,6 +148,22 @@ class SalonSupabase implements DepotSalon {
   SalonSupabase(this._client, this._salonId);
   final SupabaseClient _client;
   final String _salonId;
+  String? _fuseau;
+
+  // Fuseau du salon (salons.fuseau_horaire), lu une fois.
+  Future<String> _fuseauDuSalon() async {
+    return _fuseau ??=
+        (await _client
+                .from('salons')
+                .select('fuseau_horaire')
+                .eq('id', _salonId)
+                .single())['fuseau_horaire']
+            as String;
+  }
+
+  @override
+  Future<DateTime> maintenantAuSalon() =>
+      _appel(() async => depuisUtc(DateTime.now(), await _fuseauDuSalon()));
 
   Future<T> _appel<T>(Future<T> Function() action) async {
     try {
@@ -262,6 +285,7 @@ class SalonSupabase implements DepotSalon {
 
   @override
   Future<List<Absence>> absences(String coiffeurId) => _appel(() async {
+    final fuseau = await _fuseauDuSalon();
     final lignes = await _client
         .from('absences')
         .select('id, debut, fin, motif')
@@ -273,8 +297,8 @@ class SalonSupabase implements DepotSalon {
       for (final l in lignes)
         Absence(
           id: l['id'] as String,
-          debut: DateTime.parse(l['debut'] as String).toLocal(),
-          fin: DateTime.parse(l['fin'] as String).toLocal(),
+          debut: depuisUtc(DateTime.parse(l['debut'] as String), fuseau),
+          fin: depuisUtc(DateTime.parse(l['fin'] as String), fuseau),
           motif: l['motif'] as String?,
         ),
     ];
@@ -286,15 +310,16 @@ class SalonSupabase implements DepotSalon {
     required DateTime debut,
     required DateTime fin,
     String? motif,
-  }) => _appel(
-    () => _client.from('absences').insert({
+  }) => _appel(() async {
+    final fuseau = await _fuseauDuSalon();
+    await _client.from('absences').insert({
       'salon_id': _salonId,
       'coiffeur_id': coiffeurId,
-      'debut': debut.toUtc().toIso8601String(),
-      'fin': fin.toUtc().toIso8601String(),
+      'debut': versUtc(debut, fuseau).toIso8601String(),
+      'fin': versUtc(fin, fuseau).toIso8601String(),
       'motif': motif,
-    }),
-  );
+    });
+  });
 
   @override
   Future<void> supprimerAbsence(String id) =>
@@ -307,14 +332,15 @@ class SalonSupabase implements DepotSalon {
     required DateTime debut,
     required DateTime fin,
   }) => _appel(() async {
+    final fuseau = await _fuseauDuSalon();
     final lignes = await _client
         .from('reservations')
         .select('id')
         .eq('salon_id', _salonId)
         .eq('coiffeur_id', coiffeurId)
         .eq('statut', 'confirmee')
-        .lt('debut', fin.toUtc().toIso8601String())
-        .gt('fin', debut.toUtc().toIso8601String());
+        .lt('debut', versUtc(fin, fuseau).toIso8601String())
+        .gt('fin', versUtc(debut, fuseau).toIso8601String());
     return lignes.length;
   });
 

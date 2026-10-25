@@ -471,26 +471,51 @@ class _SectionAbsencesState extends State<SectionAbsences> {
 // Nouvelle absence : début et fin (date et heure), motif facultatif. Si des
 // rendez-vous confirmés tombent dedans, le gérant est prévenu sans être
 // bloqué (les clients, eux, ne le sont pas : docs/dette-technique.md).
-class FormulaireAbsence extends StatefulWidget {
+// Les dates et heures saisies sont celles du salon (salons.fuseau_horaire),
+// jamais celles du téléphone : « aujourd'hui » est lu au salon, et le dépôt
+// convertit en UTC (data/fuseau.dart).
+class FormulaireAbsence extends StatelessWidget {
   const FormulaireAbsence({
     super.key,
     required this.salon,
     required this.coiffeur,
-    this.maintenant,
   });
   final DepotSalon salon;
   final Coiffeur coiffeur;
-  // Pour les tests.
-  final DateTime? maintenant;
 
   @override
-  State<FormulaireAbsence> createState() => _FormulaireAbsenceState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Absence de ${coiffeur.nom}')),
+      body: Chargement<DateTime>(
+        lire: salon.maintenantAuSalon,
+        afficher: (context, maintenant, _) => _SaisieAbsence(
+          salon: salon,
+          coiffeur: coiffeur,
+          maintenant: maintenant,
+        ),
+      ),
+    );
+  }
 }
 
-class _FormulaireAbsenceState extends State<FormulaireAbsence> {
-  late final DateTime _aujourdhui = DateUtils.dateOnly(
-    widget.maintenant ?? DateTime.now(),
-  );
+class _SaisieAbsence extends StatefulWidget {
+  const _SaisieAbsence({
+    required this.salon,
+    required this.coiffeur,
+    required this.maintenant,
+  });
+  final DepotSalon salon;
+  final Coiffeur coiffeur;
+  // Date et heure actuelles au salon.
+  final DateTime maintenant;
+
+  @override
+  State<_SaisieAbsence> createState() => _SaisieAbsenceState();
+}
+
+class _SaisieAbsenceState extends State<_SaisieAbsence> {
+  late final DateTime _aujourdhui = DateUtils.dateOnly(widget.maintenant);
   late DateTime _debut = _aujourdhui.add(const Duration(days: 1, hours: 9));
   late DateTime _fin = _aujourdhui.add(const Duration(days: 1, hours: 19));
   final _motif = TextEditingController();
@@ -636,33 +661,32 @@ class _FormulaireAbsenceState extends State<FormulaireAbsence> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text('Absence de ${widget.coiffeur.nom}')),
-      body: ListeCharte(
-        enfants: [
-          ligne('Début', true),
-          const SizedBox(height: Espaces.s6),
-          ligne('Fin', false),
-          const SizedBox(height: Espaces.s6),
-          Champ(
-            libelle: 'Motif (facultatif)',
-            controleur: _motif,
-            actionClavier: TextInputAction.done,
-          ),
-          const SizedBox(height: Espaces.s6),
-          if (_erreur != null) ...[
-            MessageErreur(_erreur!),
-            const SizedBox(height: Espaces.s3),
-          ],
-          Bouton(
-            libelle: 'Enregistrer l\'absence',
-            libelleChargement: 'Enregistrement…',
-            chargement: _enCours,
-            pleineLargeur: true,
-            surAppui: _enregistrer,
-          ),
+    return ListeCharte(
+      enfants: [
+        Text('Heures du salon.', style: textes.bodySmall),
+        const SizedBox(height: Espaces.s4),
+        ligne('Début', true),
+        const SizedBox(height: Espaces.s6),
+        ligne('Fin', false),
+        const SizedBox(height: Espaces.s6),
+        Champ(
+          libelle: 'Motif (facultatif)',
+          controleur: _motif,
+          actionClavier: TextInputAction.done,
+        ),
+        const SizedBox(height: Espaces.s6),
+        if (_erreur != null) ...[
+          MessageErreur(_erreur!),
+          const SizedBox(height: Espaces.s3),
         ],
-      ),
+        Bouton(
+          libelle: 'Enregistrer l\'absence',
+          libelleChargement: 'Enregistrement…',
+          chargement: _enCours,
+          pleineLargeur: true,
+          surAppui: _enregistrer,
+        ),
+      ],
     );
   }
 }
