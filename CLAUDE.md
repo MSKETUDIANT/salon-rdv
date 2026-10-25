@@ -45,6 +45,8 @@ Règle métier critique : zéro double réservation, garantie par la base
   montre-le, puis arrête-toi et attends mon accord.
 - Ne dis jamais « c'est fait » sans preuve : sortie de commande, test, capture.
 - Ne supprime rien (fichier, branche, projet, donnée) sans mon accord explicite.
+- Jamais de `git checkout`, `git restore` ou `git reset` sur des modifications
+  non commitées sans mon accord. Pour mettre de côté un essai, `git stash`.
 - Une issue à la fois. Ne touche pas à ce qui est hors de l'issue en cours.
 - Si une consigne te paraît fausse ou contradictoire, dis-le avant d'agir.
 - Si tu ne sais pas, dis-le. Ne devine pas.
