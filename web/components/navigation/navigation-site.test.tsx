@@ -41,16 +41,25 @@ describe("Navigation du site (#53)", () => {
     }
   });
 
+  it("onglet courant : pastille derrière l'icône, aucune sur les autres (#55)", () => {
+    etat.chemin = "/reserver";
+    render(<BarreOnglets />);
+    const pastilles = onglets().map((l) => l.querySelector("span")?.className.includes("bg-separateur"));
+    expect(pastilles).toEqual([false, true, false]);
+  });
+
   it("page hors navigation (charte) : aucun onglet courant", () => {
     etat.chemin = "/charte";
     render(<BarreOnglets />);
     expect(onglets().some((l) => l.hasAttribute("aria-current"))).toBe(false);
   });
 
-  it("en-tête : nom du salon vers l'accueil, mêmes liens, onglet courant", () => {
+  it("en-tête : logo « Salon RDV » vers l'accueil, mêmes liens, onglet courant", () => {
     etat.chemin = "/mes-reservations";
-    render(<EnTeteNavigation nomSalon="Salon Sparta" />);
-    expect(screen.getByRole("link", { name: "Salon Sparta" }).getAttribute("href")).toBe("/");
+    render(<EnTeteNavigation />);
+    // Logo en tracés, nommé pour les lecteurs d'écran (#55).
+    expect(screen.getByRole("img", { name: "Salon RDV" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Salon RDV" }).getAttribute("href")).toBe("/");
     expect(onglets().map((l) => l.textContent)).toEqual(["Accueil", "Réserver", "Mes réservations"]);
     expect(screen.getByRole("link", { name: "Mes réservations" }).getAttribute("aria-current")).toBe("page");
   });

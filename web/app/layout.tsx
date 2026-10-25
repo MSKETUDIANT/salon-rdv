@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Figtree, Newsreader } from "next/font/google";
 import { BarreOnglets, EnTeteNavigation } from "@/components/navigation/navigation-site";
-import { titreAccueil } from "@/lib/accueil";
-import { env } from "@/lib/env";
-import { lireSalon } from "@/lib/salon";
 import "./globals.css";
 
 // Polices de la charte, auto-hébergées par next/font (téléchargées au build,
@@ -29,23 +26,16 @@ export const metadata: Metadata = {
 // (env(safe-area-inset-bottom)) sur les téléphones sans bouton.
 export const viewport: Viewport = { viewportFit: "cover" };
 
-// Navigation (#53) : liens dans l'en-tête à partir de 768 px, barre d'onglets
-// fixe en bas en dessous. Nom du salon en cache, comme sur l'accueil.
-export default async function RootLayout({ children }: LayoutProps<"/">) {
-  let nomSalon = "Salon RDV";
-  try {
-    nomSalon = titreAccueil(await lireSalon(env.salonId));
-  } catch {
-    // Nom illisible : l'en-tête garde le nom générique, le site reste servi.
-  }
-
+// Navigation (#53) : logo et liens dans l'en-tête à partir de 768 px (#55),
+// barre d'onglets fixe en bas en dessous.
+export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="fr"
       className={`${newsreader.variable} ${figtree.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <EnTeteNavigation nomSalon={nomSalon} />
+        <EnTeteNavigation />
         {children}
         {/* Réserve la hauteur de la barre d'onglets : rien n'est masqué dessous. */}
         <div aria-hidden="true" className="h-[calc(4.5rem+env(safe-area-inset-bottom))] md:hidden" />

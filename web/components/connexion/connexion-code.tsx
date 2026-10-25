@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Bouton } from "@/components/ui/bouton";
 import { Champ } from "@/components/ui/champ";
-import { focus } from "@/components/ui/styles";
+import { lienSecondaire } from "@/components/ui/styles";
 import { codeValide, emailValide, envoyerCode, validerCode } from "@/lib/reservation";
 import type { createClient } from "@/lib/supabase/client";
 
@@ -152,7 +152,7 @@ export function FormulaireConnexion({
           changerEtape("email");
           setErreurs({});
         }}
-        className={`inline-flex min-h-11 items-center self-start rounded-base text-base font-semibold text-accent underline ${focus}`}
+        className={lienSecondaire}
       >
         Changer d&apos;e-mail ou renvoyer le code
       </button>
@@ -170,7 +170,7 @@ export function CompteConnecte({ supabase, compte }: { supabase: Client; compte:
       <button
         type="button"
         onClick={() => supabase.auth.signOut()}
-        className={`inline-flex min-h-11 items-center rounded-base text-base font-semibold text-accent underline ${focus}`}
+        className={lienSecondaire}
       >
         Changer de compte
       </button>

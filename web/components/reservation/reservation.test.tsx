@@ -15,7 +15,7 @@ describe("CartePrestation", () => {
     );
     const lien = screen.getByRole("link");
     expect(lien.getAttribute("href")).toBe("/reserver/creneaux?prestation=p1");
-    expect(lien.textContent?.replace(/\s/g, " ")).toBe("Coupe femme45 min · 35 DT");
+    expect(lien.textContent?.replace(/\s/g, " ")).toBe("Coupe femme45 min35 DT");
   });
 });
 

@@ -59,7 +59,9 @@ toute façon les éléments inactifs du seuil de contraste.
 
 - Conception à 360 px d'abord, puis élargissement (BNF-10).
 - Coins arrondis de 8 px ; ombres quasi absentes (une bordure ou le contraste
-  `fond` / `surface` suffit).
+  `fond` / `surface` suffit). Seule exception, l'arrondi `pastille` (#55,
+  `rounded-pastille`) : statut d'une réservation, onglet courant, marque de
+  réussite.
 - Boutons : 48 px de haut. Zones tactiles d'au moins 44 × 44 px.
 - **Focus clavier** : contour `accent` de 2 px, décalé de 2 px
   (`outline-offset`), sur tout élément interactif.
@@ -82,19 +84,43 @@ toute façon les éléments inactifs du seuil de contraste.
   - **Téléphone (moins de 768 px)** : barre d'onglets fixe en bas, fond
     `surface`, filet `separateur` en haut ; chaque onglet a une icône au trait
     de 24 px et son libellé de 16 px, sur au moins 64 px de haut. Onglet
-    courant : texte et icône `accent`, gras, trait `accent` de 2 px en haut ;
-    les autres en `texte-secondaire`. La barre tient compte de la zone système
-    du bas (safe area) et la page réserve sa hauteur : rien n'est masqué
-    dessous.
+    courant (#55) : texte et icône `accent`, gras, pastille `separateur`
+    derrière l'icône ; les autres en `texte-secondaire`, `texte` au survol.
+    La barre tient compte de la zone système du bas (safe area) et la page
+    réserve sa hauteur : rien n'est masqué dessous.
   - **Ordinateur (768 px et plus)** : en-tête fond `surface`, filet
-    `separateur` en bas, nom du salon (police des titres) vers l'accueil et les
-    mêmes liens à droite ; lien courant `accent` et souligné.
+    `separateur` en bas, logo « Salon RDV » vers l'accueil (#55) et les mêmes
+    liens à droite. Liens sans soulignement : au repos `texte`, au survol fond
+    `separateur` et texte `accent` (6:1) ; lien courant `accent` avec un trait
+    `accent` de 2 px dessous.
   - Onglet ou lien courant signalé aussi par `aria-current="page"` ; icônes
     décoratives (`aria-hidden`).
-- **« ← Retour »** (`components/ui/lien-retour.tsx`) : en haut de chaque étape
-  du parcours, même place et même libellé visible ; lien `accent` souligné,
-  vers l'étape précédente (et non l'historique), nom complet pour les lecteurs
-  d'écran (« Retour aux créneaux »).
+- **Lien secondaire** (#55, `lienSecondaire` dans `components/ui/styles.ts`) :
+  « Retour à l'accueil », « Changer de compte », « Changer d'e-mail… ». Texte
+  `accent` en gras, sans soulignement au repos, souligné au survol, zone
+  tactile de 44 px.
+- **« ‹ Retour »** (`components/ui/lien-retour.tsx`) : en haut de chaque étape
+  du parcours (et de « Mes réservations »), même place et même libellé
+  visible ; lien secondaire avec un chevron, vers l'étape précédente (et non
+  l'historique), nom complet pour les lecteurs d'écran (« Retour aux
+  créneaux »).
+- **Logo « Salon RDV »** (#55, `components/marque/logo-salon-rdv.tsx`) :
+  Newsreader 500, couleur `accent`, en tracés (aucune police à charger). En
+  tête du site sur ordinateur ; le nom du salon reste le titre de l'accueil.
+  - **Favicon** (`app/favicon.ico`, `app/icon.svg`) : « S » `accent` sur fond
+    `fond`, graisse renforcée (Newsreader 700, taille optique 12) pour rester
+    lisible à 16 px.
+  - **Icône de l'app pro** (`pro/assets/icone/`, et `app/apple-icon.png` pour
+    le site) : « S » blanc sur fond `accent` ; icône adaptative Android avec
+    le « S » en premier plan, même proportion visible que l'icône pleine.
+- **Prestation** (écran 1) : nom en gras, durée en `texte-secondaire`, prix en
+  gras, chevron `accent` à droite.
+- **Bande de jours** (écran 2) : mois au-dessus (« Octobre – novembre 2026 »),
+  repère « nov. » devant le 1er d'un nouveau mois (décoratif).
+- **Réservation confirmée** : coche blanche dans un rond `accent` au-dessus du
+  titre (décorative).
+- **Statut d'une réservation** : pastille, bordure et texte `accent` si
+  confirmée, `bordure` et `texte-secondaire` sinon.
 
 ## 5. Parcours de réservation (BNF-9 : 3 écrans hors authentification)
 
@@ -195,3 +221,27 @@ Focus clavier sur le bouton « Réserver » (contour accent 2 px, décalé de 2 
 
 ![Focus du bouton à 360 px](captures/focus-bouton-360.webp)
 
+
+### Refonte du site client (#55)
+
+Avant et après, à 360 px (site construit sur la base locale) :
+
+| Écran | Avant | Après |
+| --- | --- | --- |
+| Accueil | ![Accueil avant](captures/refonte/tel-1-accueil-avant.webp) | ![Accueil après](captures/refonte/tel-1-accueil-apres.webp) |
+| Prestations | ![Prestations avant](captures/refonte/tel-2-prestations-avant.webp) | ![Prestations après](captures/refonte/tel-2-prestations-apres.webp) |
+| Créneaux | ![Créneaux avant](captures/refonte/tel-3-creneaux-avant.webp) | ![Créneaux après](captures/refonte/tel-3-creneaux-apres.webp) |
+| Confirmation | ![Confirmation avant](captures/refonte/tel-4-confirmation-avant.webp) | ![Confirmation après](captures/refonte/tel-4-confirmation-apres.webp) |
+| Réservation confirmée | ![Confirmée avant](captures/refonte/tel-5-confirmee-avant.webp) | ![Confirmée après](captures/refonte/tel-5-confirmee-apres.webp) |
+| Mes réservations | ![Mes réservations avant](captures/refonte/tel-6-mes-reservations-avant.webp) | ![Mes réservations après](captures/refonte/tel-6-mes-reservations-apres.webp) |
+
+Sur ordinateur (1366 px) :
+
+| Écran | Avant | Après |
+| --- | --- | --- |
+| Prestations | ![Prestations avant](captures/refonte/pc-1-prestations-avant.webp) | ![Prestations après](captures/refonte/pc-1-prestations-apres.webp) |
+| Créneaux | ![Créneaux avant](captures/refonte/pc-2-creneaux-avant.webp) | ![Créneaux après](captures/refonte/pc-2-creneaux-apres.webp) |
+
+En-tête : « Accueil » au repos, « Réserver » page courante, « Mes réservations » survolé.
+
+![États de l'en-tête](captures/refonte/pc-3-entete-etats-apres.webp)

@@ -38,6 +38,20 @@ Mot de passe : `motdepasse`.
 
 En distant, le gérant est créé selon `docs/premier-gerant.md`.
 
+## Icône de l'app
+
+« S » blanc sur fond accent, en Newsreader (#55, `docs/charte-graphique.md`
+§4). Sources dans `assets/icone/` : `icone.png` (icône pleine, 1024 px) et
+`icone-premier-plan.png` (premier plan transparent de l'icône adaptative
+Android, « S » agrandi pour compenser la marge de 16 % ajoutée par l'outil).
+Après un changement de ces images, régénérer les icônes Android et web :
+
+```
+dart run flutter_launcher_icons
+```
+
+La configuration est dans `pubspec.yaml` (`flutter_launcher_icons:`).
+
 ## Structure
 
 - `lib/ui/` : charte graphique du site traduite en `ThemeData`
