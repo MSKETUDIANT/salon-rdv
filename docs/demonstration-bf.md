@@ -6,8 +6,8 @@ où il se trouve, les tests automatisés qui le prouvent, et sa démonstration
 **sur la version en ligne**.
 
 - Site client : https://salon-rdv-one.vercel.app
-- App pro (Android) : APK de la release `app-pro-v0.1.0`,
-  https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.1.0
+- App pro (Android) : APK de la release `app-pro-v0.2.0`,
+  https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.2.0
 - Tests : `npm run verifier:bnf` dans `web/` (README, « Tests »).
 
 ## Liste
