@@ -5,13 +5,14 @@ import '../../data/planning.dart';
 import '../../data/salon.dart';
 import '../gerant/ecran_equipe.dart';
 import '../gerant/ecran_prestations.dart';
+import '../historique/ecran_historique.dart';
 import '../planning/ecran_mon_planning.dart';
 import '../planning/ecran_planning_equipe.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 
-// Accueil d'un espace. Gérant : planning de l'équipe (#10) et configuration
-// du salon (#9). Coiffeur : son planning (#10).
+// Accueil d'un espace. Gérant : planning de l'équipe (#10), historique (#11)
+// et configuration du salon (#9). Coiffeur : son planning (#10).
 class EcranEspace extends StatelessWidget {
   const EcranEspace({
     super.key,
@@ -53,6 +54,16 @@ class EcranEspace extends StatelessWidget {
             surAppui: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => EcranPlanningEquipe(planning: planning),
+              ),
+            ),
+          ),
+          const SizedBox(height: Espaces.s3),
+          CarteLien(
+            titre: 'Historique',
+            description: 'Prestations réalisées, absents et encaissements',
+            surAppui: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => EcranHistorique(planning: planning),
               ),
             ),
           ),

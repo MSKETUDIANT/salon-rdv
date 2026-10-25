@@ -57,11 +57,14 @@ insert into public.absences (id, salon_id, coiffeur_id, debut, fin, motif) value
 -- c0a3 (a3) terminée ; c0b1 confirmée et c0b2 terminée (client b3).
 -- Depuis l'issue #6, un client ne crée plus de réservation lui-même : elles
 -- passent par public.reserver() (tests dans reserver.test.sql).
+-- Dates relatives à now() quand une règle de temps s'applique : c0a1 est à
+-- venir (annulable par le client, #7), c0a2 est passé (depuis #11, seul un
+-- rendez-vous commencé peut être marqué terminé).
 insert into public.reservations (id, salon_id, client_id, coiffeur_id, prestation_id, debut, fin, statut) values
   ('0000c0a1-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
-   '0000f0a1-0000-0000-0000-000000000000', '2026-11-02 10:00+00', '2026-11-02 10:30+00', 'confirmee'),
+   '0000f0a1-0000-0000-0000-000000000000', now() + interval '400 days', now() + interval '400 days' + interval '30 minutes', 'confirmee'),
   ('0000c0a2-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a4-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
-   '0000f0a1-0000-0000-0000-000000000000', '2026-11-02 11:00+00', '2026-11-02 11:30+00', 'confirmee'),
+   '0000f0a1-0000-0000-0000-000000000000', now() - interval '30 days', now() - interval '30 days' + interval '30 minutes', 'confirmee'),
   ('0000c0a3-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',
    '0000f0a1-0000-0000-0000-000000000000', '2026-10-26 10:00+00', '2026-10-26 10:30+00', 'terminee'),
   ('0000c0a4-0000-0000-0000-000000000000', '0000000a-0000-0000-0000-000000000000', '000000a3-0000-0000-0000-000000000000', '000000a2-0000-0000-0000-000000000000',

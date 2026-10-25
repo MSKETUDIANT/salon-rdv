@@ -37,6 +37,17 @@ client et la cohérence du salon. Depuis #6, elle est supprimée : la fonction
   l'app pro (configuration du salon, BF-G1 à G3), utilisée par les deux
   fonctions, avec un message clair sur le site quand le délai est dépassé.
 
+## Encaissement (BF-G4, #11) : corrections sans trace
+
+- [ ] **Une correction de montant efface l'ancien.** Le gérant peut corriger
+  le montant d'un encaissement (faute de frappe) : seule la colonne `montant`
+  est modifiable, mais l'ancienne valeur n'est conservée nulle part, et on ne
+  sait ni qui a corrigé ni quand (`encaisse_par` et `created_at` restent ceux
+  de l'encaissement d'origine). Piste : une table `corrections_encaissement`
+  (ancien montant, nouveau montant, auteur, date) remplie par un trigger
+  `after update of montant`, lisible par le gérant, et affichée dans
+  l'historique de l'app pro.
+
 ## Absence posée sur un rendez-vous déjà confirmé (#9)
 
 - [ ] **Le client n'est pas prévenu.** Le gérant peut poser une absence qui

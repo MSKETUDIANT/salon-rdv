@@ -8,6 +8,10 @@ import 'salon.dart';
 // fonction SQL planning() : un coiffeur ne reçoit que les siens, avec le nom
 // et le téléphone du client (jamais l'e-mail) ; le gérant, tout son salon.
 // Toutes les dates sont des heures du salon (dates « murales », fuseau.dart).
+//
+// Clôture, encaissement, historique (#11, BF-K3, BF-K4, BF-G4) : règles
+// vérifiées par la base (migration 20261025153145_cloture_encaissement.sql),
+// l'app ne fait qu'afficher les refus.
 
 enum StatutRendezVous {
   confirmee('Confirmé'),
@@ -32,6 +36,8 @@ class RendezVous {
     required this.dureeMinutes,
     required this.clientNom,
     this.clientTelephone,
+    required this.prix,
+    this.montantEncaisse,
   });
 
   final String id;
@@ -43,6 +49,42 @@ class RendezVous {
   final int dureeMinutes;
   final String clientNom;
   final String? clientTelephone;
+  // Prix de la prestation, en dinars (numeric(12, 3)).
+  final double prix;
+  // Montant encaissé : renseigné pour le gérant seulement, null sinon.
+  final double? montantEncaisse;
+
+  // « Terminé » et « Client absent » : rendez-vous confirmé et commencé.
+  bool cloturable(DateTime maintenant) =>
+      statut == StatutRendezVous.confirmee && !debut.isAfter(maintenant);
+}
+
+// Ligne de l'historique : rendez-vous terminé ou client absent, avec son
+// encaissement s'il existe.
+class LigneHistorique {
+  const LigneHistorique({
+    required this.id,
+    required this.coiffeurId,
+    required this.coiffeur,
+    required this.debut,
+    required this.statut,
+    required this.prestation,
+    required this.prix,
+    required this.clientNom,
+    this.montant,
+  });
+
+  final String id;
+  final String coiffeurId;
+  final String coiffeur;
+  final DateTime debut;
+  final StatutRendezVous statut;
+  final String prestation;
+  final double prix;
+  final String clientNom;
+  final double? montant;
+
+  bool get aEncaisser => statut == StatutRendezVous.terminee && montant == null;
 }
 
 class AbsencePlanning {
@@ -122,7 +164,47 @@ abstract interface class DepotPlanning {
     DateTime au, {
     String? coiffeurId,
   });
+
+  // statut : terminee ou absent.
+  Future<void> cloturer(String rendezVousId, StatutRendezVous statut);
+  // Gérant : premier encaissement d'un rendez-vous terminé, puis correction
+  // du montant seulement.
+  Future<void> encaisser(String rendezVousId, double montant);
+  Future<void> corrigerEncaissement(String rendezVousId, double montant);
+  // Gérant : rendez-vous terminés et clients absents, 31 jours au plus.
+  Future<List<LigneHistorique>> historique(
+    DateTime du,
+    DateTime au, {
+    String? coiffeurId,
+  });
 }
+
+// Messages des refus propres aux plannings, puis ceux de la configuration.
+String messageErreurPlanning(String? code, String message) {
+  switch (code) {
+    case 'PT403':
+      return message.startsWith('Historique')
+          ? 'Historique réservé au gérant du salon.'
+          : 'Planning réservé à l\'équipe du salon.';
+    case 'PT409':
+      return message.startsWith('Seul')
+          ? 'Seul un rendez-vous terminé peut être encaissé.'
+          : 'Ce rendez-vous n\'a pas encore commencé : clôture impossible.';
+    case 'PT400':
+      return 'Période de 1 à 31 jours.';
+    case '23505':
+      return 'Ce rendez-vous est déjà encaissé.';
+    case '23514':
+      return 'Ce rendez-vous est déjà clôturé, ou le montant est négatif.';
+    case '42501':
+      return 'Action non autorisée avec ce compte.';
+    default:
+      return messageErreurBase(code);
+  }
+}
+
+String _dateSql(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 class PlanningSupabase implements DepotPlanning {
   PlanningSupabase(this._client, this._salonId);
@@ -144,11 +226,7 @@ class PlanningSupabase implements DepotPlanning {
     try {
       return await action();
     } on PostgrestException catch (erreur) {
-      throw ErreurSalon(
-        erreur.code == 'PT403'
-            ? 'Planning réservé à l\'équipe du salon.'
-            : messageErreurBase(erreur.code),
-      );
+      throw ErreurSalon(messageErreurPlanning(erreur.code, erreur.message));
     } on ErreurSalon {
       rethrow;
     } catch (_) {
@@ -181,15 +259,13 @@ class PlanningSupabase implements DepotPlanning {
     String? coiffeurId,
   }) => _appel(() async {
     final fuseau = await _fuseauDuSalon();
-    String date(DateTime d) =>
-        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
     final rdv = _client.rpc(
       'planning',
       params: {
         'p_salon': _salonId,
-        'p_du': date(du),
-        'p_au': date(au),
+        'p_du': _dateSql(du),
+        'p_au': _dateSql(au),
         'p_coiffeur': coiffeurId,
       },
     );
@@ -236,6 +312,8 @@ class PlanningSupabase implements DepotPlanning {
             dureeMinutes: l['duree_minutes'] as int,
             clientNom: l['client_nom'] as String,
             clientTelephone: l['client_telephone'] as String?,
+            prix: (l['prix'] as num).toDouble(),
+            montantEncaisse: (l['montant_encaisse'] as num?)?.toDouble(),
           ),
       ],
       absences: [
@@ -260,5 +338,80 @@ class PlanningSupabase implements DepotPlanning {
           ),
       ],
     );
+  });
+
+  // Une modification que la RLS ne laisse pas passer ne lève pas d'erreur :
+  // elle ne touche aucune ligne. On le vérifie par la ligne renvoyée.
+  Future<void> _uneLigne(Future<List<dynamic>> requete) async {
+    if ((await requete).isEmpty) {
+      throw const ErreurSalon('Action non autorisée avec ce compte.');
+    }
+  }
+
+  @override
+  Future<void> cloturer(String rendezVousId, StatutRendezVous statut) => _appel(
+    () => _uneLigne(
+      _client
+          .from('reservations')
+          .update({'statut': statut.name})
+          .eq('id', rendezVousId)
+          .select('id'),
+    ),
+  );
+
+  @override
+  Future<void> encaisser(String rendezVousId, double montant) =>
+      _appel(() async {
+        await _client.from('encaissements').insert({
+          'reservation_id': rendezVousId,
+          'montant': montant,
+          'encaisse_par': moi,
+        });
+      });
+
+  @override
+  Future<void> corrigerEncaissement(String rendezVousId, double montant) =>
+      _appel(
+        () => _uneLigne(
+          _client
+              .from('encaissements')
+              .update({'montant': montant})
+              .eq('reservation_id', rendezVousId)
+              .select('id'),
+        ),
+      );
+
+  @override
+  Future<List<LigneHistorique>> historique(
+    DateTime du,
+    DateTime au, {
+    String? coiffeurId,
+  }) => _appel(() async {
+    final fuseau = await _fuseauDuSalon();
+    final lignes =
+        await _client.rpc(
+              'historique',
+              params: {
+                'p_salon': _salonId,
+                'p_du': _dateSql(du),
+                'p_au': _dateSql(au),
+                'p_coiffeur': coiffeurId,
+              },
+            )
+            as List;
+    return [
+      for (final l in lignes)
+        LigneHistorique(
+          id: l['id'] as String,
+          coiffeurId: l['coiffeur_id'] as String,
+          coiffeur: l['coiffeur'] as String,
+          debut: depuisUtc(DateTime.parse(l['debut'] as String), fuseau),
+          statut: StatutRendezVous.depuisSql(l['statut'] as String),
+          prestation: l['prestation'] as String,
+          prix: (l['prix'] as num).toDouble(),
+          clientNom: l['client_nom'] as String,
+          montant: (l['montant'] as num?)?.toDouble(),
+        ),
+    ];
   });
 }

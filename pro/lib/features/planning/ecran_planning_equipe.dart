@@ -9,7 +9,8 @@ import 'elements_planning.dart';
 
 // Planning de toute l'équipe pour le gérant (BF-G5) : une colonne par
 // coiffeur sur la journée, axe des heures commun, navigation entre les
-// jours. Défilement horizontal si l'équipe ne tient pas en largeur.
+// jours. Défilement horizontal si l'équipe ne tient pas en largeur. Depuis la
+// fiche d'un rendez-vous : clôture pour un coiffeur et encaissement (#11).
 class EcranPlanningEquipe extends StatefulWidget {
   const EcranPlanningEquipe({super.key, required this.planning});
   final DepotPlanning planning;
@@ -20,14 +21,14 @@ class EcranPlanningEquipe extends StatefulWidget {
 
 class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
   static const _largeurColonne = 148.0;
+  DateTime? _maintenant;
   DateTime? _aujourdhui;
   DateTime? _jour;
   int _version = 0;
 
   Future<(DateTime, List<Coiffeur>, DonneesPlanning)> _lire() async {
-    _aujourdhui ??= DateUtils.dateOnly(
-      await widget.planning.maintenantAuSalon(),
-    );
+    _maintenant = await widget.planning.maintenantAuSalon();
+    _aujourdhui ??= DateUtils.dateOnly(_maintenant!);
     final jour = _jour ??= _aujourdhui!;
     final resultats = await Future.wait<dynamic>([
       widget.planning.coiffeurs(),
@@ -46,6 +47,22 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
   });
 
   void _actualiser() => setState(() => _version++);
+
+  // Fiche d'un rendez-vous ; après une clôture ou un encaissement, message et
+  // relecture.
+  Future<void> _ouvrir(RendezVous r, String coiffeur) async {
+    final message = await afficherRendezVous(
+      context,
+      r,
+      planning: widget.planning,
+      maintenant: _maintenant!,
+      gerant: true,
+      coiffeur: coiffeur,
+    );
+    if (message == null || !mounted) return;
+    confirmer(context, message);
+    _actualiser();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -170,11 +187,7 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                                                 jour,
                                               ),
                                               surRendezVous: (r) =>
-                                                  afficherRendezVous(
-                                                    context,
-                                                    r,
-                                                    coiffeur: c.nom,
-                                                  ),
+                                                  _ouvrir(r, c.nom),
                                             ),
                                           ],
                                         ),
