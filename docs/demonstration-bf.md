@@ -6,7 +6,8 @@ où il se trouve, les tests automatisés qui le prouvent, et sa démonstration
 **sur la version en ligne**.
 
 - Site client : https://salon-rdv-one.vercel.app
-- App pro : voir le README (« Déployer l'app pro »).
+- App pro (Android) : APK de la release `app-pro-v0.1.0`,
+  https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.1.0
 - Tests : `npm run verifier:bnf` dans `web/` (README, « Tests »).
 
 ## Liste
@@ -19,14 +20,14 @@ où il se trouve, les tests automatisés qui le prouvent, et sa démonstration
 | **BF-C4** Se connecter ou créer un compte au moment de réserver | site, écran 3 | `reservation.spec.ts` (nouveau compte par code à l'écran 3, créneau conservé) ; `ecran-confirmation.test.tsx` ; `auth_roles.test.sql` (compte client créé à l'inscription) | [ ] |
 | **BF-C5** Réserver un créneau | site, écran 3 | `reserver.test.sql` ; `reservation.spec.ts` ; `bnf-1-charge.spec.ts` (20 réservations simultanées) | [ ] |
 | **BF-C6** Consulter et annuler sa réservation | site, « Mes réservations » | `mes_reservations.test.sql` ; `mes-reservations.spec.ts` ; `ecran-mes-reservations.test.tsx` | [ ] |
-| **BF-K1** Voir son planning par jour et par semaine | app pro, espace coiffeur | `planning.test.sql` ; `planning_test.dart` | [ ] |
+| **BF-K1** Voir son planning par jour et par semaine | app pro, espace coiffeur | `planning.test.sql` ; `planning_test.dart` | [ ] sur la base locale (décision de Sparta) |
 | **BF-K2** Voir le détail de ses réservations | app pro, fiche d'un rendez-vous | `planning.test.sql` (nom et téléphone, jamais l'e-mail) ; `planning_test.dart` | [ ] |
-| **BF-K3** Marquer un rendez-vous terminé (historique) | app pro, fiche d'un rendez-vous | `cloture_encaissement.test.sql` ; `cloture_test.dart` ; `historique_test.dart` | [ ] |
-| **BF-K4** Marquer un client absent | app pro, fiche d'un rendez-vous | `cloture_encaissement.test.sql` (absent non encaissable) ; `cloture_test.dart` | [ ] |
+| **BF-K3** Marquer un rendez-vous terminé (historique) | app pro, fiche d'un rendez-vous | `cloture_encaissement.test.sql` ; `cloture_test.dart` ; `historique_test.dart` | [ ] sur la base locale (décision de Sparta) |
+| **BF-K4** Marquer un client absent | app pro, fiche d'un rendez-vous | `cloture_encaissement.test.sql` (absent non encaissable) ; `cloture_test.dart` | [ ] sur la base locale (décision de Sparta) |
 | **BF-G1** Gérer horaires et absences des coiffeurs | app pro, espace gérant, « Équipe » | `configuration_salon.test.sql` ; `rls_horaires.test.sql`, `rls_absences.test.sql` ; `gerant_test.dart` | [ ] |
 | **BF-G2** Gérer le catalogue de prestations | app pro, espace gérant, « Prestations » | `configuration_salon.test.sql` ; `rls_prestations.test.sql` ; `gerant_test.dart` | [ ] |
 | **BF-G3** Indiquer les compétences de chaque coiffeur | app pro, fiche d'un coiffeur | `configuration_salon.test.sql` ; `rls_competences.test.sql` ; `gerant_test.dart` | [ ] |
-| **BF-G4** Enregistrer l'encaissement d'un rendez-vous | app pro, fiche d'un rendez-vous, « Historique » | `cloture_encaissement.test.sql` ; `cloture_test.dart` ; `historique_test.dart` | [ ] |
+| **BF-G4** Enregistrer l'encaissement d'un rendez-vous | app pro, fiche d'un rendez-vous, « Historique » | `cloture_encaissement.test.sql` ; `cloture_test.dart` ; `historique_test.dart` | [ ] sur la base locale (décision de Sparta) |
 | **BF-G5** Voir le planning de toute l'équipe | app pro, « Planning de l'équipe » | `planning.test.sql` ; `planning_test.dart` | [ ] |
 
 Déjà vérifiés à la main sur la base locale, pendant les issues : BF-G1 à G3
@@ -58,18 +59,20 @@ sont à faire par Sparta, dans cet ordre (environ 15 minutes).
    dans la colonne de Youssef.
 7. **BF-K2** : ouvrir ce rendez-vous → client, téléphone, prestation, heure.
 
-**Espace coiffeur** (BF-K1, K3, K4) : les coiffeurs de démonstration n'ont pas
-de compte de connexion (`docs/donnees-demo.md`). Deux possibilités :
+**Espace coiffeur et encaissement (BF-K1, K3, K4, G4) : sur la base locale.**
+Décision de Sparta (2026-10-25) : aucune modification en distant. Les
+coiffeurs de démonstration n'ont pas de compte de connexion
+(`docs/donnees-demo.md`), et un rendez-vous ne se clôture qu'une fois commencé
+(les réservations faites aux étapes 1 à 3 sont à venir). Base locale après
+`supabase db reset` (le seed contient des rendez-vous d'hier), app pro lancée
+selon le README :
 
-- donner aussi le rôle coiffeur au gérant de production, avec des horaires et
-  des compétences, et lui réserver un rendez-vous (étape 1) ;
-- ou les démontrer sur la base locale (comptes du seed), comme pendant #10 et
-  #11.
-
-8. **BF-K1** : « Mon planning » → vues Jour et Semaine.
-9. **BF-K3, BF-K4** : sur un rendez-vous commencé, « Terminé » ; sur un autre,
-   « Client absent ».
-10. **BF-G4** : dans l'espace gérant, encaisser le rendez-vous terminé →
-    « Historique » : il apparaît avec son montant.
+8. **BF-K1** : `amira@salon.test` (mot de passe `motdepasse`), « Mon planning »
+   → vues Jour et Semaine.
+9. **BF-K3, BF-K4** : hier, rendez-vous de 9h → « Terminé » ; avec
+   `youssef@salon.test`, hier 16h → « Client absent ».
+10. **BF-G4** : `gerant@salon.test`, « Planning de l'équipe », hier → encaisser
+    le rendez-vous d'Amira de 10h (terminé) → « Historique » : il apparaît avec
+    son montant.
 
 Cocher chaque ligne de la liste après sa démonstration, avec la date.
