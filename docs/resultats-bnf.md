@@ -1,0 +1,284 @@
+# Résultats des besoins non fonctionnels (BNF-1 à BNF-11)
+
+Vérification de l'issue #12, selon la méthode prévue au cahier des charges
+(`docs/cahier-des-charges.md`, § besoins non fonctionnels). Mesures du
+2026-10-25, sur la branche `issue-12-verification-bnf`.
+
+## Synthèse
+
+| BNF | Priorité | Seuil (cahier des charges) | Résultat | Statut |
+| --- | --- | --- | --- | --- |
+| BNF-1 Fiabilité | Haute | zéro double réservation, même à la même seconde | 20 réservations simultanées : 1 réussite, 19 refus `PT409`, 1 ligne en base | **Passe** |
+| BNF-2 Adéquation | Haute | 100 % des créneaux respectent la règle centrale | 38 tests sur des plannings types, toutes les branches de la règle couvertes | **Passe** |
+| BNF-3 Sécurité | Haute | un client ne voit que ses réservations ; seul le gérant modifie horaires, absences, catalogue | tests d'accès par rôle sur toutes les tables ; Security Advisor : aucun défaut bloquant, 2 points à trancher | **Passe**, 2 décisions en attente |
+| BNF-4 Utilisabilité | Haute | un nouveau client réserve en moins de 2 min, sans aide | test avec 5 vrais utilisateurs à faire (`docs/bnf-4-fiche-test.md`) | **À faire** (Sparta) |
+| BNF-5 Performance | Moyenne | liste des créneaux en moins de 3 s, téléphone d'entrée de gamme, 3G | médiane **3,33 s** en « Fast 3G » ; 2,39 s en réseau mobile Lighthouse | **Écart** de 0,33 s, expliqué |
+| BNF-6 Maintenabilité | Moyenne | code en modules ; règles de réservation couvertes par des tests | découpe en modules relue ; règles de réservation couvertes (SQL, 100 % des lignes de `lib/` qui les appliquent) | **Passe**, 2 écarts mineurs |
+| BNF-7 Portabilité | Basse | navigateur d'ordinateur et Android | Chrome sur ordinateur : automatique, réussi ; Android et navigateur de Sparta : à faire | **En partie**, reste manuel (Sparta) |
+| BNF-8 Compatibilité | Basse | pas d'interopérabilité exigée en v1 | non exigé en v1 | **Sans objet** |
+| BNF-9 Utilisabilité | Haute | 3 écrans au plus, hors authentification | 3 écrans (prestations, créneaux, confirmation) | **Passe** |
+| BNF-10 Utilisabilité | Haute | 360 px sans défilement horizontal, zones tactiles ≥ 44 × 44 px, texte ≥ 16 px | 11 écrans et états : 0 écart | **Passe** |
+| BNF-11 Utilisabilité | Haute | contrastes WCAG 2.2 AA | axe-core sur les 11 écrans et états : 0 écart ; jetons de la charte vérifiés | **Passe** |
+
+## Rejouer les vérifications
+
+Depuis `web/`, base locale démarrée (`supabase start`), Chrome et Flutter
+installés :
+
+- `npm run verifier:bnf` : tests SQL, tests unitaires avec couverture, tests
+  de bout en bout, analyse et tests Flutter avec couverture. Bilan par étape,
+  code de sortie 1 si l'une échoue. Durée : environ 2 minutes.
+- `npm run verifier:bnf -- --perf` : en plus, la mesure BNF-5 sur la
+  production (lecture seule).
+- `npm run mesurer:bnf5` (ou `-- --profil=lighthouse`) : la mesure BNF-5 seule.
+
+Dernière exécution complète (2026-10-25, après `supabase db reset`) : 5 étapes
+sur 5 réussies, soit 408 tests SQL, 106 tests unitaires, 11 tests de bout en
+bout, analyse Flutter sans erreur et 71 tests Flutter.
+
+**CI** : pas encore possible. GitHub Actions ne démarre pas, le compte est
+verrouillé pour un problème de facturation (#19). La commande unique est prête
+pour la CI le jour où #19 sera débloquée.
+
+## BNF-1 — Fiabilité
+
+- **Méthode** : `web/e2e/bnf-1-charge.spec.ts`. 20 comptes clients créés pour
+  le test, puis 20 appels à `reserver()` lancés en même temps sur le même
+  créneau (même chemin que le site), sur la base locale.
+- **Résultat** : 1 réservation, 19 refus `PT409` (« Ce créneau n'est plus
+  disponible »), une seule ligne non annulée en base. Les 20 réponses arrivent
+  en 0,4 s environ.
+- **Garantie** : la contrainte d'exclusion `reservations_sans_chevauchement`
+  (PostgreSQL) empêche deux réservations non annulées qui se chevauchent pour
+  un même coiffeur ; `reserver()` vérifie aussi le créneau et transforme le
+  conflit en `PT409`.
+- **Autres tests** : `reservations_chevauchement.test.sql` (chevauchements,
+  bout à bout autorisé, annulée libère), `reserver.test.sql`, et dans
+  `reservation.spec.ts` deux clients qui valident en même temps dans deux
+  navigateurs (un seul réussit, l'autre est renvoyé aux créneaux).
+
+## BNF-2 — Adéquation fonctionnelle
+
+- **Règle centrale** (`creneaux_disponibles()`) : un créneau proposé a la durée
+  de la prestation, tombe dans les horaires du coiffeur, hors de ses absences,
+  et ne chevauche aucune réservation non annulée.
+- **Méthode** : chaque branche de la fonction est reliée à un test de
+  `supabase/tests/creneaux_disponibles.test.sql` (plannings types : horaire
+  coupé, absences, réservations, compétences, deux salons, deux pas de
+  créneau). Le test 18 vérifie en plus, créneau par créneau, que chacun
+  respecte toute la règle.
+
+| Branche de la règle | Tests |
+| --- | --- |
+| Prestation active seulement | 17 ; prestation inconnue : 30 |
+| Jamais dans le passé, fenêtre de 31 jours au plus, période à l'envers | 19, 20, 21 |
+| Horaires du coiffeur, jour de la semaine, horaire coupé | 2, 9, 10 |
+| Compétence du coiffeur | 13 |
+| Coiffeur du salon de la prestation seulement | 14, 25, 26, 27 |
+| Un coiffeur ou « Peu importe » | 15, 16 |
+| Durée de la prestation, fin de plage | 9, 11, 12 |
+| Pas du salon | 23, 24 |
+| Absences (et bout à bout) | 4, 5 |
+| Réservations non annulées (et bout à bout) ; annulée libère | 6, 7, 8 ; terminée et client absent bloquent : 31, 32 |
+| Fuseau du salon ; changement d'heure | 3 ; 33, 34, 35 |
+| Visiteur sans compte : créneaux sans données privées | 22, 36, 37 |
+
+- **Ajouts de #12** : prestation inconnue (30), réservations terminée et
+  « client absent » qui bloquent (31, 32), changement d'heure pour un salon à
+  Paris (33 à 35), en vue du multi-salons. Résultat : 38 tests sur 38.
+- **Branche sans effet** : le `distinct` (deux plages qui se recouvrent) ne
+  sert plus depuis #9, qui interdit en base les plages qui se chevauchent
+  (`horaires_sans_chevauchement`).
+- **Même règle à la réservation** : `reserver()` relit
+  `creneaux_disponibles()` avant d'insérer (`reserver.test.sql`).
+
+## BNF-3 — Sécurité
+
+### Tests d'accès par rôle
+
+Chaque table a son fichier de tests RLS (`supabase/tests/rls_*.test.sql`),
+avec un salon A et un salon B :
+
+| Table | Visiteur | Client | Coiffeur | Gérant | Autre salon |
+| --- | --- | --- | --- | --- | --- |
+| `salons` | oui | oui | oui (ajouté en #12) | oui | oui |
+| `utilisateurs` | oui | oui | oui | oui | oui |
+| `roles_utilisateur` | oui (ajouté en #12) | oui | oui | oui | oui |
+| `prestations` | oui | oui | oui | oui | oui |
+| `competences` | oui | oui | oui | oui | oui |
+| `horaires` | oui | oui | oui | oui | oui |
+| `absences` | oui | oui | oui | oui | oui |
+| `reservations` | oui | oui | oui | oui | oui |
+| `encaissements` | oui | oui | oui | oui | oui |
+
+Les fonctions ont leurs propres tests de droits : `reserver`,
+`mes_reservations` et `annuler_reservation`, `planning`, `historique`,
+`coiffeurs_du_salon`, `attribuer_role`, `creneaux_disponibles`. Exigences du
+cahier :
+
+- **un client ne voit que ses réservations** : `rls_reservations`,
+  `mes_reservations.test.sql`, et `mes-reservations.spec.ts` (par l'API, un
+  client ne lit ni n'annule la réservation d'un autre) ;
+- **seul le gérant modifie horaires, absences et catalogue** : `rls_horaires`,
+  `rls_absences`, `rls_prestations`, `rls_competences`,
+  `configuration_salon.test.sql`.
+
+### Security Advisor (`supabase db advisors`)
+
+| Constat | Base locale | Base distante | Analyse |
+| --- | --- | --- | --- |
+| Fonctions `security definer` exécutables par `authenticated` (9) | — | avertissement | **Voulu** : ces fonctions sont le seul chemin d'accès (`reserver`, `planning`, `historique`…) et vérifient elles-mêmes le rôle de l'appelant ; tests de droits pour chacune. |
+| `creneaux_disponibles` et `coiffeurs_du_salon` exécutables par `anon` | — | avertissement | **Voulu** : BF-C1, un visiteur voit les créneaux et les noms des coiffeurs sans compte ; aucune donnée privée renvoyée (tests 22, 36, 37 de BNF-2). |
+| `public.rls_auto_enable()` exécutable par `anon` et `authenticated` | absente | avertissement | **À trancher** (décision 1). Fonction installée par Supabase à la création du projet (option « activer la RLS automatiquement » sur les nouvelles tables), absente de nos migrations. Elle renvoie un `event_trigger` : PostgreSQL refuse de l'exécuter directement, l'exposition n'a donc pas d'effet. |
+| Protection contre les mots de passe compromis désactivée (Auth) | — | avertissement | **À trancher** (décision 2). Réglage du tableau de bord (vérification HaveIBeenPwned). Les clients se connectent par code e-mail, sans mot de passe ; seuls les comptes pros ont un mot de passe. |
+| Plusieurs policies permissives pour un même rôle et une même action (5) | avertissement | avertissement | **Accepté** (performance) : une policy par rôle (client, coiffeur, gérant) reste plus lisible et plus facile à tester ; volumes d'un salon, sans effet mesurable. |
+
+`npm audit` (site) : 0 vulnérabilité, dépendances de développement comprises.
+
+### Décisions en attente (Sparta)
+
+1. `public.rls_auto_enable()` : la laisser (fonction de Supabase, sans effet
+   par l'API) et la documenter, ou retirer `execute` à `anon` et
+   `authenticated` par une migration (qui doit tolérer son absence en local).
+2. Protection contre les mots de passe compromis : l'activer dans le tableau
+   de bord (Auth → Policies), si l'offre du projet le permet.
+
+## BNF-4 — Utilisabilité (à faire)
+
+- **Méthode** : `docs/bnf-4-fiche-test.md`. 5 nouveaux clients (T1 à T5),
+  chacun sur son téléphone, en navigation privée, sur le site de production,
+  chronométrés sans aide ; le temps de Sparta sert de référence et ne compte
+  pas parmi les 5.
+- **Seuil** : moins de 2:00, sans aide, pour chacun des 5.
+- **Indicatif** : l'automate fait le parcours en 2 à 3 s
+  (`reservation.spec.ts`) ; cela ne remplace pas le test.
+- **Résultats** : à reporter dans la fiche, puis ici (réussites sur 5, temps
+  médian, temps le plus long, blocages répétés).
+
+## BNF-5 — Performance
+
+- **Méthode** : `web/scripts/bnf5-performance.mjs`, sur le site de
+  production. Chrome, écran 360 × 800, tactile, processeur ralenti 4 fois
+  (téléphone d'entrée de gamme), navigateur neuf et sans cache à chaque
+  mesure. Mesure : du début de la navigation vers l'écran 2 jusqu'à
+  l'affichage de la première heure proposée.
+- **Préchauffage** : un appel non compté avant les 5 mesures, pour réveiller
+  le site et la base (fonctions serverless « à froid ») ; sa durée est notée.
+- **Profil de référence** : « Fast 3G » des DevTools de Chrome (débit
+  descendant 1,44 Mb/s, montant 675 kb/s, latence 562,5 ms). Profil de
+  comparaison : réseau mobile simulé de Lighthouse (1,6 Mb/s, 150 ms).
+
+| Profil | Préchauffage | Mesures (ms) | Médiane | Seuil 3 s |
+| --- | --- | --- | --- | --- |
+| Fast 3G + processeur ×4 | 439 ms | 3 288, 3 288, 3 342, 3 377, 3 327 | **3,33 s** | dépassé de 0,33 s |
+| Lighthouse + processeur ×4 | 626 ms | 2 384, 2 414, 2 463, 2 391, 2 320 | **2,39 s** | tenu |
+
+- **Où passe le temps** (Fast 3G) : HTML complet à 0,67 s ; ensuite 142 Ko de
+  JavaScript (compressé) à charger et à exécuter avec le processeur ralenti,
+  avant que la liste, rendue par React, s'affiche. Les créneaux eux-mêmes
+  sont demandés dès la réception du HTML (script de préchargement) et sur la
+  même origine que le site (pas de connexion de plus) : ce n'est pas le
+  goulot.
+- **Écart expliqué** : avec 562,5 ms de latence par aller-retour, chaque
+  ressource JavaScript coûte cher ; la liste dépend de l'exécution de React.
+  Le seuil est tenu avec un réseau mobile courant (150 ms), pas avec le profil
+  3G le plus lent des DevTools.
+- **Pistes, hors de #12** : afficher la liste dès le HTML (rendu côté serveur
+  à la demande, ou liste préremplie par le script de préchargement sans
+  attendre React), réduire le JavaScript de l'écran 2. À décider par Sparta
+  (BNF-5 est de priorité moyenne).
+- **Facultatif** : mesure sur un vrai téléphone d'entrée de gamme en 3G
+  (ouvrir l'écran 2 d'une prestation, chronométrer jusqu'à la première heure,
+  3 fois).
+
+## BNF-6 — Maintenabilité
+
+### Découpe en modules
+
+- **Base** (`supabase/`) : une migration par issue, une règle par fonction
+  (`creneaux_disponibles`, `reserver`, `planning`, `historique`…), un fichier
+  de tests par table ou par fonction.
+- **Site** (`web/`) : `app/` (routes), `components/` par fonctionnalité
+  (`reservation/`, `mes-reservations/`, `connexion/`) et `components/ui/`
+  (composants de la charte), `lib/` (logique sans affichage : créneaux,
+  réservation, formats, charte, accès à Supabase).
+- **App pro** (`pro/`) : `lib/data/` (modèles et accès à Supabase derrière des
+  interfaces), `lib/features/` par fonctionnalité (connexion, espaces,
+  gérant, planning, historique), `lib/ui/` (charte, composants) ; les tests
+  d'écran passent par des doublures des interfaces.
+- **Règles de réservation** : dans la base (contrainte d'exclusion,
+  `creneaux_disponibles`, `reserver`, transitions de statut), doublées côté
+  site par `lib/reservation.ts` et `lib/creneaux.ts`.
+
+### Couverture
+
+| Partie | Couverture (lignes) | Règles de réservation |
+| --- | --- | --- |
+| Base | non mesurable en lignes pour le SQL | toutes les branches reliées à un test (BNF-2), 408 tests |
+| Site, `lib/` | 77,7 % | `creneaux.ts`, `reservation.ts`, `mes-reservations.ts` : 100 % |
+| Site, total (`npm run test:couverture`) | 76,5 % (branches 85,2 %) | — |
+| App pro (`flutter test --coverage`) | 78,9 % ; dossiers d'écrans 82 à 100 % | règles dans la base |
+
+**Écarts mineurs** :
+
+- côté site, les pages serveur (`app/**/page.tsx`) et `lib/supabase/` sont à
+  0 % en tests unitaires : les tests de bout en bout les couvrent ;
+- côté app pro, `lib/data/` est à 24 % (accès à Supabase, testé par les tests
+  SQL et l'API, pas par des tests Dart), et l'écran `ecran_equipe.dart` (#9)
+  n'a aucun test. Piste : un test d'écran pour la liste de l'équipe.
+
+## BNF-7 — Portabilité
+
+- **Automatique** : `web/e2e/bnf-7-ordinateur.spec.ts`, réservation complète
+  dans Chrome sur ordinateur (1366 × 768, souris) : réussie, réservation en
+  base, pas de défilement horizontal. Les autres tests de bout en bout
+  tournent en Chrome avec l'émulation mobile (360 px, tactile).
+- **Manuel, à faire (Sparta)** :
+  - Android, site client : dans Chrome Android (l'émulateur suffit), une
+    réservation complète puis son annulation depuis « Mes réservations » ;
+  - Android, app pro : connexion, planning, fiche d'un rendez-vous,
+    historique (déjà parcourus pendant les tests manuels de #10 et #11) ;
+  - ordinateur, navigateur habituel de Sparta : une réservation complète.
+- **Résultats** : à reporter ici (appareil, version d'Android, navigateur,
+  réussi ou non, remarques).
+
+## BNF-8 — Compatibilité
+
+Non exigé en v1 : le cahier des charges ne demande aucune interopérabilité
+(pas d'export d'agenda ni d'échange avec un autre logiciel).
+
+## BNF-9 — 3 écrans au plus
+
+`reservation.spec.ts` relève les écrans traversés : accueil, puis
+`/reserver` (prestations), `/reserver/creneaux` et `/reserver/confirmation`,
+soit 3 écrans hors accueil ; la connexion se fait sur l'écran 3, sans le
+quitter. Réussi.
+
+## BNF-10 — Mobile d'abord, 360 px
+
+- **Seuils** : ceux du cahier des charges (44 × 44 px, 16 px), sans écart.
+- **Méthode** : `web/e2e/bnf-10-11-ecrans.spec.ts`, à 360 px : accueil,
+  prestations, créneaux, confirmation (non connecté, saisie du code,
+  connecté), réservation confirmée, mes réservations (non connecté, connecté,
+  demande d'annulation), page de la charte. Pour chaque écran : largeur du
+  document comparée à celle de l'écran émulé, taille de chaque élément
+  interactif visible, taille de chaque texte visible.
+- **Contrôle des mesures** : le même test vérifie, sur une page aux défauts
+  connus, que chaque défaut est bien détecté. Il a mis en évidence qu'en
+  émulation mobile, `window.innerWidth` grandit quand le contenu déborde : la
+  référence est donc la largeur de l'écran émulé (360 px).
+- **Résultat** : 0 écart sur les 11 écrans et états.
+- **App pro** : mêmes règles de charte (zones tactiles de 44 px, texte de
+  16 px) ; les libellés de l'historique sont vérifiés à 360 px avec la vraie
+  police (#11). Pas de mesure automatique écran par écran : prévu dans #41.
+
+## BNF-11 — Contrastes WCAG 2.2 AA
+
+- **Méthode** : audit axe-core (`@axe-core/playwright`, règle
+  `color-contrast`) sur les 11 écrans et états de BNF-10, et
+  `web/lib/charte.test.ts` sur les couples de couleurs de la charte (4,5:1
+  pour le texte, 3:1 pour les composants).
+- **Résultat** : 0 contraste insuffisant. Les autres règles WCAG 2.2 A et AA
+  d'axe-core sont aussi relevées, sans faire échouer le test : aucune en
+  défaut.
+- **App pro** : contrastes des jetons vérifiés par `pro/test/ui/charte_test.dart`.
