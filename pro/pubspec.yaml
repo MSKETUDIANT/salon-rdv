@@ -19,6 +19,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: 0.14.4
 
 flutter:
   uses-material-design: true
@@ -33,3 +34,19 @@ flutter:
     - family: Figtree
       fonts:
         - asset: assets/fonts/Figtree.ttf
+
+# Icône de l'app (#55) : « S » blanc sur fond accent, en Newsreader. Sources
+# dans assets/icone/ (générées depuis la police, voir pro/README.md). Après
+# un changement : dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icone/icone.png"
+  adaptive_icon_background: "#1F5C4A"
+  adaptive_icon_foreground: "assets/icone/icone-premier-plan.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/icone/icone.png"
+    background_color: "#FAFAF7"
+    theme_color: "#1F5C4A"
