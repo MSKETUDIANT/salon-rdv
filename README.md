@@ -13,7 +13,7 @@ Un seul salon en v1 ; la base est prête pour plusieurs salons.
 | Quoi | Adresse |
 | --- | --- |
 | Site client (production) | https://salon-rdv-one.vercel.app |
-| App pro | à publier (voir « Déployer l'app pro ») |
+| App pro (Android, APK) | https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.1.0 |
 | Dépôt | https://github.com/MSKETUDIANT/salon-rdv |
 
 Les données en ligne sont des **données de démonstration** (deux coiffeurs
@@ -205,6 +205,12 @@ flutter build apk --release --dart-define-from-file=config/production.json   # b
   inconnues). Il est signé avec la clé de debug de Flutter : suffisant pour
   une démonstration, pas pour le Play Store (il faudrait une clé de
   signature dédiée).
+
+Publication retenue : **l'APK, joint à une release GitHub** (projet de
+formation, pas de build web en ligne). Pour une nouvelle version : augmenter
+`version` dans `pro/pubspec.yaml`, construire l'APK depuis `main`, puis
+`gh release create app-pro-v<version> <apk> --target <commit>` avec
+l'empreinte SHA-256 de l'APK dans les notes.
 
 ## Documentation
 
