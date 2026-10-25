@@ -24,3 +24,15 @@ client et la cohérence du salon. Depuis #6, elle est supprimée : la fonction
   (mot de passe d'application) le remplace pour les tests et la démo
   (`docs/connexion-code-email.md`) ; reste à passer à un service d'envoi
   transactionnel avec le domaine du salon.
+
+## Annulation (BF-C6, #7) : pas de délai minimum
+
+- [ ] **Délai minimum d'annulation, réglable par le gérant.** Aujourd'hui, un
+  client peut annuler jusqu'au début du rendez-vous : le cahier des charges
+  ne fixe aucun délai. La règle est écrite à deux endroits, qui doivent rester
+  identiques : `annuler_reservation()` (refus PT409 si
+  `debut <= now()`) et la colonne `annulable` de `mes_reservations()`
+  (migration `20261025010110_mes_reservations.sql`). Piste : une colonne
+  `salons.delai_annulation_minutes` (défaut 0), modifiable par le gérant dans
+  l'app pro (configuration du salon, BF-G1 à G3), utilisée par les deux
+  fonctions, avec un message clair sur le site quand le délai est dépassé.
