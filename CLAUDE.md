@@ -31,7 +31,10 @@ Règle métier critique : zéro double réservation, garantie par la base
 - Tests de bout en bout (dans `web/`, base locale démarrée, Chrome installé) :
   `npm run test:e2e` (construit le site sur la base locale ; codes de
   connexion lus dans Mailpit)
-(Compléter cette section quand l'app existera.)
+- App pro (dans `pro/`, configuration dans `pro/config/local.json`, modèle
+  `config/exemple.json` ; voir `pro/README.md`) :
+  `flutter run -d chrome --dart-define-from-file=config/local.json` /
+  `flutter analyze` / `flutter test`
 
 ## 4. Règles de travail
 - Enchaîne chaque issue de bout en bout, sans me demander de valider le plan.

@@ -1,0 +1,167 @@
+import 'package:flutter/material.dart';
+
+import 'charte.dart';
+
+// Composants de base de la charte (§4), équivalents de web/components/ui/.
+
+// Champ de saisie : libellé toujours visible au-dessus du champ. Un champ mot
+// de passe a un bouton pour afficher ou masquer la saisie.
+class Champ extends StatefulWidget {
+  const Champ({
+    super.key,
+    required this.libelle,
+    required this.controleur,
+    this.erreur,
+    this.motDePasse = false,
+    this.clavier,
+    this.autofill,
+    this.actionClavier,
+    this.surValidation,
+    this.focus,
+  });
+
+  final String libelle;
+  final TextEditingController controleur;
+  final String? erreur;
+  final bool motDePasse;
+  final TextInputType? clavier;
+  final Iterable<String>? autofill;
+  final TextInputAction? actionClavier;
+  // Touche Entrée (ou action du clavier) : champ suivant, ou validation.
+  final VoidCallback? surValidation;
+  final FocusNode? focus;
+
+  @override
+  State<Champ> createState() => _ChampState();
+}
+
+class _ChampState extends State<Champ> {
+  late bool _masque = widget.motDePasse;
+
+  @override
+  Widget build(BuildContext context) {
+    final textes = Theme.of(context).textTheme;
+    final surValidation = widget.surValidation;
+    // Le libellé visible (exclu de l'accessibilité) est repris sur le nœud du
+    // champ : TalkBack et les lecteurs d'écran du web annoncent « E-mail,
+    // champ de texte », vide ou rempli, puis le message d'erreur ; le bouton
+    // œil reste un bouton distinct (test/ui/champ_semantique_test.dart).
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ExcludeSemantics(child: Text(widget.libelle, style: textes.labelLarge)),
+        const SizedBox(height: Espaces.s2),
+        Semantics(
+          label: widget.libelle,
+          child: TextField(
+            controller: widget.controleur,
+            focusNode: widget.focus,
+            obscureText: _masque,
+            keyboardType: widget.clavier,
+            autofillHints: widget.autofill,
+            autocorrect: false,
+            enableSuggestions: !widget.motDePasse,
+            textInputAction: widget.actionClavier,
+            onSubmitted: surValidation == null ? null : (_) => surValidation(),
+            style: textes.bodyLarge,
+            decoration: InputDecoration(
+              errorText: widget.erreur,
+              suffixIcon: widget.motDePasse
+                  ? IconButton(
+                      onPressed: () => setState(() => _masque = !_masque),
+                      tooltip: _masque
+                          ? 'Afficher le mot de passe'
+                          : 'Masquer le mot de passe',
+                      icon: Icon(
+                        _masque
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: Couleurs.texteSecondaire,
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Bouton principal. Pas de bouton désactivé : pendant le chargement, il reste
+// focusable mais ignore les appuis, avec un libellé de chargement (charte §4).
+class Bouton extends StatelessWidget {
+  const Bouton({
+    super.key,
+    required this.libelle,
+    required this.surAppui,
+    this.chargement = false,
+    this.libelleChargement = 'Chargement…',
+    this.secondaire = false,
+    this.pleineLargeur = false,
+  });
+
+  final String libelle;
+  final VoidCallback surAppui;
+  final bool chargement;
+  final String libelleChargement;
+  final bool secondaire;
+  final bool pleineLargeur;
+
+  @override
+  Widget build(BuildContext context) {
+    void appui() {
+      if (!chargement) surAppui();
+    }
+
+    final contenu = Text(chargement ? libelleChargement : libelle);
+    final bouton = Semantics(
+      // Équivalent de aria-busy.
+      liveRegion: chargement,
+      child: secondaire
+          ? OutlinedButton(onPressed: appui, child: contenu)
+          : FilledButton(onPressed: appui, child: contenu),
+    );
+    return pleineLargeur
+        ? SizedBox(width: double.infinity, child: bouton)
+        : bouton;
+  }
+}
+
+// Mise en page d'un écran : fond uni, colonne de 672 px au plus (max-w-2xl du
+// site), marges de 16 px, défilement si le contenu dépasse.
+class PageCharte extends StatelessWidget {
+  const PageCharte({super.key, required this.enfants, this.actions = const []});
+
+  final List<Widget> enfants;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: actions.isEmpty ? null : AppBar(actions: actions),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Espaces.s4,
+            vertical: Espaces.s8,
+          ),
+          // Toute la largeur disponible jusqu'à 672 px, même quand le contenu
+          // est étroit : le texte reste aligné à gauche, comme sur le site.
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 672),
+              child: SizedBox(
+                width: double.infinity,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: enfants,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

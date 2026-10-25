@@ -1,0 +1,31 @@
+name: salon_pro
+description: "salon-rdv : application pro (coiffeurs et gérant)."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.18.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Polices de la charte (docs/charte-graphique.md §3), embarquées comme sur le
+  # site : aucun téléchargement au lancement. Versions variables (licence OFL,
+  # fichiers *-OFL.txt).
+  fonts:
+    - family: Newsreader
+      fonts:
+        - asset: assets/fonts/Newsreader.ttf
+    - family: Figtree
+      fonts:
+        - asset: assets/fonts/Figtree.ttf

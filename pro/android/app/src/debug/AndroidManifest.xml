@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The INTERNET permission is required for development. Specifically,
+         the Flutter tool needs it to communicate with the running application
+         to allow setting breakpoints, to provide hot reload, etc.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Debug seulement : la base locale (supabase start) répond en HTTP, sur
+         http://10.0.2.2:54321 depuis l'émulateur. La version de production
+         n'appelle que Supabase en HTTPS. -->
+    <application android:usesCleartextTraffic="true"/>
+</manifest>
