@@ -52,6 +52,30 @@ pour la CI le jour où #19 sera débloquée.
   (PostgreSQL) empêche deux réservations non annulées qui se chevauchent pour
   un même coiffeur ; `reserver()` vérifie aussi le créneau et transforme le
   conflit en `PT409`.
+- **Test réel en production (testeurs de Sparta, 2026-10-25)** : deux
+  personnes réservent le même créneau en même temps.
+  - **Premier essai** : toutes les deux voient une « liste vide », sans
+    confirmation ni refus.
+  - **Deuxième essai** : une seule réussit, l'autre est refusée.
+  - **En base de production** (lecture seule, sans données personnelles) :
+    aucune double réservation, une ligne par créneau. La garantie de la base
+    a tenu ; le défaut était à l'écran.
+  - **Reproduction en local** (#51, build de production sur la base locale,
+    deux navigateurs) : 8 scénarios (même coiffeur, « Peu importe », passage
+    par l'écran 2, retour par le bouton ou par le navigateur, réseau 3G et
+    processeur ralenti, nouveau créneau après un refus ou une confirmation),
+    plus des chargements simultanés de l'écran 2 en production. Chaque fois :
+    un confirmé, un refusé (ou deux confirmés avec deux coiffeurs libres et
+    « Peu importe »), jamais de liste vide. **La « liste vide » du premier
+    essai n'est pas reproduite** ; il manque l'écran exact et une capture.
+  - **Correction (#51)** : après un refus, retour automatique sur l'écran 2
+    (prestation et coiffeur conservés), liste relue depuis la base sans la
+    lecture anticipée, et « Ce créneau vient d'être pris. Choisissez-en un
+    autre. » en tête ; le retour du navigateur ne ramène pas sur le créneau
+    perdu. Test de bout en bout renforcé en conséquence
+    (`reservation.spec.ts`).
+  - **Nouvel essai à deux en production** après déploiement : à faire
+    (Sparta), résultat à reporter ici.
 - **Autres tests** : `reservations_chevauchement.test.sql` (chevauchements,
   bout à bout autorisé, annulée libère), `reserver.test.sql`, et dans
   `reservation.spec.ts` deux clients qui valident en même temps dans deux
