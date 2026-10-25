@@ -139,6 +139,33 @@ Sources d'inspiration, pas des modèles à reproduire.
 - Vitrine : la page `/charte` affiche jetons et composants, en local et sur les
   previews Vercel ; elle répond 404 en production.
 
+### App pro (`pro/`, #8)
+
+La même charte, traduite en `ThemeData` Flutter pour que l'app pro ressemble
+au site :
+
+- Jetons : `pro/lib/ui/charte.dart`. Il contient les couleurs (`Couleurs`),
+  l'échelle de texte (`Tailles` : 16 / 18 / 22 / 28 / 36 px, interligne 1,5),
+  les espacements sur la grille de 4 px du site (`Espaces`), les coins de
+  8 px et les boutons de 48 px.
+- Polices : Newsreader (titres, graisse 500) et Figtree (texte 400,
+  libellés et boutons 600), embarquées dans `pro/assets/fonts/`.
+- Correspondance avec les composants du site :
+  - `FilledButton` : bouton principal ;
+  - `OutlinedButton` : bouton secondaire ;
+  - `TextButton` : lien souligné ;
+  - `InputDecorationTheme` : champ (bordure de 1 px, 2 px au focus et en
+    erreur) ;
+  - `CardTheme` : carte (bordure `separateur`, sans ombre).
+- Pas de teinte ni d'ombre Material 3 (`surfaceTint` et `shadow`
+  transparents). Focus clavier : contour `accent` de 2 px.
+- Composants Flutter : `pro/lib/ui/composants.dart`. `Champ` place le libellé
+  au-dessus du champ. `Bouton` n'est jamais désactivé : pendant le
+  chargement, il ignore les appuis.
+- Garde-fou : `pro/test/ui/charte_test.dart` vérifie que les couleurs et les
+  tailles sont celles de `web/app/globals.css`, et que chaque couple du §2
+  atteint son seuil WCAG 2.2 AA.
+
 ## 10. Captures
 
 | | 360 px | 1280 px |

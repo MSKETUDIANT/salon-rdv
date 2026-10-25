@@ -5,6 +5,8 @@
 --   client@salon.test / motdepasse  (client du salon)
 --   amira@salon.test  / motdepasse  (coiffeuse : toutes les prestations)
 --   youssef@salon.test / motdepasse (coiffeur : coupes seulement)
+--   patron@salon.test / motdepasse  (gérant + coiffeur, sans compétence ni
+--                                    horaires : bascule de l'app pro, #8)
 
 insert into public.salons (id, nom, adresse) values
   ('11111111-1111-1111-1111-111111111111', 'Salon de démo', '1 rue de la Coupe');
@@ -35,6 +37,11 @@ insert into auth.users (
    'authenticated', 'authenticated', 'youssef@salon.test',
    extensions.crypt('motdepasse', extensions.gen_salt('bf')), now(),
    '{"provider":"email","providers":["email"]}', '{"nom":"Youssef"}', now(), now(),
+   '', '', '', ''),
+  ('00000000-0000-0000-0000-000000000000', '77777777-7777-7777-7777-777777777777',
+   'authenticated', 'authenticated', 'patron@salon.test',
+   extensions.crypt('motdepasse', extensions.gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}', '{"nom":"Patron Démo"}', now(), now(),
    '', '', '', '');
 
 -- Identités e-mail, nécessaires pour se connecter avec ces comptes.
@@ -48,12 +55,20 @@ select gen_random_uuid(), u.id, u.id::text, 'email',
  where u.id in ('22222222-2222-2222-2222-222222222222',
                 '33333333-3333-3333-3333-333333333333',
                 '44444444-4444-4444-4444-444444444444',
-                '55555555-5555-5555-5555-555555555555');
+                '55555555-5555-5555-5555-555555555555',
+                '77777777-7777-7777-7777-777777777777');
 
 -- Premier gérant : en local par le seed, en distant par SQL manuel
 -- (voir docs/premier-gerant.md).
 insert into public.roles_utilisateur (utilisateur_id, salon_id, role) values
   ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111', 'gerant');
+
+-- Issue #8 : un gérant qui est aussi coiffeur (bascule entre les deux espaces
+-- de l'app pro). Sans compétence ni horaires : il n'apparaît dans aucun
+-- créneau ni dans les filtres du site.
+insert into public.roles_utilisateur (utilisateur_id, salon_id, role) values
+  ('77777777-7777-7777-7777-777777777777', '11111111-1111-1111-1111-111111111111', 'gerant'),
+  ('77777777-7777-7777-7777-777777777777', '11111111-1111-1111-1111-111111111111', 'coiffeur');
 
 -- ============================================================
 -- Issue #5 : de quoi afficher des créneaux
