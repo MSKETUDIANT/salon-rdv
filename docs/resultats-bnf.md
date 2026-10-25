@@ -10,10 +10,10 @@ Vérification de l'issue #12, selon la méthode prévue au cahier des charges
 | --- | --- | --- | --- | --- |
 | BNF-1 Fiabilité | Haute | zéro double réservation, même à la même seconde | 20 réservations simultanées : 1 réussite, 19 refus `PT409`, 1 ligne en base | **Passe** |
 | BNF-2 Adéquation | Haute | 100 % des créneaux respectent la règle centrale | 38 tests sur des plannings types, toutes les branches de la règle couvertes | **Passe** |
-| BNF-3 Sécurité | Haute | un client ne voit que ses réservations ; seul le gérant modifie horaires, absences, catalogue | tests d'accès par rôle sur toutes les tables ; Security Advisor : aucun défaut bloquant, 2 points à trancher | **Passe**, 2 décisions en attente |
+| BNF-3 Sécurité | Haute | un client ne voit que ses réservations ; seul le gérant modifie horaires, absences, catalogue | tests d'accès par rôle sur toutes les tables ; Security Advisor : aucun défaut bloquant, 2 points tranchés par Sparta | **Passe** (protection des mots de passe : activation à confirmer) |
 | BNF-4 Utilisabilité | Haute | un nouveau client réserve en moins de 2 min, sans aide | test avec 5 vrais utilisateurs à faire (`docs/bnf-4-fiche-test.md`) | **À faire** (Sparta) |
-| BNF-5 Performance | Moyenne | liste des créneaux en moins de 3 s, téléphone d'entrée de gamme, 3G | médiane **3,33 s** en « Fast 3G » ; 2,39 s en réseau mobile Lighthouse | **Écart** de 0,33 s, expliqué |
-| BNF-6 Maintenabilité | Moyenne | code en modules ; règles de réservation couvertes par des tests | découpe en modules relue ; règles de réservation couvertes (SQL, 100 % des lignes de `lib/` qui les appliquent) | **Passe**, 2 écarts mineurs |
+| BNF-5 Performance | Moyenne | liste des créneaux en moins de 3 s, téléphone d'entrée de gamme, 3G | médiane **3,33 s** en « Fast 3G » | **Écart** de 0,33 s, expliqué ; suite : #46 |
+| BNF-6 Maintenabilité | Moyenne | code en modules ; règles de réservation couvertes par des tests | découpe en modules relue ; règles de réservation couvertes (SQL, 100 % des lignes de `lib/` qui les appliquent) | **Passe**, 2 écarts mineurs ; suite : #47 |
 | BNF-7 Portabilité | Basse | navigateur d'ordinateur et Android | Chrome sur ordinateur : automatique, réussi ; Android et navigateur de Sparta : à faire | **En partie**, reste manuel (Sparta) |
 | BNF-8 Compatibilité | Basse | pas d'interopérabilité exigée en v1 | non exigé en v1 | **Sans objet** |
 | BNF-9 Utilisabilité | Haute | 3 écrans au plus, hors authentification | 3 écrans (prestations, créneaux, confirmation) | **Passe** |
@@ -30,7 +30,7 @@ installés :
   code de sortie 1 si l'une échoue. Durée : environ 2 minutes.
 - `npm run verifier:bnf -- --perf` : en plus, la mesure BNF-5 sur la
   production (lecture seule).
-- `npm run mesurer:bnf5` (ou `-- --profil=lighthouse`) : la mesure BNF-5 seule.
+- `npm run mesurer:bnf5` : la mesure BNF-5 seule.
 
 Dernière exécution complète (2026-10-25, après `supabase db reset`) : 5 étapes
 sur 5 réussies, soit 408 tests SQL, 106 tests unitaires, 11 tests de bout en
@@ -129,19 +129,29 @@ cahier :
 | --- | --- | --- | --- |
 | Fonctions `security definer` exécutables par `authenticated` (9) | — | avertissement | **Voulu** : ces fonctions sont le seul chemin d'accès (`reserver`, `planning`, `historique`…) et vérifient elles-mêmes le rôle de l'appelant ; tests de droits pour chacune. |
 | `creneaux_disponibles` et `coiffeurs_du_salon` exécutables par `anon` | — | avertissement | **Voulu** : BF-C1, un visiteur voit les créneaux et les noms des coiffeurs sans compte ; aucune donnée privée renvoyée (tests 22, 36, 37 de BNF-2). |
-| `public.rls_auto_enable()` exécutable par `anon` et `authenticated` | absente | avertissement | **À trancher** (décision 1). Fonction installée par Supabase à la création du projet (option « activer la RLS automatiquement » sur les nouvelles tables), absente de nos migrations. Elle renvoie un `event_trigger` : PostgreSQL refuse de l'exécuter directement, l'exposition n'a donc pas d'effet. |
-| Protection contre les mots de passe compromis désactivée (Auth) | — | avertissement | **À trancher** (décision 2). Réglage du tableau de bord (vérification HaveIBeenPwned). Les clients se connectent par code e-mail, sans mot de passe ; seuls les comptes pros ont un mot de passe. |
+| `public.rls_auto_enable()` exécutable par `anon` et `authenticated` | absente | avertissement | **Laissée et documentée** (décision de Sparta). Fonction installée par Supabase à la création du projet (option « activer la RLS automatiquement » sur les nouvelles tables), absente de nos migrations. Elle renvoie un `event_trigger` : PostgreSQL refuse de l'exécuter directement, l'exposition n'a donc pas d'effet. |
+| Protection contre les mots de passe compromis désactivée (Auth) | — | avertissement | **À activer** (décision de Sparta, tableau de bord). Réglage d'Auth (vérification HaveIBeenPwned). Les clients se connectent par code e-mail, sans mot de passe ; seuls les comptes pros ont un mot de passe. |
 | Plusieurs policies permissives pour un même rôle et une même action (5) | avertissement | avertissement | **Accepté** (performance) : une policy par rôle (client, coiffeur, gérant) reste plus lisible et plus facile à tester ; volumes d'un salon, sans effet mesurable. |
 
 `npm audit` (site) : 0 vulnérabilité, dépendances de développement comprises.
 
-### Décisions en attente (Sparta)
+### Décisions (Sparta, 2026-10-25)
 
-1. `public.rls_auto_enable()` : la laisser (fonction de Supabase, sans effet
-   par l'API) et la documenter, ou retirer `execute` à `anon` et
-   `authenticated` par une migration (qui doit tolérer son absence en local).
-2. Protection contre les mots de passe compromis : l'activer dans le tableau
-   de bord (Auth → Policies), si l'offre du projet le permet.
+1. **`public.rls_auto_enable()` : laissée telle quelle.** C'est la fonction de
+   l'option « activer la RLS automatiquement » de Supabase : à chaque
+   `create table` dans `public`, un déclencheur d'événement active la RLS sur
+   la nouvelle table. Elle a été installée par Supabase à la création du
+   projet distant, d'où son absence de nos migrations et de la base locale.
+   Elle renvoie un `event_trigger` : PostgreSQL refuse de l'exécuter
+   directement, donc son exposition à `anon` et `authenticated` par
+   `/rest/v1/rpc` n'a pas d'effet. L'avertissement du Security Advisor est
+   attendu et accepté. Ne pas la supprimer : la protection qu'elle apporte
+   reste utile (toutes nos tables activent déjà la RLS dans leur migration).
+2. **Protection contre les mots de passe compromis : activée par Sparta**
+   dans le tableau de bord (Auth). À confirmer : nouvelle exécution de
+   `supabase db advisors --linked` (l'avertissement doit disparaître). Si
+   l'offre du projet ne permet pas de l'activer, le noter ici ; seuls les
+   comptes pros ont un mot de passe (les clients se connectent par code).
 
 ## BNF-4 — Utilisabilité (à faire)
 
@@ -164,14 +174,13 @@ cahier :
   l'affichage de la première heure proposée.
 - **Préchauffage** : un appel non compté avant les 5 mesures, pour réveiller
   le site et la base (fonctions serverless « à froid ») ; sa durée est notée.
-- **Profil de référence** : « Fast 3G » des DevTools de Chrome (débit
-  descendant 1,44 Mb/s, montant 675 kb/s, latence 562,5 ms). Profil de
-  comparaison : réseau mobile simulé de Lighthouse (1,6 Mb/s, 150 ms).
+- **Profil** : « Fast 3G » des DevTools de Chrome (débit descendant
+  1,44 Mb/s, montant 675 kb/s, latence 562,5 ms). C'est le seul profil qui
+  compte pour le verdict.
 
-| Profil | Préchauffage | Mesures (ms) | Médiane | Seuil 3 s |
-| --- | --- | --- | --- | --- |
-| Fast 3G + processeur ×4 | 439 ms | 3 288, 3 288, 3 342, 3 377, 3 327 | **3,33 s** | dépassé de 0,33 s |
-| Lighthouse + processeur ×4 | 626 ms | 2 384, 2 414, 2 463, 2 391, 2 320 | **2,39 s** | tenu |
+| Préchauffage | Mesures (ms) | Médiane | Seuil 3 s |
+| --- | --- | --- | --- |
+| 439 ms | 3 288, 3 288, 3 342, 3 377, 3 327 | **3,33 s** | **dépassé de 0,33 s** |
 
 - **Où passe le temps** (Fast 3G) : HTML complet à 0,67 s ; ensuite 142 Ko de
   JavaScript (compressé) à charger et à exécuter avec le processeur ralenti,
@@ -181,12 +190,13 @@ cahier :
   goulot.
 - **Écart expliqué** : avec 562,5 ms de latence par aller-retour, chaque
   ressource JavaScript coûte cher ; la liste dépend de l'exécution de React.
-  Le seuil est tenu avec un réseau mobile courant (150 ms), pas avec le profil
-  3G le plus lent des DevTools.
-- **Pistes, hors de #12** : afficher la liste dès le HTML (rendu côté serveur
-  à la demande, ou liste préremplie par le script de préchargement sans
-  attendre React), réduire le JavaScript de l'écran 2. À décider par Sparta
-  (BNF-5 est de priorité moyenne).
+  BNF-5 n'est pas tenu en 3G.
+- **Suite : issue #46** (décision de Sparta) : afficher la liste dès le HTML
+  (rendu côté serveur à la demande, ou liste préremplie par le script de
+  préchargement sans attendre React), réduire le JavaScript de l'écran 2.
+- **Diagnostic seulement** : le script a aussi un profil
+  `--profil=lighthouse` (150 ms de latence), utile pour isoler l'effet de la
+  latence ; il ne change pas le verdict ci-dessus.
 - **Facultatif** : mesure sur un vrai téléphone d'entrée de gamme en 3G
   (ouvrir l'écran 2 d'une prestation, chronométrer jusqu'à la première heure,
   3 fois).
@@ -225,7 +235,7 @@ cahier :
   0 % en tests unitaires : les tests de bout en bout les couvrent ;
 - côté app pro, `lib/data/` est à 24 % (accès à Supabase, testé par les tests
   SQL et l'API, pas par des tests Dart), et l'écran `ecran_equipe.dart` (#9)
-  n'a aucun test. Piste : un test d'écran pour la liste de l'équipe.
+  n'a aucun test. Suite : issue #47.
 
 ## BNF-7 — Portabilité
 
