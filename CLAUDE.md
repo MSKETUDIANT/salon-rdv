@@ -85,8 +85,10 @@ qui dépend d'une migration non poussée échoue. Ordre à suivre :
 2. Claude Code vérifie lint, tests et build sur la base locale (variables de
    `supabase status -o env`), puis merge la PR ;
 3. db push depuis main, puis `supabase migration list` en local et en distant ;
-4. redéploiement de production sur Vercel (bouton « Redeploy », ou nouveau
-   merge sur main), puis vérification que le déploiement a réussi ;
+4. vérification du déploiement de production lancé par le merge ; s'il a
+   échoué (le build dépendait de la migration), redéploiement sur Vercel
+   (bouton « Redeploy », ou nouveau merge sur main), puis nouvelle
+   vérification ;
 5. Sparta valide le rendu sur le site déployé ;
 6. fermeture de l'issue avec la sortie de `migration list` et ce que Sparta a
    validé (migration et rendu).

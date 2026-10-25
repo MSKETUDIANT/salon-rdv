@@ -20,4 +20,7 @@ client et la cohérence du salon. Depuis #6, elle est supprimée : la fonction
   l'e-mail : le client se connecte à l'écran de confirmation avec un code à
   6 chiffres reçu par e-mail (OTP, charte graphique §5). Le SMTP intégré de
   Supabase n'envoie que quelques e-mails par heure : sans SMTP externe, des
-  clients ne pourraient pas réserver.
+  clients ne pourraient pas réserver. Depuis le 2026-10-25, le SMTP de Gmail
+  (mot de passe d'application) le remplace pour les tests et la démo
+  (`docs/connexion-code-email.md`) ; reste à passer à un service d'envoi
+  transactionnel avec le domaine du salon.
