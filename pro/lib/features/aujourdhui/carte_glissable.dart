@@ -156,7 +156,9 @@ class _CarteGlissableState extends State<CarteGlissable>
     // Fond révélé par le geste (et par l'indice), texte blanc.
     Widget fond(bool termine) => Container(
       decoration: BoxDecoration(
-        color: termine ? Couleurs.accent : CouleursStatut.absentTexte,
+        color: termine
+            ? CouleursStatut.gesteTermine
+            : CouleursStatut.gesteAbsent,
         borderRadius: BorderRadius.circular(rayon),
       ),
       padding: const EdgeInsets.symmetric(horizontal: Espaces.s4),

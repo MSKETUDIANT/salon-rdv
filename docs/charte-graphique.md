@@ -254,8 +254,10 @@ au site :
   | Absent | `#FBEAE8` | `#8F1D13` (7,7:1) |
 
 - **Gestes** (« Aujourd'hui ») : sur un rendez-vous commencé, glisser à
-  droite révèle « Terminé » sur fond `accent`, à gauche « Client absent » sur
-  fond `#8F1D13`, texte blanc. Petite vibration au seuil, vibration de
+  droite révèle une coche et « Terminé » sur un vert foncé plein `#0B3325`
+  (blanc 13,9:1), à gauche « Client absent » sur un rouge foncé plein
+  `#7A1A10` (blanc 10,6:1) : couleurs d'action, distinctes des fonds des
+  états (le vert est plus foncé que l'`accent` du rendez-vous en cours). Petite vibration au seuil, vibration de
   confirmation au geste. Message bref « Annuler » : l'enregistrement part au
   bout de 5 s, ou tout de suite si l'on quitte l'onglet ou l'app. Au premier
   usage (une fois par lancement), la première carte glissable glisse un peu
@@ -364,12 +366,16 @@ de bout en bout du site). « Avant » : les captures de #41.
 | Compte (gérant et coiffeur) | ![Compte (gérant et coiffeur) avant](captures/app-pro/navigateur/05b-menu-compte-apres.webp) | ![Compte (gérant et coiffeur) après](captures/app-pro/lot1/11-compte-gerant-et-coiffeur-lot1.webp) |
 
 Les cinq états, avec les rendez-vous de `supabase/demo/gestes-locaux.sql`
-(terminé, absent, à clôturer, en cours, à venir), et un geste vers la droite
-à mi-course (relâché sans rien enregistrer) :
+(terminé, absent, à clôturer, en cours, à venir), et les deux gestes à
+mi-course (relâchés sans rien enregistrer) :
 
-| Aujourd'hui | Rendez-vous du jour | Geste « Terminé » | Planning |
-| --- | --- | --- | --- |
-| ![Aujourd'hui, états](captures/app-pro/lot1/12-aujourdhui-etats-lot1.webp) | ![Rendez-vous du jour, cinq états](captures/app-pro/lot1/13-aujourdhui-liste-etats-lot1.webp) | ![Geste vers la droite](captures/app-pro/lot1/14-geste-termine-lot1.webp) | ![Planning, cinq états](captures/app-pro/lot1/15-planning-etats-lot1.webp) |
+| Aujourd'hui | Rendez-vous du jour | Planning |
+| --- | --- | --- |
+| ![Aujourd'hui, états](captures/app-pro/lot1/12-aujourdhui-etats-lot1.webp) | ![Rendez-vous du jour, cinq états](captures/app-pro/lot1/13-aujourdhui-liste-etats-lot1.webp) | ![Planning, cinq états](captures/app-pro/lot1/15-planning-etats-lot1.webp) |
+
+| Geste vers la droite : « Terminé » | Geste vers la gauche : « Client absent » |
+| --- | --- |
+| ![Geste vers la droite](captures/app-pro/lot1/14-geste-termine-lot1.webp) | ![Geste vers la gauche](captures/app-pro/lot1/14b-geste-absent-lot1.webp) |
 
 ## 11. Formulaires de l'app pro (#41)
 

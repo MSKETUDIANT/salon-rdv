@@ -100,6 +100,19 @@ void main() {
         4.5,
       ),
       ('texte / à clôturer', Couleurs.texte, CouleursStatut.aCloturerFond, 4.5),
+      // Fonds révélés par les gestes, texte blanc.
+      (
+        'blanc / geste Terminé',
+        Couleurs.surface,
+        CouleursStatut.gesteTermine,
+        4.5,
+      ),
+      (
+        'blanc / geste Client absent',
+        Couleurs.surface,
+        CouleursStatut.gesteAbsent,
+        4.5,
+      ),
       (
         'ambre à clôturer / fond à clôturer',
         CouleursStatut.aCloturerTexte,
@@ -194,6 +207,13 @@ void main() {
         {for (final s in styles) s.fond}.length,
         EtatRendezVous.values.length,
       );
+      // Les fonds des gestes ne sont celui d'aucun état.
+      for (final geste in [
+        CouleursStatut.gesteTermine,
+        CouleursStatut.gesteAbsent,
+      ]) {
+        expect({for (final s in styles) s.fond}, isNot(contains(geste)));
+      }
       expect(
         {for (final e in EtatRendezVous.values) e.libelle},
         {'À venir', 'En cours', 'À clôturer', 'Terminé', 'Absent'},

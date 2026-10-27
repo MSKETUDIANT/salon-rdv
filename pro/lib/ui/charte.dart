@@ -24,8 +24,9 @@ abstract final class Couleurs {
 //   en cours : fond accent, texte blanc ;
 //   à clôturer : fond ambre pâle, bordure et libellé ambre foncé ;
 //   terminé : fond gris clair, texte et libellé secondaire ;
-//   absent : fond rose pâle, libellé rouge foncé (fond du geste « Client
-//   absent », texte blanc).
+//   absent : fond rose pâle, libellé rouge foncé.
+// Gestes : vert foncé plein (« Terminé ») et rouge foncé plein (« Client
+// absent »), texte blanc.
 abstract final class CouleursStatut {
   static const termineFond = Color(0xFFEFEDE8);
   static const absentFond = Color(0xFFFBEAE8);
@@ -33,6 +34,11 @@ abstract final class CouleursStatut {
   static const aCloturerFond = Color(0xFFFCEFD6);
   static const aCloturerBordure = Color(0xFFA35A00);
   static const aCloturerTexte = Color(0xFF8A4B00);
+  // Fonds révélés par les gestes : couleurs d'action pleines et foncées,
+  // distinctes des fonds des états (le vert, plus foncé que l'accent du
+  // rendez-vous en cours), texte et icône blancs.
+  static const gesteTermine = Color(0xFF0B3325);
+  static const gesteAbsent = Color(0xFF7A1A10);
 }
 
 // Échelle typographique : 16 / 18 / 22 / 28 / 36 px, interligne 1,5.
