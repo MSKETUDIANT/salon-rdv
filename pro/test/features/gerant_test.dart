@@ -90,6 +90,45 @@ void main() {
         expect(salon.journal, ['creer Brushing 25.5 30']);
         expect(find.text('Nouvelle prestation'), findsNothing);
         expect(find.text('25,500 DT · 30 min'), findsOneWidget);
+        expect(find.text('Prestation ajoutée.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'formulaire : exemples sous les champs, claviers, Entrée de champ en champ puis enregistre (charte §11)',
+      (tester) async {
+        await ouvrir(tester, EcranPrestations(salon: salon));
+        await tester.tap(find.text('Ajouter une prestation'));
+        await tester.pumpAndSettle();
+        expect(find.text('Exemple : 35 ou 10,500'), findsOneWidget);
+        expect(find.text('Exemple : 45'), findsOneWidget);
+
+        TextField champ(int i) =>
+            tester.widget<TextField>(find.byType(TextField).at(i));
+        expect(champ(0).textCapitalization, TextCapitalization.sentences);
+        expect(
+          champ(1).keyboardType,
+          const TextInputType.numberWithOptions(decimal: true),
+        );
+        expect(champ(2).keyboardType, TextInputType.number);
+        expect(champ(0).textInputAction, TextInputAction.next);
+        expect(champ(1).textInputAction, TextInputAction.next);
+        expect(champ(2).textInputAction, TextInputAction.done);
+
+        await tester.tap(find.byType(TextField).at(0));
+        await tester.enterText(find.byType(TextField).at(0), 'Soin');
+        await tester.testTextInput.receiveAction(TextInputAction.next);
+        await tester.pump();
+        expect(champ(1).focusNode!.hasFocus, isTrue);
+        await tester.enterText(find.byType(TextField).at(1), '20');
+        await tester.testTextInput.receiveAction(TextInputAction.next);
+        await tester.pump();
+        expect(champ(2).focusNode!.hasFocus, isTrue);
+        await tester.enterText(find.byType(TextField).at(2), '40');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+        expect(salon.journal, ['creer Soin 20.0 40']);
+        expect(find.text('Prestation ajoutée.'), findsOneWidget);
       },
     );
 
@@ -166,6 +205,10 @@ void main() {
         await tester.tap(find.text('Ajouter une plage'));
         await tester.pumpAndSettle();
         expect(find.text('Nouvelle plage'), findsOneWidget);
+        // Liste des jours lue avec son libellé (« Jour, Lundi »).
+        final semantique = tester.ensureSemantics();
+        expect(find.bySemanticsLabel(RegExp(r'^Jour\b')), findsOneWidget);
+        semantique.dispose();
         await tester.tap(find.text('Ajouter'));
         await tester.pumpAndSettle();
         expect(salon.journal, ['plage c1 1 09:00-18:00']);
@@ -200,8 +243,10 @@ void main() {
         expect(find.text('09:00'), findsOneWidget);
         expect(find.text('19:00'), findsOneWidget);
 
+        expect(find.text('Exemple : congé, formation'), findsOneWidget);
         await saisir(tester, 'Motif', 'Formation');
-        await tester.tap(find.text('Enregistrer l\'absence'));
+        // Entrée sur le dernier champ : enregistre (charte §11).
+        await tester.testTextInput.receiveAction(TextInputAction.done);
         await tester.pumpAndSettle();
         expect(find.textContaining('2 rendez-vous confirmés'), findsOneWidget);
         expect(
@@ -260,6 +305,10 @@ void main() {
         await appuyer(tester, find.widgetWithText(CheckboxListTile, 'Barbe'));
         expect(case_('Barbe').value, isTrue);
         expect(salon.journal, ['ajouter competence c1 p2']);
+        expect(find.text('Compétence ajoutée : Barbe.'), findsOneWidget);
+        // Le message bref disparaît (4 s) : il ne recouvre plus les cases.
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
 
         salon.prochaineErreur = ErreurSalon(messageErreurBase(null));
         await appuyer(

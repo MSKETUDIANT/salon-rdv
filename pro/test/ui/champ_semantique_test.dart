@@ -70,6 +70,45 @@ void main() {
   });
 
   testWidgets(
+    "Champ avec aide : l'exemple est affiché et lu, remplacé par l'erreur",
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      final champ = Champ(
+        libelle: 'Prix (DT)',
+        controleur: TextEditingController(),
+        aide: 'Exemple : 35 ou 10,500',
+      );
+      await afficher(tester, champ);
+      expect(find.text('Exemple : 35 ou 10,500'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('Exemple : 35 ou 10,500')),
+        findsOneWidget,
+      );
+
+      await afficher(
+        tester,
+        Champ(
+          libelle: 'Prix (DT)',
+          controleur: TextEditingController(),
+          aide: 'Exemple : 35 ou 10,500',
+          erreur: 'Indiquez un prix positif.',
+        ),
+      );
+      await tester.pumpAndSettle();
+      // L'aide s'efface en fondu et n'est plus lue ; l'erreur est lue.
+      expect(
+        find.bySemanticsLabel(RegExp('Exemple : 35 ou 10,500')),
+        findsNothing,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp('Indiquez un prix positif')),
+        findsOneWidget,
+      );
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
     'Mot de passe : masqué, bouton œil distinct pour afficher puis masquer',
     (tester) async {
       final handle = tester.ensureSemantics();

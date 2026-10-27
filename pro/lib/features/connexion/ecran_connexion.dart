@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../data/session.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
+import '../../ui/marque.dart';
 
 // Connexion de l'équipe : e-mail et mot de passe (comptes créés via #2).
 // « Se connecter » n'est jamais désactivé : au clic, ce qui manque est indiqué
@@ -63,13 +64,12 @@ class _EcranConnexionState extends State<EcranConnexion> {
   @override
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
+    // Logo en grand, sans barre du haut (#41).
     return PageCharte(
+      logo: false,
       enfants: [
-        Text(
-          'Salon RDV',
-          style: textes.bodyLarge!.copyWith(color: Couleurs.texteSecondaire),
-        ),
-        const SizedBox(height: Espaces.s2),
+        const LogoSalonRdv(taille: Tailles.x3l),
+        const SizedBox(height: Espaces.s6),
         Semantics(
           header: true,
           child: Text('Espace pro', style: textes.headlineMedium),

@@ -276,15 +276,20 @@ class _DialoguePlageState extends State<_DialoguePlage> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Jour', style: textes.labelLarge),
+          // Libellé visible repris sur la liste pour TalkBack (« Jour,
+          // Lundi »), comme le filtre de l'historique.
+          ExcludeSemantics(child: Text('Jour', style: textes.labelLarge)),
           const SizedBox(height: Espaces.s2),
-          DropdownButtonFormField<int>(
-            initialValue: _jour,
-            items: [
-              for (var j = 1; j <= 7; j++)
-                DropdownMenuItem(value: j, child: Text(nomsJours[j - 1])),
-            ],
-            onChanged: (j) => setState(() => _jour = j ?? _jour),
+          Semantics(
+            label: 'Jour',
+            child: DropdownButtonFormField<int>(
+              initialValue: _jour,
+              items: [
+                for (var j = 1; j <= 7; j++)
+                  DropdownMenuItem(value: j, child: Text(nomsJours[j - 1])),
+              ],
+              onChanged: (j) => setState(() => _jour = j ?? _jour),
+            ),
           ),
           const SizedBox(height: Espaces.s4),
           _ChoixHeure(
@@ -487,13 +492,17 @@ class FormulaireAbsence extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Absence de ${coiffeur.nom}')),
-      body: Chargement<DateTime>(
-        lire: salon.maintenantAuSalon,
-        afficher: (context, maintenant, _) => _SaisieAbsence(
-          salon: salon,
-          coiffeur: coiffeur,
-          maintenant: maintenant,
-        ),
+      body: ListeCharte(
+        enfants: [
+          Chargement<DateTime>(
+            lire: salon.maintenantAuSalon,
+            afficher: (context, maintenant, _) => _SaisieAbsence(
+              salon: salon,
+              coiffeur: coiffeur,
+              maintenant: maintenant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -636,18 +645,25 @@ class _SaisieAbsenceState extends State<_SaisieAbsence> {
         children: [
           Text(libelle, style: textes.labelLarge),
           const SizedBox(height: Espaces.s2),
-          Wrap(
-            spacing: Espaces.s3,
-            runSpacing: Espaces.s2,
+          // Date sur la largeur restante, heure sur 104 px comme dans
+          // « Nouvelle plage » : mêmes largeurs pour le début et la fin.
+          Row(
             children: [
-              OutlinedButton(
-                onPressed: () => _choisirDate(debut),
-                child: Text(
-                  formatDate(d),
-                  semanticsLabel: '$libelle, date : ${formatDate(d)}, modifier',
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _choisirDate(debut),
+                  child: Text(
+                    formatDate(d),
+                    semanticsLabel:
+                        '$libelle, date : ${formatDate(d)}, modifier',
+                  ),
                 ),
               ),
+              const SizedBox(width: Espaces.s3),
               OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(104, hauteurBouton),
+                ),
                 onPressed: () => _choisirHeure(debut),
                 child: Text(
                   formatHeure(TimeOfDay.fromDateTime(d)),
@@ -661,8 +677,9 @@ class _SaisieAbsenceState extends State<_SaisieAbsence> {
       );
     }
 
-    return ListeCharte(
-      enfants: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         Text('Heures du salon.', style: textes.bodySmall),
         const SizedBox(height: Espaces.s4),
         ligne('Début', true),
@@ -672,7 +689,10 @@ class _SaisieAbsenceState extends State<_SaisieAbsence> {
         Champ(
           libelle: 'Motif (facultatif)',
           controleur: _motif,
+          aide: 'Exemple : congé, formation',
+          capitalisation: TextCapitalization.sentences,
           actionClavier: TextInputAction.done,
+          surValidation: _enregistrer,
         ),
         const SizedBox(height: Espaces.s6),
         if (_erreur != null) ...[
@@ -769,6 +789,14 @@ class _SectionCompetencesState extends State<SectionCompetences> {
         await widget.salon.ajouterCompetence(widget.coiffeur.id, p.id);
       } else {
         await widget.salon.retirerCompetence(widget.coiffeur.id, p.id);
+      }
+      if (mounted) {
+        confirmer(
+          context,
+          cocher
+              ? 'Compétence ajoutée : ${p.nom}.'
+              : 'Compétence retirée : ${p.nom}.',
+        );
       }
     } on ErreurSalon catch (erreur) {
       if (!mounted) return;

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Couleurs de la charte (pro/lib/ui/charte.dart) pour le démarrage (#41).
+     À part de colors.xml, que flutter_launcher_icons régénère. -->
+<resources>
+    <color name="fond">#FAFAF7</color>
+</resources>

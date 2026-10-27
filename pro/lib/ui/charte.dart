@@ -209,6 +209,9 @@ ThemeData themeCharte() {
       hintStyle: textes.bodyMedium!.copyWith(color: Couleurs.texteSecondaire),
       errorStyle: textes.bodyMedium!.copyWith(color: Couleurs.erreur),
       errorMaxLines: 3,
+      // Aide sous le champ (exemple de format) : texte secondaire, 16 px.
+      helperStyle: textes.bodySmall,
+      helperMaxLines: 3,
       border: _bordureChamp(Couleurs.bordure, 1),
       enabledBorder: _bordureChamp(Couleurs.bordure, 1),
       focusedBorder: _bordureChamp(Couleurs.accent, 2),

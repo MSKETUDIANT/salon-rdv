@@ -81,9 +81,10 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
       body: RefreshIndicator(
         onRefresh: () async => _actualiser(),
         child: ListView(
+          // Mêmes marges que ListeCharte (ui/composants.dart).
           padding: const EdgeInsets.fromLTRB(
             Espaces.s4,
-            Espaces.s2,
+            Espaces.s4,
             Espaces.s4,
             Espaces.s8,
           ),

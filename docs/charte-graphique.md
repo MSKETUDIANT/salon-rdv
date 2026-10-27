@@ -209,6 +209,31 @@ au site :
 - Garde-fou : `pro/test/ui/charte_test.dart` vérifie que les couleurs et les
   tailles sont celles de `web/app/globals.css`, et que chaque couple du §2
   atteint son seuil WCAG 2.2 AA.
+- Identité (#41) :
+  - **logo « Salon RDV »** (`pro/lib/ui/marque.dart`, `LogoSalonRdv`) :
+    Newsreader 500, taille optique 36, couleur `accent`, comme sur le site.
+    En grand (36 px) en tête de la connexion, sans barre du haut ; à gauche
+    de la barre du haut (22 px) sur les écrans de premier niveau (accueil d'un
+    espace, choix d'espace, accès refusé). Lu « Salon RDV ».
+  - **écran de démarrage** : fond `fond` et icône de l'app (« S » blanc sur
+    `accent`) au centre, sans logo Flutter. Android :
+    `res/drawable*/launch_background.xml`, et `res/values*-v31/styles.xml`
+    pour l'écran de démarrage du système (Android 12 et plus). Web :
+    `pro/web/index.html`, retiré à la première image de Flutter.
+- **Menu du compte** (`MenuCompte`, #41) : icône de compte à droite de la
+  barre du haut, sur l'accueil de chaque espace. Il contient « Connecté
+  avec … », la bascule vers l'autre espace (gérant qui est aussi coiffeur)
+  et « Se déconnecter ». La bascule est aussi un lien sous le titre de
+  l'espace. Les deux restent visibles sans défiler à 360 × 640, quel que soit
+  le nombre de cartes (`pro/test/features/porte_test.dart`).
+- Hiérarchie : titre d'écran dans la barre du haut (Newsreader 22 px), ou
+  titre d'espace (Newsreader 28 px) sous le logo ; sections en Newsreader
+  22 px ; contenu à 16 px sous la barre du haut sur tous les écrans, marges
+  latérales de 16 px. Un seul bouton principal par écran ; les choix de même
+  poids sont des boutons secondaires.
+- Accessibilité : `pro/test/ui/accessibilite_test.dart` passe chaque écran
+  aux contrôles de Flutter, à 360 × 640 : zones tactiles d'au moins 48 px,
+  éléments interactifs libellés, contraste du texte (WCAG 2.2 AA).
 
 ## 10. Captures
 
@@ -245,3 +270,92 @@ Sur ordinateur (1366 px) :
 En-tête : « Accueil » au repos, « Réserver » page courante, « Mes réservations » survolé.
 
 ![États de l'en-tête](captures/refonte/pc-3-entete-etats-apres.webp)
+
+### App pro (#41)
+
+Navigateur (Chrome), 360 × 640 : version web de l'app construite sur la base
+locale, pilotée par le Playwright du site. Entre les deux séries, des données
+de la base locale ont changé (démonstration en cours) : prestations,
+absences.
+
+| Écran | Avant | Après |
+| --- | --- | --- |
+| Connexion | ![Connexion avant](captures/app-pro/navigateur/01-connexion-avant.webp) | ![Connexion après](captures/app-pro/navigateur/01-connexion-apres.webp) |
+| Connexion, champs manquants | ![Connexion, champs manquants avant](captures/app-pro/navigateur/02-connexion-erreurs-avant.webp) | ![Connexion, champs manquants après](captures/app-pro/navigateur/02-connexion-erreurs-apres.webp) |
+| Accès refusé (client) | ![Accès refusé (client) avant](captures/app-pro/navigateur/03-acces-refuse-avant.webp) | ![Accès refusé (client) après](captures/app-pro/navigateur/03-acces-refuse-apres.webp) |
+| Choix de l'espace | ![Choix de l'espace avant](captures/app-pro/navigateur/04-choix-espace-avant.webp) | ![Choix de l'espace après](captures/app-pro/navigateur/04-choix-espace-apres.webp) |
+| Accueil, gérant et coiffeur | ![Accueil, gérant et coiffeur avant](captures/app-pro/navigateur/05-accueil-gerant-et-coiffeur-avant.webp) | ![Accueil, gérant et coiffeur après](captures/app-pro/navigateur/05-accueil-gerant-et-coiffeur-apres.webp) |
+| Accueil coiffeur | ![Accueil coiffeur avant](captures/app-pro/navigateur/06-accueil-coiffeur-avant.webp) | ![Accueil coiffeur après](captures/app-pro/navigateur/06-accueil-coiffeur-apres.webp) |
+| Mon planning, jour | ![Mon planning, jour avant](captures/app-pro/navigateur/07-mon-planning-jour-avant.webp) | ![Mon planning, jour après](captures/app-pro/navigateur/07-mon-planning-jour-apres.webp) |
+| Mon planning, semaine | ![Mon planning, semaine avant](captures/app-pro/navigateur/08-mon-planning-semaine-avant.webp) | ![Mon planning, semaine après](captures/app-pro/navigateur/08-mon-planning-semaine-apres.webp) |
+| Accueil gérant | ![Accueil gérant avant](captures/app-pro/navigateur/09-accueil-gerant-avant.webp) | ![Accueil gérant après](captures/app-pro/navigateur/09-accueil-gerant-apres.webp) |
+| Planning de l'équipe | ![Planning de l'équipe avant](captures/app-pro/navigateur/10-planning-equipe-avant.webp) | ![Planning de l'équipe après](captures/app-pro/navigateur/10-planning-equipe-apres.webp) |
+| Fiche d'un rendez-vous | ![Fiche d'un rendez-vous avant](captures/app-pro/navigateur/11-fiche-rendez-vous-avant.webp) | ![Fiche d'un rendez-vous après](captures/app-pro/navigateur/11-fiche-rendez-vous-apres.webp) |
+| Rendez-vous terminé | ![Rendez-vous terminé avant](captures/app-pro/navigateur/12-fiche-terminee-avant.webp) | ![Rendez-vous terminé après](captures/app-pro/navigateur/12-fiche-terminee-apres.webp) |
+| Encaissement | ![Encaissement avant](captures/app-pro/navigateur/13-encaissement-avant.webp) | ![Encaissement après](captures/app-pro/navigateur/13-encaissement-apres.webp) |
+| Historique | ![Historique avant](captures/app-pro/navigateur/14-historique-avant.webp) | ![Historique après](captures/app-pro/navigateur/14-historique-apres.webp) |
+| Prestations | ![Prestations avant](captures/app-pro/navigateur/15-prestations-avant.webp) | ![Prestations après](captures/app-pro/navigateur/15-prestations-apres.webp) |
+| Nouvelle prestation | ![Nouvelle prestation avant](captures/app-pro/navigateur/16-nouvelle-prestation-avant.webp) | ![Nouvelle prestation après](captures/app-pro/navigateur/16-nouvelle-prestation-apres.webp) |
+| Nouvelle prestation, erreurs | ![Nouvelle prestation, erreurs avant](captures/app-pro/navigateur/17-nouvelle-prestation-erreurs-avant.webp) | ![Nouvelle prestation, erreurs après](captures/app-pro/navigateur/17-nouvelle-prestation-erreurs-apres.webp) |
+| Équipe | ![Équipe avant](captures/app-pro/navigateur/18-equipe-avant.webp) | ![Équipe après](captures/app-pro/navigateur/18-equipe-apres.webp) |
+| Fiche coiffeur | ![Fiche coiffeur avant](captures/app-pro/navigateur/19-fiche-coiffeur-avant.webp) | ![Fiche coiffeur après](captures/app-pro/navigateur/19-fiche-coiffeur-apres.webp) |
+| Nouvelle plage | ![Nouvelle plage avant](captures/app-pro/navigateur/20-nouvelle-plage-avant.webp) | ![Nouvelle plage après](captures/app-pro/navigateur/20-nouvelle-plage-apres.webp) |
+| Fiche coiffeur, bas | ![Fiche coiffeur, bas avant](captures/app-pro/navigateur/21-fiche-coiffeur-bas-avant.webp) | ![Fiche coiffeur, bas après](captures/app-pro/navigateur/21-fiche-coiffeur-bas-apres.webp) |
+| Nouvelle absence | ![Nouvelle absence avant](captures/app-pro/navigateur/22-nouvelle-absence-avant.webp) | ![Nouvelle absence après](captures/app-pro/navigateur/22-nouvelle-absence-apres.webp) |
+
+Nouveaux : écran de démarrage, menu du compte.
+
+| Démarrage | Menu du compte |
+| --- | --- |
+| ![Démarrage](captures/app-pro/navigateur/00-demarrage-apres.webp) | ![Menu du compte](captures/app-pro/navigateur/05b-menu-compte-apres.webp) |
+
+## 11. Formulaires de l'app pro (#41)
+
+Règles communes à tous les formulaires de `pro/`, appliquées par `Champ`
+(`pro/lib/ui/composants.dart`) et vérifiées par `pro/test/features/` et
+`pro/test/ui/champ_semantique_test.dart`.
+
+- **Libellé** au-dessus du champ, toujours visible, repris sur le nœud du
+  champ pour TalkBack ; « (facultatif) » dans le libellé si le champ peut
+  rester vide ; l'unité aussi : « Prix (DT) », « Durée (minutes) ».
+- **Exemple sous le champ** (`aide`) quand le format n'est pas évident :
+  « Exemple : 35 ou 10,500 » (prix, montant), « Exemple : 45 » (durée),
+  « Exemple : congé, formation » (motif). Texte secondaire, 16 px, lu après
+  le libellé ; remplacé par le message d'erreur quand il y en a un.
+- **Claviers** : e-mail pour une adresse, décimal pour un prix ou un
+  montant, numérique pour un nombre entier ; majuscule en début de phrase
+  pour un nom ou un motif ; ni correction ni suggestion sur l'e-mail et le
+  mot de passe.
+- **Touche Entrée** : « Suivant » passe au champ suivant ; sur le dernier
+  champ, « OK » fait la même chose que le bouton principal.
+- **Sélecteurs** :
+  - date : bouton qui affiche la date choisie et ouvre le calendrier ;
+  - heure : bouton de 104 px qui affiche l'heure (24 h) et ouvre le
+    sélecteur d'heure ;
+  - un choix parmi deux ou trois options toujours visibles (vue Jour ou
+    Semaine, période de l'historique) : boutons segmentés, de même largeur ;
+  - un choix dans une liste plus longue (jour de la semaine, coiffeur) :
+    liste déroulante, avec son libellé lu par TalkBack (« Jour, Lundi ») ;
+  - plusieurs choix indépendants (compétences) : cases à cocher, enregistrées
+    aussitôt ;
+  - boutons de sélection d'un même formulaire à la même largeur (date sur la
+    largeur restante, heure sur 104 px) ; libellé lu « Début, heure : 09:00,
+    modifier ».
+- **Validation** : le bouton principal n'est jamais désactivé ; au clic, ce
+  qui manque est signalé sous le champ concerné, en `erreur`, sur un ton
+  commun : « Indiquez … » (« Indiquez le nom de la prestation. »), avec un
+  exemple si le format est en cause. Erreur de la base : message sous le
+  formulaire, au-dessus du bouton, lu par TalkBack.
+- **Confirmation** : après chaque enregistrement, un message bref
+  (SnackBar) dit ce qui a été fait : « Prestation ajoutée. », « Plage
+  ajoutée : Lundi 09:00 – 18:00. », « Compétence ajoutée : Couleur. »,
+  « Encaissement enregistré. ».
+- **Chargement et erreur** : mêmes états partout (`Chargement`,
+  `pro/lib/ui/chargement.dart`) : indicateur `accent` centré, puis message
+  en `erreur` et bouton secondaire « Réessayer ». Pendant un enregistrement,
+  le bouton garde sa place et affiche « Enregistrement… ».
+
+Formulaires vérifiés (#41) : connexion ; prestation (création,
+modification) ; encaissement (et correction du montant) ; nouvelle plage ;
+nouvelle absence ; compétences ; filtres de l'historique ; vue de « Mon
+planning ».

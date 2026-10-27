@@ -99,6 +99,7 @@ class _FormulaireEncaissementState extends State<FormulaireEncaissement> {
             libelle: 'Montant payé au salon (DT)',
             controleur: _montant,
             erreur: _erreurMontant,
+            aide: 'Exemple : 35 ou 10,500',
             clavier: const TextInputType.numberWithOptions(decimal: true),
             actionClavier: TextInputAction.done,
             surValidation: _enregistrer,

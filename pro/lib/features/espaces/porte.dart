@@ -7,6 +7,7 @@ import '../../data/planning.dart';
 import '../../data/salon.dart';
 import '../../data/session.dart';
 import '../../ui/charte.dart';
+import '../../ui/chargement.dart';
 import '../../ui/composants.dart';
 import '../connexion/ecran_connexion.dart';
 import 'ecran_espace.dart';
@@ -87,11 +88,9 @@ class _PorteState extends State<Porte> {
     if (_erreur) {
       return PageCharte(
         enfants: [
-          Text(
-            'Impossible de lire vos accès.',
-            style: textes.bodyLarge!.copyWith(color: Couleurs.erreur),
-          ),
-          const SizedBox(height: Espaces.s4),
+          // Même erreur et même « Réessayer » que ui/chargement.dart.
+          const MessageErreur('Impossible de lire vos accès.'),
+          const SizedBox(height: Espaces.s3),
           Bouton(libelle: 'Réessayer', secondaire: true, surAppui: _lireRoles),
           const SizedBox(height: Espaces.s2),
           TextButton(
@@ -103,7 +102,12 @@ class _PorteState extends State<Porte> {
     }
 
     if (espaces == null) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Padding(
+          padding: EdgeInsets.all(Espaces.s8),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
     }
 
     if (espaces.isEmpty) {
