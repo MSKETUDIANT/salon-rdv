@@ -539,7 +539,8 @@ class _FicheRendezVousState extends State<_FicheRendezVous> {
         '${formatHeure(TimeOfDay.fromDateTime(r.debut))} – ${formatHeure(TimeOfDay.fromDateTime(r.fin))}',
       ),
       if (widget.coiffeur != null) ('Coiffeur', widget.coiffeur!),
-      ('Statut', r.statut.libelle),
+      // Même vocabulaire que la liste et la frise (#64).
+      ('Statut', r.etat(widget.maintenant).libelle),
       if (widget.gerant && r.statut == StatutRendezVous.terminee)
         ('Encaissé', montant == null ? 'Pas encore' : formatPrix(montant)),
     ];

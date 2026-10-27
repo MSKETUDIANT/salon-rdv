@@ -14,6 +14,7 @@ class ClotureDifferee with WidgetsBindingObserver {
     required this.planning,
     required this.surEnregistree,
     required this.surErreur,
+    this.surDepart,
     this.delai = const Duration(seconds: 5),
   }) {
     WidgetsBinding.instance.addObserver(this);
@@ -24,6 +25,9 @@ class ClotureDifferee with WidgetsBindingObserver {
   final VoidCallback surEnregistree;
   // Refus de la base : le rendez-vous reprend son état.
   final ValueChanged<String> surErreur;
+  // L'enregistrement part (délai écoulé, écran quitté, app en arrière-plan) :
+  // « Annuler » n'a plus d'effet, son message doit disparaître.
+  final VoidCallback? surDepart;
   final Duration delai;
 
   RendezVous? _rendezVous;
@@ -54,6 +58,7 @@ class ClotureDifferee with WidgetsBindingObserver {
     _rendezVous = null;
     _statut = null;
     if (r == null || statut == null) return;
+    surDepart?.call();
     try {
       await planning.cloturer(r.id, statut);
       surEnregistree();

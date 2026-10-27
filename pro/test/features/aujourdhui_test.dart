@@ -61,9 +61,13 @@ Future<void> ouvrir(
   bool gerant = false,
   bool actif = true,
   bool sansAnimations = true,
+  bool petitEcran = false,
 }) async {
-  tester.view.physicalSize = const Size(1080, 5400);
-  tester.view.devicePixelRatio = 3;
+  // Petit écran : 360 × 640, la liste du jour sous le pli.
+  tester.view.physicalSize = petitEcran
+      ? const Size(720, 1280)
+      : const Size(1080, 5400);
+  tester.view.devicePixelRatio = petitEcran ? 2 : 3;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
@@ -73,7 +77,7 @@ Future<void> ouvrir(
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       home: MediaQuery(
         data: MediaQueryData(
-          size: const Size(360, 1800),
+          size: petitEcran ? const Size(360, 640) : const Size(360, 1800),
           disableAnimations: sansAnimations,
         ),
         child: EcranAujourdhui(
@@ -301,4 +305,68 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets(
+    "petit écran : l'indice attend que la carte soit visible, puis est retenu",
+    (tester) async {
+      await ouvrir(tester, sansAnimations: false, petitEcran: true);
+      bool bouge() => find
+          .descendant(of: salma, matching: find.byType(Transform))
+          .evaluate()
+          .isNotEmpty;
+      // Liste sous le pli : rien ne bouge, rien n'est retenu.
+      await tester.pump(const Duration(seconds: 2));
+      expect(bouge(), isFalse);
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getBool(cleIndiceGestes), isNull);
+
+      // La carte arrive à l'écran : l'indice part, puis il est retenu.
+      await tester.drag(find.byType(ListView), const Offset(0, -700));
+      // Pas à pas : l'indice part 600 ms après l'arrivée de la carte.
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(bouge(), isTrue);
+      await tester.pumpAndSettle();
+      expect(preferences.getBool(cleIndiceGestes), isTrue);
+    },
+  );
+
+  testWidgets(
+    "enregistrement en quittant l'onglet : le message « Annuler » disparaît",
+    (tester) async {
+      await ouvrir(tester);
+      await tester.drag(salma, const Offset(260, 0));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(SnackBarAction, 'Annuler'), findsOneWidget);
+
+      await ouvrir(tester, actif: false);
+      expect(planning.actions, ['c terminee']);
+      expect(find.widgetWithText(SnackBarAction, 'Annuler'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'après une clôture, relecture sans chargement : la liste garde sa place',
+    (tester) async {
+      await ouvrir(tester, petitEcran: true);
+      await tester.drag(find.byType(ListView), const Offset(0, -700));
+      await tester.pumpAndSettle();
+      final position = tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position;
+      final avant = position.pixels;
+      expect(avant, greaterThan(0));
+
+      await tester.drag(salma, const Offset(260, 0));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      await tester.pumpAndSettle();
+      expect(planning.actions, ['c terminee']);
+      expect(planning.appels.length, 2);
+      expect(position.pixels, avant);
+    },
+  );
 }

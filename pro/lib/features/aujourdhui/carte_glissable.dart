@@ -13,8 +13,9 @@ import '../planning/elements_planning.dart';
 // commencé (glissable), glisser à droite : « Terminé » ; à gauche : « Client
 // absent ». Petite vibration au seuil, vibration de confirmation au geste.
 // TalkBack : les deux clôtures sont des actions du nœud (et restent dans la
-// fiche). indice : la carte glisse un peu une fois, pour montrer le geste
-// (sauf si le téléphone demande moins d'animations).
+// fiche). indice : la carte glisse un peu une fois, pour montrer le geste,
+// dès qu'elle est entièrement visible (jamais hors de l'écran) ; sauf si le
+// téléphone demande moins d'animations.
 class CarteGlissable extends StatefulWidget {
   const CarteGlissable({
     super.key,
@@ -25,6 +26,7 @@ class CarteGlissable extends StatefulWidget {
     required this.surGeste,
     this.coiffeur,
     this.indice = false,
+    this.surIndiceMontre,
   });
 
   final RendezVous rendezVous;
@@ -35,6 +37,8 @@ class CarteGlissable extends StatefulWidget {
   // Gérant : nom du coiffeur, ajouté à la ligne.
   final String? coiffeur;
   final bool indice;
+  // L'indice vient d'être montré (pour ne plus le montrer).
+  final VoidCallback? surIndiceMontre;
 
   @override
   State<CarteGlissable> createState() => _CarteGlissableState();
@@ -66,20 +70,59 @@ class _CarteGlissableState extends State<CarteGlissable>
   ]).animate(_indice);
   Timer? _attente;
 
+  ScrollPosition? _defilement;
+
+  bool get _indiceAMontrer =>
+      widget.indice &&
+      widget.glissable &&
+      _attente == null &&
+      !MediaQuery.of(context).disableAnimations;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (widget.indice &&
-        widget.glissable &&
-        !_indice.isAnimating &&
-        !_indice.isCompleted &&
-        !MediaQuery.of(context).disableAnimations) {
-      _attente ??= Timer(const Duration(milliseconds: 600), _indice.forward);
+    _defilement?.removeListener(_planifierVerification);
+    _defilement = null;
+    if (!_indiceAMontrer) return;
+    _defilement = Scrollable.maybeOf(context)?.position
+      ?..addListener(_planifierVerification);
+    _planifierVerification();
+  }
+
+  // Après la mise en page de l'image suivante (pendant un défilement, la
+  // carte n'est pas encore à sa nouvelle place).
+  bool _verificationPrevue = false;
+  void _planifierVerification() {
+    if (_verificationPrevue) return;
+    _verificationPrevue = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _verificationPrevue = false;
+      _verifierIndice();
+    });
+  }
+
+  // Carte entièrement visible dans la liste : l'indice part (une fois).
+  void _verifierIndice() {
+    if (!mounted || !_indiceAMontrer) return;
+    final carte = context.findRenderObject() as RenderBox?;
+    final vue =
+        Scrollable.maybeOf(context)?.context.findRenderObject() as RenderBox?;
+    if (carte == null || !carte.attached || !carte.hasSize) return;
+    if (vue != null) {
+      final haut = carte.localToGlobal(Offset.zero, ancestor: vue).dy;
+      if (haut < 0 || haut + carte.size.height > vue.size.height) return;
     }
+    _defilement?.removeListener(_planifierVerification);
+    _attente = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      _indice.forward();
+      widget.surIndiceMontre?.call();
+    });
   }
 
   @override
   void dispose() {
+    _defilement?.removeListener(_planifierVerification);
     _attente?.cancel();
     _indice.dispose();
     super.dispose();

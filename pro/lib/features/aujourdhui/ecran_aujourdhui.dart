@@ -70,18 +70,37 @@ class _Jour {
 }
 
 class _EcranAujourdhuiState extends State<EcranAujourdhui> {
-  int _version = 0;
+  // Dernière lecture affichée. Les relectures (après une clôture, en tirant
+  // la liste) la remplacent sans repasser par le chargement : la liste garde
+  // sa position.
+  _Jour? _jour;
+  // Message « Annuler » de la clôture en attente.
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _message;
   late final _cloture = ClotureDifferee(
     planning: widget.planning,
-    surEnregistree: () {
-      if (mounted) setState(() => _version++);
-    },
+    surDepart: _fermerMessage,
+    surEnregistree: _relire,
     surErreur: (message) {
       if (!mounted) return;
       confirmer(context, message);
       setState(() {});
     },
   );
+
+  void _fermerMessage() {
+    final message = _message;
+    _message = null;
+    if (message != null && mounted) message.close();
+  }
+
+  Future<void> _relire() async {
+    try {
+      final jour = await _lire();
+      if (mounted) setState(() => _jour = jour);
+    } on ErreurSalon catch (erreur) {
+      if (mounted) confirmer(context, erreur.message);
+    }
+  }
 
   @override
   void didUpdateWidget(EcranAujourdhui ancien) {
@@ -130,22 +149,24 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
   void _geste(RendezVous r, StatutRendezVous statut) {
     setState(() => _cloture.programmer(r, statut));
     final heure = formatHeure(TimeOfDay.fromDateTime(r.debut));
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          duration: _cloture.delai,
-          content: Text(
-            statut == StatutRendezVous.terminee
-                ? '${r.clientNom}, $heure : terminé.'
-                : '${r.clientNom}, $heure : client absent.',
-          ),
-          action: SnackBarAction(
-            label: 'Annuler',
-            onPressed: () => setState(_cloture.annuler),
-          ),
+    final messager = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
+    final message = _message = messager.showSnackBar(
+      SnackBar(
+        duration: _cloture.delai,
+        content: Text(
+          statut == StatutRendezVous.terminee
+              ? '${r.clientNom}, $heure : terminé.'
+              : '${r.clientNom}, $heure : client absent.',
         ),
-      );
+        action: SnackBarAction(
+          label: 'Annuler',
+          onPressed: () => setState(_cloture.annuler),
+        ),
+      ),
+    );
+    message.closed.then((_) {
+      if (identical(_message, message)) _message = null;
+    });
   }
 
   Future<void> _ouvrir(RendezVous r, _Jour j) async {
@@ -161,7 +182,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     );
     if (message == null || !mounted) return;
     confirmer(context, message);
-    setState(() => _version++);
+    await _relire();
   }
 
   @override
@@ -169,7 +190,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async => setState(() => _version++),
+          onRefresh: _relire,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
               Espaces.s4,
@@ -178,11 +199,13 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
               Espaces.s8,
             ),
             children: [
-              Chargement<_Jour>(
-                key: ValueKey(_version),
-                lire: _lire,
-                afficher: (context, j, _) => _contenu(context, j),
-              ),
+              if (_jour case final jour?)
+                _contenu(context, jour)
+              else
+                Chargement<_Jour>(
+                  lire: () async => _jour = await _lire(),
+                  afficher: (context, j, _) => _contenu(context, j),
+                ),
             ],
           ),
         ),
@@ -221,7 +244,6 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
         )
         .firstOrNull;
     final indice = _indiceVu == false && premierGlissable != null;
-    if (indice) _retenirIndiceVu();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,6 +341,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
                   _cloture.enAttente(r.id) == null,
               coiffeur: j.coiffeurs[r.coiffeurId],
               indice: indice && r.id == premierGlissable.id,
+              surIndiceMontre: _retenirIndiceVu,
               surAppui: () => _ouvrir(r, j),
               surGeste: (statut) => _geste(r, statut),
             ),

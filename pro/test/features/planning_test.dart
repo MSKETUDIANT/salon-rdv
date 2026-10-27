@@ -78,7 +78,8 @@ void main() {
       expect(find.text('+216 20 000 000'), findsOneWidget);
       expect(find.text('30 min'), findsOneWidget);
       expect(find.text('09:00 – 09:30'), findsOneWidget);
-      expect(find.text('Confirmé'), findsOneWidget);
+      // La fiche dit l'état, comme la frise (#64).
+      expect(find.text('À clôturer'), findsWidgets);
     });
 
     testWidgets('jour suivant, puis retour à aujourd\'hui', (tester) async {
