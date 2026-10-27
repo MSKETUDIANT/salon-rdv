@@ -15,6 +15,18 @@ export function emailUnique(prefixe: string): string {
   return `${prefixe}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@e2e.test`;
 }
 
+// Attente entre deux codes pour un même e-mail : max_frequency de
+// [auth.email] (1 s, supabase/config.toml), plus 200 ms de marge. Plus tôt,
+// l'Auth répond 429 et le site affiche « Trop de demandes » (#59).
+const DELAI_ENTRE_CODES = 1_200;
+const codeRecuA = new Map<string, number>();
+
+// Attend que l'Auth accepte un nouveau code pour cet e-mail.
+export async function attendreDelaiEntreCodes(email: string) {
+  const reste = (codeRecuA.get(email) ?? 0) + DELAI_ENTRE_CODES - Date.now();
+  if (reste > 0) await new Promise((fin) => setTimeout(fin, reste));
+}
+
 // Code à 6 chiffres du dernier e-mail reçu par cette adresse (Mailpit).
 // precedent : code déjà reçu, à ignorer (attendre le nouvel e-mail).
 export async function lireCode(email: string, precedent?: string): Promise<string> {
@@ -26,7 +38,10 @@ export async function lireCode(email: string, precedent?: string): Promise<strin
     if (dernier) {
       const message = await fetch(`${mailpit()}/api/v1/message/${dernier.ID}`).then((r) => r.json());
       const code = String(message.Text).match(/\b\d{6}\b/)?.[0];
-      if (code && code !== precedent) return code;
+      if (code && code !== precedent) {
+        codeRecuA.set(email, Date.now());
+        return code;
+      }
     }
     await new Promise((fin) => setTimeout(fin, 500));
   }

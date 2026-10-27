@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import {
   apiClient,
+  attendreDelaiEntreCodes,
   creneauLibre,
   creneauPropose,
   emailUnique,
@@ -56,6 +57,7 @@ test("réserver, retrouver sa réservation, l'annuler : le créneau est de nouve
   await page.getByRole("button", { name: "Changer de compte" }).click();
   await expect(page.getByLabel("Nom")).toHaveCount(0);
   await page.getByLabel("E-mail").fill(email);
+  await attendreDelaiEntreCodes(email);
   await page.getByRole("button", { name: "Recevoir le code" }).click();
   await page.getByLabel("Code à 6 chiffres").fill(await lireCode(email, premierCode));
   await page.getByRole("button", { name: "Valider le code" }).click();
