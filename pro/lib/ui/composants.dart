@@ -1,28 +1,35 @@
 import 'package:flutter/material.dart';
 
 import 'charte.dart';
+import 'marque.dart';
 
 // Composants de base de la charte (§4), équivalents de web/components/ui/.
 
-// Champ de saisie : libellé toujours visible au-dessus du champ. Un champ mot
-// de passe a un bouton pour afficher ou masquer la saisie.
+// Champ de saisie : libellé toujours visible au-dessus du champ, aide (format
+// attendu, exemple) dessous, remplacée par le message d'erreur s'il y en a un
+// (charte §11). Un champ mot de passe a un bouton pour afficher ou masquer la
+// saisie.
 class Champ extends StatefulWidget {
   const Champ({
     super.key,
     required this.libelle,
     required this.controleur,
     this.erreur,
+    this.aide,
     this.motDePasse = false,
     this.clavier,
     this.autofill,
     this.actionClavier,
     this.surValidation,
     this.focus,
+    this.capitalisation = TextCapitalization.none,
   });
 
   final String libelle;
   final TextEditingController controleur;
   final String? erreur;
+  // « Exemple : 35 ou 10,500 ».
+  final String? aide;
   final bool motDePasse;
   final TextInputType? clavier;
   final Iterable<String>? autofill;
@@ -30,6 +37,8 @@ class Champ extends StatefulWidget {
   // Touche Entrée (ou action du clavier) : champ suivant, ou validation.
   final VoidCallback? surValidation;
   final FocusNode? focus;
+  // Nom, motif : majuscule en début de phrase sur le clavier du téléphone.
+  final TextCapitalization capitalisation;
 
   @override
   State<Champ> createState() => _ChampState();
@@ -58,6 +67,7 @@ class _ChampState extends State<Champ> {
             focusNode: widget.focus,
             obscureText: _masque,
             keyboardType: widget.clavier,
+            textCapitalization: widget.capitalisation,
             autofillHints: widget.autofill,
             autocorrect: false,
             enableSuggestions: !widget.motDePasse,
@@ -66,6 +76,7 @@ class _ChampState extends State<Champ> {
             style: textes.bodyLarge,
             decoration: InputDecoration(
               errorText: widget.erreur,
+              helperText: widget.aide,
               suffixIcon: widget.motDePasse
                   ? IconButton(
                       onPressed: () => setState(() => _masque = !_masque),
@@ -128,19 +139,37 @@ class Bouton extends StatelessWidget {
   }
 }
 
-// Mise en page d'un écran : fond uni, colonne de 672 px au plus (max-w-2xl du
-// site), marges de 16 px, défilement si le contenu dépasse.
+// Écran de premier niveau (accueil d'un espace, choix d'espace, accès
+// refusé) : barre du haut avec le logo et ses actions (menu du compte), fond
+// uni, colonne de 672 px au plus (max-w-2xl du site), marges de 16 px,
+// défilement si le contenu dépasse. Sans logo ni action (connexion, qui
+// affiche le logo en grand) : pas de barre.
 class PageCharte extends StatelessWidget {
-  const PageCharte({super.key, required this.enfants, this.actions = const []});
+  const PageCharte({
+    super.key,
+    required this.enfants,
+    this.actions = const [],
+    this.logo = true,
+  });
 
   final List<Widget> enfants;
   final List<Widget> actions;
+  final bool logo;
 
   @override
   Widget build(BuildContext context) {
+    final barre = logo || actions.isNotEmpty;
     return Scaffold(
-      appBar: actions.isEmpty ? null : AppBar(actions: actions),
-      body: ListeCharte(enfants: enfants, haut: Espaces.s8),
+      appBar: barre
+          ? AppBar(
+              title: logo ? const LogoSalonRdv() : null,
+              actions: [...actions, const SizedBox(width: Espaces.s1)],
+            )
+          : null,
+      body: ListeCharte(
+        enfants: enfants,
+        haut: barre ? Espaces.s4 : Espaces.s8,
+      ),
     );
   }
 }

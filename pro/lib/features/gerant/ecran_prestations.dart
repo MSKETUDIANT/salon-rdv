@@ -28,7 +28,12 @@ class _EcranPrestationsState extends State<EcranPrestations> {
             FormulairePrestation(salon: widget.salon, prestation: prestation),
       ),
     );
-    if (enregistre == true) setState(() => _version++);
+    if (enregistre != true || !mounted) return;
+    confirmer(
+      context,
+      prestation == null ? 'Prestation ajoutée.' : 'Prestation modifiée.',
+    );
+    setState(() => _version++);
   }
 
   Future<void> _basculer(Prestation p) async {
@@ -173,6 +178,8 @@ class _FormulairePrestationState extends State<FormulairePrestation> {
   late final _duree = TextEditingController(
     text: widget.prestation?.dureeMinutes.toString(),
   );
+  final _focusPrix = FocusNode();
+  final _focusDuree = FocusNode();
   String? _erreurNom;
   String? _erreurPrix;
   String? _erreurDuree;
@@ -184,6 +191,8 @@ class _FormulairePrestationState extends State<FormulairePrestation> {
     _nom.dispose();
     _prix.dispose();
     _duree.dispose();
+    _focusPrix.dispose();
+    _focusDuree.dispose();
     super.dispose();
   }
 
@@ -249,21 +258,28 @@ class _FormulairePrestationState extends State<FormulairePrestation> {
             libelle: 'Nom',
             controleur: _nom,
             erreur: _erreurNom,
+            capitalisation: TextCapitalization.sentences,
             actionClavier: TextInputAction.next,
+            surValidation: _focusPrix.requestFocus,
           ),
           const SizedBox(height: Espaces.s4),
           Champ(
             libelle: 'Prix (DT)',
             controleur: _prix,
             erreur: _erreurPrix,
+            aide: 'Exemple : 35 ou 10,500',
+            focus: _focusPrix,
             clavier: const TextInputType.numberWithOptions(decimal: true),
             actionClavier: TextInputAction.next,
+            surValidation: _focusDuree.requestFocus,
           ),
           const SizedBox(height: Espaces.s4),
           Champ(
             libelle: 'Durée (minutes)',
             controleur: _duree,
             erreur: _erreurDuree,
+            aide: 'Exemple : 45',
+            focus: _focusDuree,
             clavier: TextInputType.number,
             actionClavier: TextInputAction.done,
             surValidation: _enregistrer,

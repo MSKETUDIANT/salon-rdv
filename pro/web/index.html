@@ -31,8 +31,19 @@
 
   <title>Salon RDV Pro</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Écran de démarrage (#41) : fond de la charte et icône de l'app, jusqu'à
+       la première image de Flutter (événement flutter-first-frame). -->
+  <style>
+    body { margin: 0; background: #FAFAF7; }
+    #demarrage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+    #demarrage img { width: 96px; height: 96px; border-radius: 22px; }
+  </style>
 </head>
 <body>
+  <div id="demarrage" aria-hidden="true"><img src="icons/Icon-192.png" alt=""></div>
+  <script>
+    window.addEventListener("flutter-first-frame", () => document.getElementById("demarrage")?.remove());
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

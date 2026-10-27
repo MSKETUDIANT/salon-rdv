@@ -80,6 +80,29 @@ Future<void> lancer(WidgetTester tester) async {
   );
 }
 
+// Petit téléphone : 360 × 640 (Small_Phone, BNF-10).
+void petitEcran(WidgetTester tester) {
+  tester.view.physicalSize = const Size(720, 1280);
+  tester.view.devicePixelRatio = 2;
+  addTearDown(tester.view.reset);
+}
+
+// Entièrement à l'écran, sans défiler.
+void visibleSansDefiler(WidgetTester tester, Finder cible) {
+  final ecran = Offset.zero & tester.view.physicalSize / 2;
+  final zone = tester.getRect(cible);
+  expect(
+    ecran.contains(zone.topLeft) && ecran.contains(zone.bottomRight),
+    isTrue,
+    reason: "$cible hors de l'écran : $zone",
+  );
+}
+
+Future<void> ouvrirMenuCompte(WidgetTester tester) async {
+  await tester.tap(find.byTooltip('Menu du compte'));
+  await tester.pumpAndSettle();
+}
+
 Future<void> seConnecter(
   WidgetTester tester,
   String email, [
@@ -157,9 +180,14 @@ void main() {
     await lancer(tester);
     await seConnecter(tester, 'amira@salon.test');
     expect(find.text('Espace coiffeur'), findsOneWidget);
-    expect(find.text('Connecté avec amira@salon.test'), findsOneWidget);
     expect(find.text('Mon planning'), findsOneWidget);
     expect(find.text('Prestations'), findsNothing);
+    expect(find.textContaining('Passer à'), findsNothing);
+
+    await ouvrirMenuCompte(tester);
+    expect(find.text('Connecté avec'), findsOneWidget);
+    expect(find.text('amira@salon.test'), findsOneWidget);
+    expect(find.text('Se déconnecter'), findsOneWidget);
     expect(find.textContaining('Passer à'), findsNothing);
   });
 
@@ -185,9 +213,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Espace gérant'), findsOneWidget);
 
-      // Depuis #11 (carte Historique), le bouton est sous le pli à 800 × 600.
-      await tester.ensureVisible(find.text('Passer à l\'espace coiffeur'));
-      await tester.pumpAndSettle();
       await tester.tap(find.text('Passer à l\'espace coiffeur'));
       await tester.pumpAndSettle();
       expect(find.text('Espace coiffeur'), findsOneWidget);
@@ -197,6 +222,48 @@ void main() {
       expect(find.text('Espace gérant'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    '360 × 640 : bascule et déconnexion visibles sans défiler, avec les quatre cartes du gérant (#41)',
+    (tester) async {
+      petitEcran(tester);
+      await lancer(tester);
+      await seConnecter(tester, 'patron@salon.test');
+      await tester.tap(find.text('Espace gérant'));
+      await tester.pumpAndSettle();
+
+      visibleSansDefiler(tester, find.text("Passer à l'espace coiffeur"));
+      visibleSansDefiler(tester, find.byTooltip('Menu du compte'));
+
+      await ouvrirMenuCompte(tester);
+      visibleSansDefiler(tester, find.text('Se déconnecter'));
+      // Le menu propose aussi la bascule.
+      expect(find.text("Passer à l'espace coiffeur"), findsNWidgets(2));
+      await tester.tap(find.text("Passer à l'espace coiffeur").last);
+      await tester.pumpAndSettle();
+      expect(find.text('Espace coiffeur'), findsOneWidget);
+    },
+  );
+
+  testWidgets('logo « Salon RDV » : connexion, puis barre du haut des espaces', (
+    tester,
+  ) async {
+    final semantique = tester.ensureSemantics();
+    await lancer(tester);
+    expect(find.bySemanticsLabel('Salon RDV'), findsOneWidget);
+    // Sur la connexion, le logo est en grand, sans barre du haut.
+    expect(find.byType(AppBar), findsNothing);
+
+    await seConnecter(tester, 'gerant@salon.test');
+    expect(
+      find.descendant(
+        of: find.byType(AppBar),
+        matching: find.bySemanticsLabel('Salon RDV'),
+      ),
+      findsOneWidget,
+    );
+    semantique.dispose();
+  });
 
   testWidgets('simple client : accès refusé, déconnexion', (tester) async {
     await lancer(tester);
@@ -228,8 +295,10 @@ void main() {
   ) async {
     await lancer(tester);
     await seConnecter(tester, 'amira@salon.test');
+    await ouvrirMenuCompte(tester);
     await tester.tap(find.text('Se déconnecter'));
     await tester.pumpAndSettle();
     expect(find.text('Espace pro'), findsOneWidget);
+    expect(auth.compte, isNull);
   });
 }
