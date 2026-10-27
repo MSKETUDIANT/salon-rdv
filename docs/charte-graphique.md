@@ -309,6 +309,39 @@ Nouveaux : écran de démarrage, menu du compte.
 | --- | --- |
 | ![Démarrage](captures/app-pro/navigateur/00-demarrage-apres.webp) | ![Menu du compte](captures/app-pro/navigateur/05b-menu-compte-apres.webp) |
 
+Android (émulateur `Small_Phone`, Android 15, 360 × 640 dp, APK construit sur
+la base locale, `be0a42c` avant et `main` après) :
+
+| Écran | Avant | Après |
+| --- | --- | --- |
+| Écran de démarrage | ![Écran de démarrage avant](captures/app-pro/android/00-demarrage-avant.webp) | ![Écran de démarrage après](captures/app-pro/android/00-demarrage-apres.webp) |
+| Connexion | ![Connexion avant](captures/app-pro/android/01-connexion-avant.webp) | ![Connexion après](captures/app-pro/android/01-connexion-apres.webp) |
+| Connexion, champs manquants | ![Connexion, champs manquants avant](captures/app-pro/android/02-connexion-erreurs-avant.webp) | ![Connexion, champs manquants après](captures/app-pro/android/02-connexion-erreurs-apres.webp) |
+| Accès refusé (client) | ![Accès refusé (client) avant](captures/app-pro/android/03-acces-refuse-avant.webp) | ![Accès refusé (client) après](captures/app-pro/android/03-acces-refuse-apres.webp) |
+| Choix de l'espace | ![Choix de l'espace avant](captures/app-pro/android/04-choix-espace-avant.webp) | ![Choix de l'espace après](captures/app-pro/android/04-choix-espace-apres.webp) |
+| Accueil, gérant et coiffeur | ![Accueil, gérant et coiffeur avant](captures/app-pro/android/05-accueil-gerant-et-coiffeur-avant.webp) | ![Accueil, gérant et coiffeur après](captures/app-pro/android/05-accueil-gerant-et-coiffeur-apres.webp) |
+| Accueil coiffeur | ![Accueil coiffeur avant](captures/app-pro/android/06-accueil-coiffeur-avant.webp) | ![Accueil coiffeur après](captures/app-pro/android/06-accueil-coiffeur-apres.webp) |
+| Mon planning, jour | ![Mon planning, jour avant](captures/app-pro/android/07-mon-planning-jour-avant.webp) | ![Mon planning, jour après](captures/app-pro/android/07-mon-planning-jour-apres.webp) |
+| Accueil gérant | ![Accueil gérant avant](captures/app-pro/android/09-accueil-gerant-avant.webp) | ![Accueil gérant après](captures/app-pro/android/09-accueil-gerant-apres.webp) |
+| Planning de l'équipe | ![Planning de l'équipe avant](captures/app-pro/android/10-planning-equipe-avant.webp) | ![Planning de l'équipe après](captures/app-pro/android/10-planning-equipe-apres.webp) |
+| Historique | ![Historique avant](captures/app-pro/android/14-historique-avant.webp) | ![Historique après](captures/app-pro/android/14-historique-apres.webp) |
+| Prestations | ![Prestations avant](captures/app-pro/android/15-prestations-avant.webp) | ![Prestations après](captures/app-pro/android/15-prestations-apres.webp) |
+| Nouvelle prestation | ![Nouvelle prestation avant](captures/app-pro/android/16-nouvelle-prestation-avant.webp) | ![Nouvelle prestation après](captures/app-pro/android/16-nouvelle-prestation-apres.webp) |
+| Équipe | ![Équipe avant](captures/app-pro/android/18-equipe-avant.webp) | ![Équipe après](captures/app-pro/android/18-equipe-apres.webp) |
+| Fiche coiffeur | ![Fiche coiffeur avant](captures/app-pro/android/19-fiche-coiffeur-avant.webp) | ![Fiche coiffeur après](captures/app-pro/android/19-fiche-coiffeur-apres.webp) |
+| Nouvelle plage | ![Nouvelle plage avant](captures/app-pro/android/20-nouvelle-plage-avant.webp) | ![Nouvelle plage après](captures/app-pro/android/20-nouvelle-plage-apres.webp) |
+| Nouvelle absence | ![Nouvelle absence avant](captures/app-pro/android/22-nouvelle-absence-avant.webp) | ![Nouvelle absence après](captures/app-pro/android/22-nouvelle-absence-apres.webp) |
+
+Menu du compte (nouveau) :
+
+![Menu du compte](captures/app-pro/android/05b-menu-compte-apres.webp)
+
+Écran de démarrage sur Android 15 (écran de démarrage du système) : avant,
+l'icône sur fond blanc ; après, sur le fond de la charte (`#FAFAF7`), sans
+logo Flutter, jusqu'à l'indicateur de chargement de l'app. Android 11 et
+moins (`launch_background.xml`) : non vérifié, pas d'émulateur de cette
+version.
+
 ## 11. Formulaires de l'app pro (#41)
 
 Règles communes à tous les formulaires de `pro/`, appliquées par `Champ`
