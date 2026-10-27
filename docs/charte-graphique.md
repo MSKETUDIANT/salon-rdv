@@ -213,24 +213,57 @@ au site :
   - **logo « Salon RDV »** (`pro/lib/ui/marque.dart`, `LogoSalonRdv`) :
     Newsreader 500, taille optique 36, couleur `accent`, comme sur le site.
     En grand (36 px) en tête de la connexion, sans barre du haut ; à gauche
-    de la barre du haut (22 px) sur les écrans de premier niveau (accueil d'un
-    espace, choix d'espace, accès refusé). Lu « Salon RDV ».
+    de la barre du haut (22 px) sur le choix d'espace et l'accès refusé ; en
+    tête de l'onglet Compte. Lu « Salon RDV ».
   - **écran de démarrage** : fond `fond` et icône de l'app (« S » blanc sur
     `accent`) au centre, sans logo Flutter. Android :
     `res/drawable*/launch_background.xml`, et `res/values*-v31/styles.xml`
     pour l'écran de démarrage du système (Android 12 et plus). Web :
     `pro/web/index.html`, retiré à la première image de Flutter.
-- **Menu du compte** (`MenuCompte`, #41) : icône de compte à droite de la
-  barre du haut, sur l'accueil de chaque espace. Il contient « Connecté
-  avec … », la bascule vers l'autre espace (gérant qui est aussi coiffeur)
-  et « Se déconnecter ». La bascule est aussi un lien sous le titre de
-  l'espace. Les deux restent visibles sans défiler à 360 × 640, quel que soit
-  le nombre de cartes (`pro/test/features/porte_test.dart`).
+- **Barre d'onglets** (#64, lot 1 de la refonte ; remplace le menu du
+  compte de #41) : Aujourd'hui, Planning, Salon, Compte, en bas de chaque
+  espace, comme celle du site sur téléphone : fond `surface`, filet
+  `separateur` au-dessus, onglet courant en `accent` et gras avec une
+  pastille `separateur` derrière l'icône, les autres en `texte-secondaire`,
+  libellés de 16 px. Toujours visible, sans défiler, à 360 × 640.
+  - **Aujourd'hui** : date et espace en petit, titre éditorial en
+    Newsreader 36 px (« Bonjour Amira, 6 clients aujourd'hui ») ; bandeau
+    `accent` du rendez-vous en cours ; grande carte du prochain rendez-vous
+    (heure en Newsreader 44 px, « dans 2 h 40 ») ; chiffres du jour :
+    terminés, absents, restants, dont la somme est le total du titre (en
+    cours compris) ; pour le gérant, encaissé du jour sur fond `accent` et
+    nombre à encaisser ; puis les rendez-vous du jour.
+  - **Planning** : frise horaire (heures hors horaires grisées, trait
+    « maintenant » en `erreur`), blocs colorés par état ; le gérant choisit
+    le coiffeur par des pastilles.
+  - **Salon** : gérant, historique, prestations et équipe ; coiffeur, ses
+    horaires et ses absences des 30 prochains jours, en lecture seule.
+  - **Compte** : logo, compte connecté et rôle, choix de l'espace (gérant qui
+    est aussi coiffeur, boutons segmentés), « Se déconnecter ».
+- **États d'un rendez-vous** (`CouleursStatut`, `StyleEtat`) : toujours
+  écrits et doublés d'une icône, jamais la couleur seule.
+
+  | État | Fond | Libellé |
+  | --- | --- | --- |
+  | À venir | `surface`, bordure `accent` | `accent` |
+  | En cours | `accent` | blanc |
+  | À clôturer (fini, pas encore clôturé) | `surface`, bordure `accent` | `accent` |
+  | Terminé | `#EFEDE8` | `texte-secondaire` (5,7:1) |
+  | Absent | `#FBEAE8` | `#8F1D13` (7,7:1) |
+
+- **Gestes** (« Aujourd'hui ») : sur un rendez-vous commencé, glisser à
+  droite révèle « Terminé » sur fond `accent`, à gauche « Client absent » sur
+  fond `#8F1D13`, texte blanc. Petite vibration au seuil, vibration de
+  confirmation au geste. Message bref « Annuler » : l'enregistrement part au
+  bout de 5 s, ou tout de suite si l'on quitte l'onglet ou l'app. Au premier
+  usage (une fois par lancement), la première carte glissable glisse un peu
+  pour montrer le geste, sauf si le téléphone demande moins d'animations.
+  Les deux clôtures sont aussi des actions TalkBack du rendez-vous, et
+  restent dans sa fiche.
 - Hiérarchie : titre d'écran dans la barre du haut (Newsreader 22 px), ou
-  titre d'espace (Newsreader 28 px) sous le logo ; sections en Newsreader
-  22 px ; contenu à 16 px sous la barre du haut sur tous les écrans, marges
-  latérales de 16 px. Un seul bouton principal par écran ; les choix de même
-  poids sont des boutons secondaires.
+  titre d'onglet en Newsreader 36 px ; sections en Figtree 16 px gras
+  `texte-secondaire` ; marges latérales de 16 px. Un seul bouton principal
+  par écran ; les choix de même poids sont des boutons secondaires.
 - Accessibilité : `pro/test/ui/accessibilite_test.dart` passe chaque écran
   aux contrôles de Flutter, à 360 × 640 : zones tactiles d'au moins 48 px,
   éléments interactifs libellés, contraste du texte (WCAG 2.2 AA).
@@ -308,6 +341,27 @@ Nouveaux : écran de démarrage, menu du compte.
 | Démarrage | Menu du compte |
 | --- | --- |
 | ![Démarrage](captures/app-pro/navigateur/00-demarrage-apres.webp) | ![Menu du compte](captures/app-pro/navigateur/05b-menu-compte-apres.webp) |
+
+### Refonte de l'app pro, lot 1 (#64)
+
+Navigateur, 360 × 640, base locale (réservations du jour créées par les tests
+de bout en bout du site, toutes à venir au moment des captures). « Avant » :
+les captures de #41. Gestes et états « en cours » / « absent » du jour : à
+voir sur l'émulateur.
+
+| Écran | Avant (#41) | Après |
+| --- | --- | --- |
+| Aujourd'hui (coiffeur) | ![Aujourd'hui (coiffeur) avant](captures/app-pro/navigateur/06-accueil-coiffeur-apres.webp) | ![Aujourd'hui (coiffeur) après](captures/app-pro/lot1/01-aujourdhui-coiffeur-lot1.webp) |
+| Aujourd'hui, rendez-vous du jour | (nouveau) | ![Aujourd'hui, rendez-vous du jour après](captures/app-pro/lot1/02-aujourdhui-coiffeur-liste-lot1.webp) |
+| Aujourd'hui (gérant) | ![Aujourd'hui (gérant) avant](captures/app-pro/navigateur/09-accueil-gerant-apres.webp) | ![Aujourd'hui (gérant) après](captures/app-pro/lot1/07-aujourdhui-gerant-lot1.webp) |
+| Planning (coiffeur) | ![Planning (coiffeur) avant](captures/app-pro/navigateur/07-mon-planning-jour-apres.webp) | ![Planning (coiffeur) après](captures/app-pro/lot1/03-planning-coiffeur-lot1.webp) |
+| Planning, terminés | (nouveau) | ![Planning, terminés après](captures/app-pro/lot1/04-planning-coiffeur-hier-lot1.webp) |
+| Planning de l'équipe | ![Planning de l'équipe avant](captures/app-pro/navigateur/10-planning-equipe-apres.webp) | ![Planning de l'équipe après](captures/app-pro/lot1/08-planning-equipe-lot1.webp) |
+| Planning de l'équipe, un autre coiffeur | (nouveau) | ![Planning de l'équipe, un autre coiffeur après](captures/app-pro/lot1/09-planning-equipe-hier-youssef-lot1.webp) |
+| Salon (gérant) | ![Salon (gérant) avant](captures/app-pro/navigateur/09-accueil-gerant-apres.webp) | ![Salon (gérant) après](captures/app-pro/lot1/10-salon-gerant-lot1.webp) |
+| Salon (coiffeur) | (nouveau) | ![Salon (coiffeur) après](captures/app-pro/lot1/05-salon-coiffeur-lot1.webp) |
+| Compte (coiffeur) | ![Compte (coiffeur) avant](captures/app-pro/navigateur/05b-menu-compte-apres.webp) | ![Compte (coiffeur) après](captures/app-pro/lot1/06-compte-coiffeur-lot1.webp) |
+| Compte (gérant et coiffeur) | ![Compte (gérant et coiffeur) avant](captures/app-pro/navigateur/05b-menu-compte-apres.webp) | ![Compte (gérant et coiffeur) après](captures/app-pro/lot1/11-compte-gerant-et-coiffeur-lot1.webp) |
 
 ## 11. Formulaires de l'app pro (#41)
 

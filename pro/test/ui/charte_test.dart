@@ -76,6 +76,23 @@ void main() {
       ('erreur / surface', Couleurs.erreur, Couleurs.surface, 4.5),
       ('blanc / accent', Couleurs.surface, Couleurs.accent, 4.5),
       ('blanc / accent-survol', Couleurs.surface, Couleurs.accentSurvol, 4.5),
+      // Statuts d'un rendez-vous (#64).
+      ('texte / terminé', Couleurs.texte, CouleursStatut.termineFond, 4.5),
+      (
+        'texte-secondaire / terminé',
+        Couleurs.texteSecondaire,
+        CouleursStatut.termineFond,
+        4.5,
+      ),
+      ('texte / absent', Couleurs.texte, CouleursStatut.absentFond, 4.5),
+      (
+        'rouge absent / rose absent',
+        CouleursStatut.absentTexte,
+        CouleursStatut.absentFond,
+        4.5,
+      ),
+      ('blanc / rouge absent', Couleurs.surface, CouleursStatut.absentTexte, 4.5),
+      ('erreur / fond (trait « maintenant »)', Couleurs.erreur, Couleurs.fond, 3),
     ];
     for (final (nom, texte, fond, seuil) in couples) {
       expect(contraste(texte, fond), greaterThanOrEqualTo(seuil), reason: nom);

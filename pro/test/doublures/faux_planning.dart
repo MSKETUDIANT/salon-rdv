@@ -10,6 +10,10 @@ class FauxPlanning implements DepotPlanning {
   @override
   final String? moi;
   DateTime maintenant = DateTime(2030, 1, 7, 10); // lundi
+  String? nom = 'Amira Ben Salah';
+
+  @override
+  Future<String?> monNom() async => nom;
   List<Coiffeur> equipe = const [
     Coiffeur(id: 'c1', nom: 'Amira'),
     Coiffeur(id: 'c2', nom: 'Youssef'),

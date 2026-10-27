@@ -67,7 +67,7 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mon planning'),
+        title: const Text('Planning'),
         actions: [
           IconButton(
             onPressed: _actualiser,
@@ -133,6 +133,7 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
                         jour: jour,
                         donnees: donnees,
                         coiffeur: moi,
+                        maintenant: _maintenant!,
                         surRendezVous: _ouvrir,
                       )
                     else
@@ -162,11 +163,13 @@ class _VueJour extends StatelessWidget {
     required this.jour,
     required this.donnees,
     required this.coiffeur,
+    required this.maintenant,
     required this.surRendezVous,
   });
   final DateTime jour;
   final DonneesPlanning donnees;
   final String coiffeur;
+  final DateTime maintenant;
   final ValueChanged<RendezVous> surRendezVous;
 
   @override
@@ -203,6 +206,7 @@ class _VueJour extends StatelessWidget {
                   absences: donnees.absencesDu(coiffeur, jour),
                   rendezVous: rdv,
                   surRendezVous: surRendezVous,
+                  maintenant: maintenant,
                 ),
               ),
             ],

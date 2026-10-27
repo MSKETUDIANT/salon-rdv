@@ -52,7 +52,7 @@ void main() {
       expect(find.text('Lundi 7 janvier'), findsOneWidget);
       expect(find.text('1 rendez-vous'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('09:00, Salma, Coupe, Confirmé'),
+        find.bySemanticsLabel('09:00, Salma, Coupe, À clôturer'),
         findsOneWidget,
       );
       expect(find.textContaining('Karim'), findsNothing);
@@ -61,10 +61,10 @@ void main() {
       // Un bouton par rendez-vous, activable par TalkBack (action d'appui).
       expect(
         tester.getSemantics(
-          find.bySemanticsLabel('09:00, Salma, Coupe, Confirmé'),
+          find.bySemanticsLabel('09:00, Salma, Coupe, À clôturer'),
         ),
         matchesSemantics(
-          label: '09:00, Salma, Coupe, Confirmé',
+          label: '09:00, Salma, Coupe, À clôturer',
           isButton: true,
           hasTapAction: true,
         ),
@@ -72,7 +72,7 @@ void main() {
 
       await appuyer(
         tester,
-        find.bySemanticsLabel('09:00, Salma, Coupe, Confirmé'),
+        find.bySemanticsLabel('09:00, Salma, Coupe, À clôturer'),
       );
       expect(find.text('Rendez-vous'), findsOneWidget);
       expect(find.text('+216 20 000 000'), findsOneWidget);
@@ -111,7 +111,7 @@ void main() {
       await appuyer(tester, find.text('Mercredi 9 janvier'));
       expect(planning.appels.last, '2030-1-9..2030-1-9 c1');
       expect(
-        find.bySemanticsLabel('11:00, Nour, Brushing, Confirmé'),
+        find.bySemanticsLabel('11:00, Nour, Brushing, À venir'),
         findsOneWidget,
       );
     });
@@ -174,30 +174,38 @@ void main() {
   });
 
   group('Planning de l\'équipe (BF-G5)', () {
-    testWidgets('une colonne par coiffeur, tous les rendez-vous du jour', (
-      tester,
-    ) async {
-      await ouvrir(tester, EcranPlanningEquipe(planning: planning));
-      expect(planning.appels, ['2030-1-7..2030-1-7 tous']);
-      expect(find.text('Amira'), findsOneWidget);
-      expect(find.text('Youssef'), findsOneWidget);
-      expect(find.text('2 coiffeurs · 2 rendez-vous'), findsOneWidget);
-      expect(
-        find.bySemanticsLabel('09:00, Salma, Coupe, Confirmé'),
-        findsOneWidget,
-      );
-      expect(
-        find.bySemanticsLabel('14:00, Karim, Couleur, Terminé'),
-        findsOneWidget,
-      );
+    testWidgets(
+      'un coiffeur à la fois, choisi par pastille ; blocs avec leur état (#64)',
+      (tester) async {
+        await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+        expect(planning.appels, ['2030-1-7..2030-1-7 tous']);
+        expect(find.widgetWithText(ChoiceChip, 'Amira'), findsOneWidget);
+        expect(find.widgetWithText(ChoiceChip, 'Youssef'), findsOneWidget);
+        expect(find.text('2 coiffeurs · 2 rendez-vous'), findsOneWidget);
+        // Amira par défaut : son rendez-vous, pas celui de Youssef.
+        expect(
+          find.bySemanticsLabel('09:00, Salma, Coupe, À clôturer'),
+          findsOneWidget,
+        );
+        expect(find.bySemanticsLabel(RegExp('Karim')), findsNothing);
 
-      await appuyer(
-        tester,
-        find.bySemanticsLabel('14:00, Karim, Couleur, Terminé'),
-      );
-      expect(find.text('Non renseigné'), findsOneWidget);
-      expect(find.text('Youssef'), findsNWidgets(2));
-    });
+        await appuyer(tester, find.widgetWithText(ChoiceChip, 'Youssef'));
+        expect(
+          find.bySemanticsLabel('14:00, Karim, Couleur, Terminé'),
+          findsOneWidget,
+        );
+        expect(find.bySemanticsLabel(RegExp('Salma')), findsNothing);
+        // Pas de nouvelle lecture : la journée est déjà chargée.
+        expect(planning.appels, ['2030-1-7..2030-1-7 tous']);
+
+        await appuyer(
+          tester,
+          find.bySemanticsLabel('14:00, Karim, Couleur, Terminé'),
+        );
+        expect(find.text('Non renseigné'), findsOneWidget);
+        expect(find.text('Youssef'), findsNWidgets(2));
+      },
+    );
 
     testWidgets('jour suivant : nouvelle lecture', (tester) async {
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
