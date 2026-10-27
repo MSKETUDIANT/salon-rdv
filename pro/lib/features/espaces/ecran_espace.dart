@@ -52,12 +52,14 @@ class _EcranEspaceState extends State<EcranEspace> {
         gerant: gerant,
         actif: _onglet == 0,
       ),
-      1 => gerant
-          ? EcranPlanningEquipe(planning: widget.planning)
-          : EcranMonPlanning(planning: widget.planning),
-      2 => gerant
-          ? OngletSalonGerant(salon: widget.salon, planning: widget.planning)
-          : OngletSalonCoiffeur(planning: widget.planning),
+      1 =>
+        gerant
+            ? EcranPlanningEquipe(planning: widget.planning)
+            : EcranMonPlanning(planning: widget.planning),
+      2 =>
+        gerant
+            ? OngletSalonGerant(salon: widget.salon, planning: widget.planning)
+            : OngletSalonCoiffeur(planning: widget.planning),
       _ => OngletCompte(
         compte: widget.compte,
         espace: widget.espace,

@@ -164,10 +164,7 @@ class _CarteGlissableState extends State<CarteGlissable>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            termine ? Icons.check : Icons.close,
-            color: Couleurs.surface,
-          ),
+          Icon(termine ? Icons.check : Icons.close, color: Couleurs.surface),
           const SizedBox(width: Espaces.s2),
           Text(
             termine ? 'Terminé' : 'Client absent',

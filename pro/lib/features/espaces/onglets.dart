@@ -29,10 +29,7 @@ class _EnTete extends StatelessWidget {
         const SizedBox(height: Espaces.s1),
         Semantics(
           header: true,
-          child: Text(
-            titre,
-            style: Theme.of(context).textTheme.displaySmall,
-          ),
+          child: Text(titre, style: Theme.of(context).textTheme.displaySmall),
         ),
         const SizedBox(height: Espaces.s6),
       ],
@@ -301,7 +298,10 @@ class OngletCompte extends StatelessWidget {
               child: SegmentedButton<Espace>(
                 segments: const [
                   ButtonSegment(value: Espace.gerant, label: Text('Gérant')),
-                  ButtonSegment(value: Espace.coiffeur, label: Text('Coiffeur')),
+                  ButtonSegment(
+                    value: Espace.coiffeur,
+                    label: Text('Coiffeur'),
+                  ),
                 ],
                 selected: {espace},
                 showSelectedIcon: false,
@@ -309,7 +309,10 @@ class OngletCompte extends StatelessWidget {
               ),
             ),
             const SizedBox(height: Espaces.s2),
-            Text("Les onglets suivent l'espace choisi.", style: textes.bodySmall),
+            Text(
+              "Les onglets suivent l'espace choisi.",
+              style: textes.bodySmall,
+            ),
           ],
           const SizedBox(height: Espaces.s8),
           SizedBox(

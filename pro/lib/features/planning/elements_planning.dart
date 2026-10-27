@@ -50,10 +50,10 @@ class StyleEtat {
       icone: Icons.schedule,
     ),
     EtatRendezVous.aCloturer => const StyleEtat(
-      fond: Couleurs.surface,
-      bordure: Couleurs.accent,
+      fond: CouleursStatut.aCloturerFond,
+      bordure: CouleursStatut.aCloturerBordure,
       texte: Couleurs.texte,
-      libelle: Couleurs.accent,
+      libelle: CouleursStatut.aCloturerTexte,
       icone: Icons.pending_outlined,
     ),
     EtatRendezVous.termine => const StyleEtat(
@@ -84,13 +84,15 @@ class LibelleEtat extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ExcludeSemantics(child: Icon(style.icone, size: 18, color: style.libelle)),
+        ExcludeSemantics(
+          child: Icon(style.icone, size: 18, color: style.libelle),
+        ),
         const SizedBox(width: Espaces.s1),
         Text(
           etat.libelle,
-          style: Theme.of(context).textTheme.labelLarge!.copyWith(
-            color: style.libelle,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge!.copyWith(color: style.libelle),
         ),
       ],
     );
@@ -246,23 +248,9 @@ class ColonneJour extends StatelessWidget {
                 ),
               ),
             ),
-          for (final r in rendezVous)
-            Positioned(
-              top: _y(_minutes(r.debut)),
-              height: math.max(
-                zoneTactileMin,
-                _y(_minutes(r.fin)) - _y(_minutes(r.debut)),
-              ),
-              left: Espaces.s1,
-              right: Espaces.s1,
-              child: _CarteRendezVous(
-                rendezVous: r,
-                etat: r.etat(maintenant),
-                surAppui: () => surRendezVous(r),
-              ),
-            ),
-          // Maintenant : trait `erreur` de 2 px avec un point (décoratif,
-          // l'état « En cours » est écrit sur le rendez-vous).
+          // Maintenant : trait `erreur` de 2 px avec un point, sous les
+          // rendez-vous pour ne pas barrer leur texte (décoratif, l'état
+          // « En cours » est écrit sur le rendez-vous).
           if (memeJour(maintenant, jour) &&
               _minutes(maintenant) >= debut &&
               _minutes(maintenant) <= fin)
@@ -288,6 +276,21 @@ class ColonneJour extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+            ),
+          for (final r in rendezVous)
+            Positioned(
+              top: _y(_minutes(r.debut)),
+              height: math.max(
+                zoneTactileMin,
+                _y(_minutes(r.fin)) - _y(_minutes(r.debut)),
+              ),
+              left: Espaces.s1,
+              right: Espaces.s1,
+              child: _CarteRendezVous(
+                rendezVous: r,
+                etat: r.etat(maintenant),
+                surAppui: () => surRendezVous(r),
               ),
             ),
         ],
@@ -340,7 +343,10 @@ class _CarteRendezVous extends StatelessWidget {
             // coupé.
             child: LayoutBuilder(
               builder: (context, contraintes) {
-                final lignes = math.max(1, (contraintes.maxHeight / 24).floor());
+                final lignes = math.max(
+                  1,
+                  (contraintes.maxHeight / 24).floor(),
+                );
                 final titre = Text.rich(
                   TextSpan(
                     children: [
@@ -370,7 +376,10 @@ class _CarteRendezVous extends StatelessWidget {
                 }
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [titre, LibelleEtat(etat: etat)],
+                  children: [
+                    titre,
+                    LibelleEtat(etat: etat),
+                  ],
                 );
               },
             ),

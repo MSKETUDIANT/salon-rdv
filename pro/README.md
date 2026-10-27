@@ -38,6 +38,27 @@ Mot de passe : `motdepasse`.
 
 En distant, le gérant est créé selon `docs/premier-gerant.md`.
 
+## Essayer les gestes (base locale)
+
+L'onglet « Aujourd'hui » ne propose les gestes (à droite « Terminé », à
+gauche « Client absent ») que sur un rendez-vous commencé. Pour en avoir à
+toute heure, `supabase/demo/gestes-locaux.sql` crée pour Amira six
+rendez-vous calés sur l'heure actuelle : un terminé, un absent, un à
+clôturer, un en cours, deux à venir. **Base locale uniquement** ; relançable
+(il remplace ses propres rendez-vous et annule les rendez-vous confirmés
+d'Amira qui les chevauchent).
+
+Depuis la racine du dépôt, base locale démarrée :
+
+- PowerShell :
+  `Get-Content -Raw supabase\demo\gestes-locaux.sql | docker exec -i supabase_db_salon-rdv psql -U postgres -v ON_ERROR_STOP=1`
+- Bash :
+  `docker exec -i supabase_db_salon-rdv psql -U postgres -v ON_ERROR_STOP=1 < supabase/demo/gestes-locaux.sql`
+
+Puis se connecter avec `amira@salon.test` (ou `gerant@salon.test` pour la vue
+du salon). L'indice du geste ne s'affiche qu'une fois par appareil : pour le
+revoir, effacer les données de l'app.
+
 ## Icône de l'app
 
 « S » blanc sur fond accent, en Newsreader (#55, `docs/charte-graphique.md`

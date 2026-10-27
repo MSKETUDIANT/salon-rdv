@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../data/planning.dart';
 import '../../data/salon.dart';
@@ -33,12 +34,32 @@ class EcranAujourdhui extends StatefulWidget {
   State<EcranAujourdhui> createState() => _EcranAujourdhuiState();
 }
 
-// Une fois par lancement de l'app : la première carte glissable montre le
-// geste.
-bool _indiceMontre = false;
+// Une seule fois par appareil, pour toujours : la première carte glissable
+// montre le geste. Retenu dans les préférences de l'app ; lu au premier
+// chargement, puis gardé en mémoire. Préférences illisibles : pas d'indice.
+const cleIndiceGestes = 'indice_gestes_vu';
+bool? _indiceVu;
 
+Future<bool> _lireIndiceVu() async {
+  try {
+    return _indiceVu ??=
+        (await SharedPreferences.getInstance()).getBool(cleIndiceGestes) ??
+        false;
+  } catch (_) {
+    return _indiceVu = true;
+  }
+}
+
+void _retenirIndiceVu() {
+  _indiceVu = true;
+  SharedPreferences.getInstance()
+      .then((p) => p.setBool(cleIndiceGestes, true))
+      .ignore();
+}
+
+// Tests : comme un nouveau lancement de l'app (relit les préférences).
 @visibleForTesting
-void reinitialiserIndice() => _indiceMontre = false;
+void reinitialiserIndice() => _indiceVu = null;
 
 class _Jour {
   const _Jour(this.maintenant, this.nom, this.donnees, this.coiffeurs);
@@ -75,6 +96,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
   }
 
   Future<_Jour> _lire() async {
+    await _lireIndiceVu();
     final maintenant = await widget.planning.maintenantAuSalon();
     final jour = DateUtils.dateOnly(maintenant);
     final resultats = await Future.wait<dynamic>([
@@ -194,10 +216,12 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
       final n => '$n clients aujourd\'hui',
     };
     final premierGlissable = rdv
-        .where((r) => r.cloturable(j.maintenant) && _cloture.enAttente(r.id) == null)
+        .where(
+          (r) => r.cloturable(j.maintenant) && _cloture.enAttente(r.id) == null,
+        )
         .firstOrNull;
-    final indice = !_indiceMontre && premierGlissable != null;
-    if (indice) _indiceMontre = true;
+    final indice = _indiceVu == false && premierGlissable != null;
+    if (indice) _retenirIndiceVu();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -291,7 +315,8 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
               rendezVous: r,
               etat: etats[r.id]!,
               glissable:
-                  r.cloturable(j.maintenant) && _cloture.enAttente(r.id) == null,
+                  r.cloturable(j.maintenant) &&
+                  _cloture.enAttente(r.id) == null,
               coiffeur: j.coiffeurs[r.coiffeurId],
               indice: indice && r.id == premierGlissable.id,
               surAppui: () => _ouvrir(r, j),
@@ -472,7 +497,8 @@ class _Encaisse extends StatelessWidget {
     final aEncaisser = rendezVous
         .where(
           (r) =>
-              r.statut == StatutRendezVous.terminee && r.montantEncaisse == null,
+              r.statut == StatutRendezVous.terminee &&
+              r.montantEncaisse == null,
         )
         .length;
     return Semantics(
@@ -499,7 +525,9 @@ class _Encaisse extends StatelessWidget {
                   ),
                   if (aEncaisser > 0)
                     Text(
-                      aEncaisser == 1 ? '1 à encaisser' : '$aEncaisser à encaisser',
+                      aEncaisser == 1
+                          ? '1 à encaisser'
+                          : '$aEncaisser à encaisser',
                       style: textes.bodyMedium!.copyWith(
                         color: Couleurs.surface,
                       ),

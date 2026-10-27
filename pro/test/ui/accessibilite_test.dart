@@ -6,6 +6,7 @@ import 'package:salon_pro/data/roles.dart';
 import 'package:salon_pro/data/salon.dart';
 import 'package:salon_pro/data/session.dart';
 import 'package:salon_pro/features/aujourdhui/ecran_aujourdhui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salon_pro/features/connexion/ecran_connexion.dart';
 import 'package:salon_pro/features/espaces/ecran_espace.dart';
 import 'package:salon_pro/features/espaces/onglets.dart';
@@ -59,6 +60,11 @@ class _AuthMuette implements ServiceAuth {
 }
 
 void main() {
+  // Préférences de l'app simulées ; l'indice des gestes déjà vu (#64).
+  setUp(() {
+    SharedPreferences.setMockInitialValues({cleIndiceGestes: true});
+    reinitialiserIndice();
+  });
   setUpAll(() => initializeDateFormatting('fr'));
   const amira = Coiffeur(id: 'c1', nom: 'Amira');
 

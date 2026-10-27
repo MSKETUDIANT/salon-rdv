@@ -240,14 +240,16 @@ au site :
     horaires et ses absences des 30 prochains jours, en lecture seule.
   - **Compte** : logo, compte connecté et rôle, choix de l'espace (gérant qui
     est aussi coiffeur, boutons segmentés), « Se déconnecter ».
-- **États d'un rendez-vous** (`CouleursStatut`, `StyleEtat`) : toujours
-  écrits et doublés d'une icône, jamais la couleur seule.
+- **États d'un rendez-vous** (`CouleursStatut`, `StyleEtat`) : un fond
+  différent par état (vérifié par `pro/test/ui/charte_test.dart`), libellé
+  en toutes lettres doublé d'une icône, jamais la couleur seule ; sur un bloc
+  trop court pour deux lignes, l'icône précède l'heure.
 
   | État | Fond | Libellé |
   | --- | --- | --- |
   | À venir | `surface`, bordure `accent` | `accent` |
   | En cours | `accent` | blanc |
-  | À clôturer (fini, pas encore clôturé) | `surface`, bordure `accent` | `accent` |
+  | À clôturer (fini, pas encore clôturé) | `#FCEFD6`, bordure `#A35A00` (4,6:1) | `#8A4B00` (6:1) |
   | Terminé | `#EFEDE8` | `texte-secondaire` (5,7:1) |
   | Absent | `#FBEAE8` | `#8F1D13` (7,7:1) |
 
@@ -345,9 +347,7 @@ Nouveaux : écran de démarrage, menu du compte.
 ### Refonte de l'app pro, lot 1 (#64)
 
 Navigateur, 360 × 640, base locale (réservations du jour créées par les tests
-de bout en bout du site, toutes à venir au moment des captures). « Avant » :
-les captures de #41. Gestes et états « en cours » / « absent » du jour : à
-voir sur l'émulateur.
+de bout en bout du site). « Avant » : les captures de #41.
 
 | Écran | Avant (#41) | Après |
 | --- | --- | --- |
@@ -362,6 +362,14 @@ voir sur l'émulateur.
 | Salon (coiffeur) | (nouveau) | ![Salon (coiffeur) après](captures/app-pro/lot1/05-salon-coiffeur-lot1.webp) |
 | Compte (coiffeur) | ![Compte (coiffeur) avant](captures/app-pro/navigateur/05b-menu-compte-apres.webp) | ![Compte (coiffeur) après](captures/app-pro/lot1/06-compte-coiffeur-lot1.webp) |
 | Compte (gérant et coiffeur) | ![Compte (gérant et coiffeur) avant](captures/app-pro/navigateur/05b-menu-compte-apres.webp) | ![Compte (gérant et coiffeur) après](captures/app-pro/lot1/11-compte-gerant-et-coiffeur-lot1.webp) |
+
+Les cinq états, avec les rendez-vous de `supabase/demo/gestes-locaux.sql`
+(terminé, absent, à clôturer, en cours, à venir), et un geste vers la droite
+à mi-course (relâché sans rien enregistrer) :
+
+| Aujourd'hui | Rendez-vous du jour | Geste « Terminé » | Planning |
+| --- | --- | --- | --- |
+| ![Aujourd'hui, états](captures/app-pro/lot1/12-aujourdhui-etats-lot1.webp) | ![Rendez-vous du jour, cinq états](captures/app-pro/lot1/13-aujourdhui-liste-etats-lot1.webp) | ![Geste vers la droite](captures/app-pro/lot1/14-geste-termine-lot1.webp) | ![Planning, cinq états](captures/app-pro/lot1/15-planning-etats-lot1.webp) |
 
 ## 11. Formulaires de l'app pro (#41)
 

@@ -22,7 +22,7 @@ abstract final class Couleurs {
 // la couleur seule). Contrastes vérifiés par test/ui/charte_test.dart.
 //   à venir : fond surface, bordure et libellé accent ;
 //   en cours : fond accent, texte blanc ;
-//   à clôturer : comme à venir, libellé « À clôturer » ;
+//   à clôturer : fond ambre pâle, bordure et libellé ambre foncé ;
 //   terminé : fond gris clair, texte et libellé secondaire ;
 //   absent : fond rose pâle, libellé rouge foncé (fond du geste « Client
 //   absent », texte blanc).
@@ -30,6 +30,9 @@ abstract final class CouleursStatut {
   static const termineFond = Color(0xFFEFEDE8);
   static const absentFond = Color(0xFFFBEAE8);
   static const absentTexte = Color(0xFF8F1D13);
+  static const aCloturerFond = Color(0xFFFCEFD6);
+  static const aCloturerBordure = Color(0xFFA35A00);
+  static const aCloturerTexte = Color(0xFF8A4B00);
 }
 
 // Échelle typographique : 16 / 18 / 22 / 28 / 36 px, interligne 1,5.

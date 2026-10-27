@@ -7,6 +7,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:salon_pro/data/planning.dart';
 import 'package:salon_pro/features/aujourdhui/ecran_aujourdhui.dart';
 import 'package:salon_pro/ui/charte.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../doublures/faux_planning.dart';
 
@@ -93,6 +94,7 @@ void main() {
   setUp(() {
     planning = FauxPlanning();
     journee();
+    SharedPreferences.setMockInitialValues({});
     reinitialiserIndice();
     vibrations.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -111,7 +113,10 @@ void main() {
       expect(planning.appels, ['2030-1-7..2030-1-7 c1']);
       expect(find.text('Lundi 7 janvier · Espace coiffeur'), findsOneWidget);
       // 5 rendez-vous d'Amira, celui en cours compris.
-      expect(find.text("Bonjour Amira,\n5 clients aujourd'hui"), findsOneWidget);
+      expect(
+        find.text("Bonjour Amira,\n5 clients aujourd'hui"),
+        findsOneWidget,
+      );
       expect(find.bySemanticsLabel('1 terminé'), findsOneWidget);
       expect(find.bySemanticsLabel('1 absent'), findsOneWidget);
       // À clôturer, en cours et à venir : 1 + 1 + 1.
@@ -180,7 +185,10 @@ void main() {
     await tester.drag(salma, const Offset(-260, 0));
     await tester.pumpAndSettle();
     expect(find.text('Salma, 09:00 : client absent.'), findsOneWidget);
-    expect(find.bySemanticsLabel('09:00, Salma, Coupe, Absent'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('09:00, Salma, Coupe, Absent'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.widgetWithText(SnackBarAction, 'Annuler'));
     await tester.pumpAndSettle();
@@ -226,26 +234,27 @@ void main() {
     expect(planning.actions, isEmpty);
   });
 
-  testWidgets('TalkBack : « Terminé » et « Client absent » en actions du nœud', (
-    tester,
-  ) async {
-    final semantique = tester.ensureSemantics();
-    await ouvrir(tester);
-    final donnees = tester.getSemantics(salma).getSemanticsData();
-    final actions = [
-      for (final id in donnees.customSemanticsActionIds ?? <int>[])
-        CustomSemanticsAction.getAction(id)!.label,
-    ];
-    expect(actions, containsAll(['Terminé', 'Client absent']));
-    final rania = tester
-        .getSemantics(find.bySemanticsLabel(RegExp(r'^14:00, Rania')))
-        .getSemanticsData();
-    expect(rania.customSemanticsActionIds ?? [], isEmpty);
-    semantique.dispose();
-  });
+  testWidgets(
+    'TalkBack : « Terminé » et « Client absent » en actions du nœud',
+    (tester) async {
+      final semantique = tester.ensureSemantics();
+      await ouvrir(tester);
+      final donnees = tester.getSemantics(salma).getSemanticsData();
+      final actions = [
+        for (final id in donnees.customSemanticsActionIds ?? <int>[])
+          CustomSemanticsAction.getAction(id)!.label,
+      ];
+      expect(actions, containsAll(['Terminé', 'Client absent']));
+      final rania = tester
+          .getSemantics(find.bySemanticsLabel(RegExp(r'^14:00, Rania')))
+          .getSemanticsData();
+      expect(rania.customSemanticsActionIds ?? [], isEmpty);
+      semantique.dispose();
+    },
+  );
 
   testWidgets(
-    'indice au premier usage : la première carte glissable bouge une fois',
+    'indice au premier usage : la première carte glissable bouge une fois, retenu pour toujours',
     (tester) async {
       await ouvrir(tester, sansAnimations: false);
       Offset decalage() => tester
@@ -259,11 +268,28 @@ void main() {
       expect(decalage().dx, greaterThan(0));
       await tester.pumpAndSettle();
       expect(decalage(), Offset.zero);
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getBool(cleIndiceGestes), isTrue);
 
-      // Une seule fois par lancement : pas d'indice à la relecture.
+      // Pas d'indice à la relecture.
       await ouvrir(tester, sansAnimations: false, actif: false);
       await tester.pump(const Duration(milliseconds: 1100));
       expect(decalage(), Offset.zero);
+    },
+  );
+
+  testWidgets(
+    "indice déjà vu sur cet appareil : pas d'indice au lancement suivant",
+    (tester) async {
+      // Nouveau lancement de l'app : préférences relues.
+      SharedPreferences.setMockInitialValues({cleIndiceGestes: true});
+      reinitialiserIndice();
+      await ouvrir(tester, sansAnimations: false);
+      await tester.pump(const Duration(milliseconds: 1100));
+      expect(
+        find.descendant(of: salma, matching: find.byType(Transform)),
+        findsNothing,
+      );
     },
   );
 

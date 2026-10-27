@@ -6,6 +6,8 @@ import 'package:salon_pro/app.dart';
 import 'package:salon_pro/data/roles.dart';
 import 'package:salon_pro/data/session.dart';
 
+import 'package:salon_pro/features/aujourdhui/ecran_aujourdhui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../doublures/faux_planning.dart';
 import '../doublures/faux_salon.dart';
 
@@ -120,6 +122,11 @@ Future<void> seConnecter(
 }
 
 void main() {
+  // Préférences de l'app simulées ; l'indice des gestes déjà vu (#64).
+  setUp(() {
+    SharedPreferences.setMockInitialValues({cleIndiceGestes: true});
+    reinitialiserIndice();
+  });
   testWidgets(
     'connexion : ce qui manque est indiqué, le bouton n\'est jamais désactivé',
     (tester) async {
@@ -187,7 +194,10 @@ void main() {
     expect(find.textContaining('Espace coiffeur'), findsOneWidget);
     expect(find.text("Bonjour Amira,\n1 client aujourd'hui"), findsOneWidget);
     for (final onglet in ["Aujourd'hui", 'Planning', 'Salon', 'Compte']) {
-      expect(find.widgetWithText(NavigationDestination, onglet), findsOneWidget);
+      expect(
+        find.widgetWithText(NavigationDestination, onglet),
+        findsOneWidget,
+      );
     }
 
     await ouvrirOnglet(tester, 'Salon');
@@ -303,15 +313,16 @@ void main() {
     expect(find.textContaining('Espace coiffeur'), findsOneWidget);
   });
 
-  testWidgets('déconnexion depuis un espace (onglet Compte) : retour à la connexion', (
-    tester,
-  ) async {
-    await lancer(tester);
-    await seConnecter(tester, 'amira@salon.test');
-    await ouvrirOnglet(tester, 'Compte');
-    await tester.tap(find.text('Se déconnecter'));
-    await tester.pumpAndSettle();
-    expect(find.text('Espace pro'), findsOneWidget);
-    expect(auth.compte, isNull);
-  });
+  testWidgets(
+    'déconnexion depuis un espace (onglet Compte) : retour à la connexion',
+    (tester) async {
+      await lancer(tester);
+      await seConnecter(tester, 'amira@salon.test');
+      await ouvrirOnglet(tester, 'Compte');
+      await tester.tap(find.text('Se déconnecter'));
+      await tester.pumpAndSettle();
+      expect(find.text('Espace pro'), findsOneWidget);
+      expect(auth.compte, isNull);
+    },
+  );
 }
