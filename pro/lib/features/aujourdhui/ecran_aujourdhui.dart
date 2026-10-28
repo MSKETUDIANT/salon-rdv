@@ -278,22 +278,13 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
             style: textes.headlineMedium!.copyWith(height: 1.2),
           ),
         ),
-        if (aCloturer > 0) ...[
+        if (aCloturer > 0 || aEncaisser > 0) ...[
           const SizedBox(height: Espaces.s3),
           _Rappel(
-            texte: aCloturer == 1
-                ? '1 rendez-vous à clôturer'
-                : '$aCloturer rendez-vous à clôturer',
-            icone: Icons.pending_actions_outlined,
-          ),
-        ],
-        if (aEncaisser > 0) ...[
-          const SizedBox(height: Espaces.s2),
-          _Rappel(
-            texte: aEncaisser == 1
-                ? '1 rendez-vous à encaisser'
-                : '$aEncaisser rendez-vous à encaisser',
-            icone: Icons.payments_outlined,
+            texte: [
+              if (aCloturer > 0) '$aCloturer à clôturer',
+              if (aEncaisser > 0) '$aEncaisser à encaisser',
+            ].join(' · '),
           ),
         ],
         const SizedBox(height: Espaces.s6),
@@ -364,7 +355,6 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
               surAppui: () => _ouvrir(r, j),
               surGeste: (statut) => _geste(r, statut),
             ),
-            const SizedBox(height: Espaces.s2),
           ],
         ],
       ],
@@ -415,36 +405,31 @@ class _BandeauEnCours extends StatelessWidget {
       onTap: surAppui,
       excludeSemantics: true,
       child: Material(
-        color: Couleurs.accent,
-        borderRadius: BorderRadius.circular(rayon),
+        color: Couleurs.fond,
         child: InkWell(
           onTap: surAppui,
           borderRadius: BorderRadius.circular(rayon),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: hauteurBouton),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Espaces.s3,
-                vertical: Espaces.s2,
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    'En cours',
-                    style: textes.labelLarge!.copyWith(color: Couleurs.surface),
+            child: Row(
+              children: [
+                const ExcludeSemantics(
+                  child: Icon(Icons.schedule, color: Couleurs.accent),
+                ),
+                const SizedBox(width: Espaces.s2),
+                Text(
+                  'En cours',
+                  style: textes.labelLarge!.copyWith(color: Couleurs.accent),
+                ),
+                const SizedBox(width: Espaces.s3),
+                Expanded(child: Text(texte, style: textes.bodyMedium)),
+                const ExcludeSemantics(
+                  child: Icon(
+                    Icons.chevron_right,
+                    color: Couleurs.texteSecondaire,
                   ),
-                  const SizedBox(width: Espaces.s3),
-                  Expanded(
-                    child: Text(
-                      texte,
-                      style: textes.bodyMedium!.copyWith(
-                        color: Couleurs.surface,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, color: Couleurs.surface),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -473,12 +458,11 @@ class _BandeauSalon extends StatelessWidget {
   }
 }
 
-// Rappel en tête (à clôturer, à encaisser) : fond ambre pâle, comme l'état
-// « À clôturer ».
+// Rappel en tête, une seule ligne (« 1 à clôturer · 1 à encaisser ») : fond
+// ambre pâle, comme l'état « À clôturer ».
 class _Rappel extends StatelessWidget {
-  const _Rappel({required this.texte, required this.icone});
+  const _Rappel({required this.texte});
   final String texte;
-  final IconData icone;
 
   @override
   Widget build(BuildContext context) {
@@ -494,7 +478,10 @@ class _Rappel extends StatelessWidget {
       child: Row(
         children: [
           ExcludeSemantics(
-            child: Icon(icone, color: CouleursStatut.aCloturerTexte),
+            child: Icon(
+              Icons.pending_actions_outlined,
+              color: CouleursStatut.aCloturerTexte,
+            ),
           ),
           const SizedBox(width: Espaces.s2),
           Expanded(
@@ -565,7 +552,7 @@ class _Prochain extends StatelessWidget {
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     final r = rendezVous;
-    final details = [r.prestation, if (coiffeur != null) 'avec $coiffeur'];
+    final details = [r.prestation, ?coiffeur];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -576,18 +563,23 @@ class _Prochain extends StatelessWidget {
         const SizedBox(height: Espaces.s2),
         Row(
           children: [
-            Avatar(nom: r.clientNom),
-            const SizedBox(width: Espaces.s3),
+            Avatar(nom: r.clientNom, taille: 40),
+            const SizedBox(width: Espaces.s2),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(r.clientNom, style: textes.titleSmall),
-                  Text(details.join(' · '), style: textes.bodySmall),
+                  Text(
+                    details.join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textes.bodySmall,
+                  ),
                 ],
               ),
             ),
-            const SizedBox(width: Espaces.s3),
+            const SizedBox(width: Espaces.s2),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [

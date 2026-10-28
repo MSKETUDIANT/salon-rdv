@@ -9,7 +9,9 @@ import '../../ui/charte.dart';
 import '../../ui/format.dart';
 import '../planning/elements_planning.dart';
 
-// Rendez-vous de la liste de l'accueil (#64). Appui : la fiche. Une fois
+// Rendez-vous de la liste de l'accueil (#64), en ligne simple sur le fond,
+// filet fin dessous (#72) : ni cadre ni fond coloré ; l'état reste à droite,
+// icône et texte. Appui : la fiche. Une fois
 // commencé (glissable), glisser à droite : « Terminé » ; à gauche : « Client
 // absent ». Petite vibration au seuil, vibration de confirmation au geste.
 // TalkBack : les deux clôtures sont des actions du nœud (et restent dans la
@@ -144,22 +146,20 @@ class _CarteGlissableState extends State<CarteGlissable>
       if (widget.coiffeur != null) widget.coiffeur!,
     ].join(' · ');
 
+    // En cours : vert sur le fond clair (le blanc de la frise du planning ne
+    // se lirait pas ici).
+    final couleurEtat = widget.etat == EtatRendezVous.enCours
+        ? Couleurs.accent
+        : style.libelle;
     final carte = Material(
-      color: style.fond,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(rayon),
-        side: BorderSide(color: style.bordure),
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: Couleurs.fond,
+      shape: const Border(bottom: BorderSide(color: Couleurs.separateur)),
       child: InkWell(
         onTap: widget.surAppui,
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 72),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Espaces.s4,
-              vertical: Espaces.s2,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: Espaces.s2),
             child: Row(
               children: [
                 SizedBox(
@@ -167,7 +167,6 @@ class _CarteGlissableState extends State<CarteGlissable>
                   child: Text(
                     heure,
                     style: textes.labelLarge!.copyWith(
-                      color: style.texte,
                       fontFeatures: const [FontFeature.tabularFigures()],
                     ),
                   ),
@@ -176,19 +175,20 @@ class _CarteGlissableState extends State<CarteGlissable>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        r.clientNom,
-                        style: textes.titleSmall!.copyWith(color: style.texte),
-                      ),
-                      Text(
-                        detail,
-                        style: textes.bodyMedium!.copyWith(color: style.texte),
-                      ),
+                      Text(r.clientNom, style: textes.titleSmall),
+                      Text(detail, style: textes.bodySmall),
                     ],
                   ),
                 ),
                 const SizedBox(width: Espaces.s2),
-                LibelleEtat(etat: widget.etat),
+                ExcludeSemantics(
+                  child: Icon(style.icone, size: 18, color: couleurEtat),
+                ),
+                const SizedBox(width: Espaces.s1),
+                Text(
+                  widget.etat.libelle,
+                  style: textes.labelLarge!.copyWith(color: couleurEtat),
+                ),
               ],
             ),
           ),
@@ -202,7 +202,6 @@ class _CarteGlissableState extends State<CarteGlissable>
         color: termine
             ? CouleursStatut.gesteTermine
             : CouleursStatut.gesteAbsent,
-        borderRadius: BorderRadius.circular(rayon),
       ),
       padding: const EdgeInsets.symmetric(horizontal: Espaces.s4),
       alignment: termine ? Alignment.centerLeft : Alignment.centerRight,

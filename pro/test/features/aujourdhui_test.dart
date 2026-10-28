@@ -125,7 +125,7 @@ void main() {
       // À clôturer, en cours et à venir : 1 + 1 + 1.
       expect(find.bySemanticsLabel('3 restants'), findsOneWidget);
       expect(find.text('encaissé'), findsNothing);
-      expect(find.text('1 rendez-vous à clôturer'), findsOneWidget);
+      expect(find.text('1 à clôturer'), findsOneWidget);
       expect(find.textContaining('à encaisser'), findsNothing);
       expect(find.text("L'équipe aujourd'hui"), findsNothing);
 
@@ -151,10 +151,10 @@ void main() {
     expect(planning.appels, ['2030-1-7..2030-1-7 tous']);
     expect(find.text("8 clients aujourd'hui"), findsOneWidget);
     expect(find.bySemanticsLabel('45 DT encaissé'), findsOneWidget);
-    expect(find.text('1 rendez-vous à encaisser'), findsOneWidget);
+    expect(find.text('1 à clôturer · 1 à encaisser'), findsOneWidget);
     expect(find.bySemanticsLabel('3 terminés'), findsOneWidget);
     expect(find.text('Prochain rendez-vous du salon'), findsOneWidget);
-    expect(find.text('Coupe · avec Youssef'), findsOneWidget);
+    expect(find.text('Coupe · Youssef'), findsWidgets);
     // Équipe du jour : une ligne, prénom et nombre de rendez-vous.
     expect(find.text("L'équipe aujourd'hui"), findsOneWidget);
     expect(find.bySemanticsLabel('Amira, 5 rendez-vous'), findsOneWidget);
@@ -191,15 +191,13 @@ void main() {
     expect(find.text('Rendez-vous du jour'), findsNothing);
   });
 
-  testWidgets('rappel au pluriel : « 2 rendez-vous à clôturer »', (
-    tester,
-  ) async {
+  testWidgets('rappel : « 2 à clôturer »', (tester) async {
     planning.rendezVous = [
       ...planning.rendezVous,
       rdv('l', 'c1', 8, 0, 15, StatutRendezVous.confirmee, 'Lina'),
     ];
     await ouvrir(tester);
-    expect(find.text('2 rendez-vous à clôturer'), findsOneWidget);
+    expect(find.text('2 à clôturer'), findsOneWidget);
   });
 
   testWidgets('sans nom : « Bonjour » seul', (tester) async {
@@ -430,7 +428,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(planning.actions, ['c terminee']);
       expect(planning.appels.length, 2);
-      expect(position.pixels, avant);
+      // Même place, au rappel près : la clôture retire « 1 à clôturer » en
+      // tête et la page raccourcit d'autant (#72). Jamais ramenée en haut.
+      expect(position.pixels, closeTo(avant, 60));
     },
   );
 }
