@@ -155,3 +155,10 @@ export function apiClient(jeton: string | null, chemin: string, init: RequestIni
     },
   });
 }
+
+// Contexte d'une vérification « une seule réservation » qui a échoué une fois
+// (« Expected length: 1 », #59) sans être reproduite : passé en message de
+// expect, il n'apparaît que dans le rapport d'échec.
+export function contexteEchec(details: Record<string, unknown>): string {
+  return `Contexte (#59) : ${JSON.stringify({ heure: new Date().toISOString(), ...details }, null, 2)}`;
+}

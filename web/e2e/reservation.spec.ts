@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { creneauLibre, emailUnique, reservationsA, SEED, seConnecter } from "./outils";
+import { contexteEchec, creneauLibre, emailUnique, reservationsA, SEED, seConnecter } from "./outils";
 
 // Issue #6 : parcours de réservation de bout en bout, sur la base locale.
 
@@ -111,8 +111,10 @@ test("BNF-1 : deux validations simultanées du même créneau, une seule réussi
   expect([...issues].sort()).toEqual(["confirmee", "prise"]);
 
   // En base : une seule réservation sur ce créneau chez Amira.
-  const enBase = (await reservationsA(debut)).filter((r) => r.coiffeur_id === SEED.amira);
-  expect(enBase).toHaveLength(1);
+  const surLeCreneau = await reservationsA(debut);
+  const enBase = surLeCreneau.filter((r) => r.coiffeur_id === SEED.amira);
+  const pages = clients.map((page, i) => ({ issue: issues[i], url: page.url() }));
+  expect(enBase, contexteEchec({ debut, pages, surLeCreneau })).toHaveLength(1);
 
   // Le perdant est sur l'écran 2, prestation et coiffeur conservés, liste
   // relue : des heures proposées, mais plus celle qui vient d'être prise.
