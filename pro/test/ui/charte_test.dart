@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:salon_pro/data/planning.dart';
+import 'package:salon_pro/features/planning/elements_planning.dart';
 import 'package:salon_pro/ui/charte.dart';
 
 // La charte de l'app pro est celle du site : mêmes jetons que
@@ -76,6 +78,65 @@ void main() {
       ('erreur / surface', Couleurs.erreur, Couleurs.surface, 4.5),
       ('blanc / accent', Couleurs.surface, Couleurs.accent, 4.5),
       ('blanc / accent-survol', Couleurs.surface, Couleurs.accentSurvol, 4.5),
+      // Statuts d'un rendez-vous (#64).
+      ('texte / terminé', Couleurs.texte, CouleursStatut.termineFond, 4.5),
+      (
+        'texte-secondaire / terminé',
+        Couleurs.texteSecondaire,
+        CouleursStatut.termineFond,
+        4.5,
+      ),
+      ('texte / absent', Couleurs.texte, CouleursStatut.absentFond, 4.5),
+      (
+        'rouge absent / rose absent',
+        CouleursStatut.absentTexte,
+        CouleursStatut.absentFond,
+        4.5,
+      ),
+      (
+        'blanc / rouge absent',
+        Couleurs.surface,
+        CouleursStatut.absentTexte,
+        4.5,
+      ),
+      ('texte / à clôturer', Couleurs.texte, CouleursStatut.aCloturerFond, 4.5),
+      // Fonds révélés par les gestes, texte blanc.
+      (
+        'blanc / geste Terminé',
+        Couleurs.surface,
+        CouleursStatut.gesteTermine,
+        4.5,
+      ),
+      (
+        'blanc / geste Client absent',
+        Couleurs.surface,
+        CouleursStatut.gesteAbsent,
+        4.5,
+      ),
+      (
+        'ambre à clôturer / fond à clôturer',
+        CouleursStatut.aCloturerTexte,
+        CouleursStatut.aCloturerFond,
+        4.5,
+      ),
+      (
+        'bordure à clôturer / fond à clôturer',
+        CouleursStatut.aCloturerBordure,
+        CouleursStatut.aCloturerFond,
+        3,
+      ),
+      (
+        'bordure à clôturer / fond',
+        CouleursStatut.aCloturerBordure,
+        Couleurs.fond,
+        3,
+      ),
+      (
+        'erreur / fond (trait « maintenant »)',
+        Couleurs.erreur,
+        Couleurs.fond,
+        3,
+      ),
     ];
     for (final (nom, texte, fond, seuil) in couples) {
       expect(contraste(texte, fond), greaterThanOrEqualTo(seuil), reason: nom);
@@ -135,6 +196,41 @@ void main() {
       );
       expect(theme.dialogTheme.backgroundColor, Couleurs.surface);
       expect(theme.colorScheme.surfaceTint, Colors.transparent);
+    },
+  );
+
+  test(
+    "états d'un rendez-vous : cinq fonds différents, libellés écrits (#64)",
+    () {
+      final styles = [for (final e in EtatRendezVous.values) StyleEtat.de(e)];
+      expect(
+        {for (final s in styles) s.fond}.length,
+        EtatRendezVous.values.length,
+      );
+      // Les fonds des gestes ne sont celui d'aucun état.
+      for (final geste in [
+        CouleursStatut.gesteTermine,
+        CouleursStatut.gesteAbsent,
+      ]) {
+        expect({for (final s in styles) s.fond}, isNot(contains(geste)));
+      }
+      expect(
+        {for (final e in EtatRendezVous.values) e.libelle},
+        {'À venir', 'En cours', 'À clôturer', 'Terminé', 'Absent'},
+      );
+      for (final e in EtatRendezVous.values) {
+        final s = StyleEtat.de(e);
+        expect(
+          contraste(s.libelle, s.fond),
+          greaterThanOrEqualTo(4.5),
+          reason: e.libelle,
+        );
+        expect(
+          contraste(s.texte, s.fond),
+          greaterThanOrEqualTo(4.5),
+          reason: e.libelle,
+        );
+      }
     },
   );
 }

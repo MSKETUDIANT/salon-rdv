@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salon_pro/app.dart';
+import 'package:salon_pro/data/roles.dart';
 import 'package:salon_pro/data/session.dart';
 
+import 'package:salon_pro/features/aujourdhui/ecran_aujourdhui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../doublures/faux_planning.dart';
 import '../doublures/faux_salon.dart';
 
@@ -89,17 +92,21 @@ void petitEcran(WidgetTester tester) {
 
 // Entièrement à l'écran, sans défiler.
 void visibleSansDefiler(WidgetTester tester, Finder cible) {
-  final ecran = Offset.zero & tester.view.physicalSize / 2;
+  final ecran = tester.view.physicalSize / 2;
   final zone = tester.getRect(cible);
+  // Bords compris (la barre d'onglets finit au bord bas de l'écran).
   expect(
-    ecran.contains(zone.topLeft) && ecran.contains(zone.bottomRight),
+    zone.left >= 0 &&
+        zone.top >= 0 &&
+        zone.right <= ecran.width &&
+        zone.bottom <= ecran.height,
     isTrue,
     reason: "$cible hors de l'écran : $zone",
   );
 }
 
-Future<void> ouvrirMenuCompte(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('Menu du compte'));
+Future<void> ouvrirOnglet(WidgetTester tester, String onglet) async {
+  await tester.tap(find.widgetWithText(NavigationDestination, onglet));
   await tester.pumpAndSettle();
 }
 
@@ -115,6 +122,11 @@ Future<void> seConnecter(
 }
 
 void main() {
+  // Préférences de l'app simulées ; l'indice des gestes déjà vu (#64).
+  setUp(() {
+    SharedPreferences.setMockInitialValues({cleIndiceGestes: true});
+    reinitialiserIndice();
+  });
   testWidgets(
     'connexion : ce qui manque est indiqué, le bouton n\'est jamais désactivé',
     (tester) async {
@@ -155,7 +167,7 @@ void main() {
     await tester.enterText(find.byType(TextField).at(1), 'motdepasse');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    expect(find.text('Espace coiffeur'), findsOneWidget);
+    expect(find.textContaining('Espace coiffeur'), findsOneWidget);
   });
 
   testWidgets('connexion : clavier e-mail, autofill, bouton pleine largeur', (
@@ -174,36 +186,49 @@ void main() {
     );
   });
 
-  testWidgets('coiffeur : directement dans son espace, sans bascule', (
+  testWidgets("coiffeur : son espace, quatre onglets, sans bascule (#64)", (
     tester,
   ) async {
     await lancer(tester);
     await seConnecter(tester, 'amira@salon.test');
-    expect(find.text('Espace coiffeur'), findsOneWidget);
-    expect(find.text('Mon planning'), findsOneWidget);
-    expect(find.text('Prestations'), findsNothing);
-    expect(find.textContaining('Passer à'), findsNothing);
+    expect(find.textContaining('Espace coiffeur'), findsOneWidget);
+    expect(find.text("Bonjour Amira,\n1 client aujourd'hui"), findsOneWidget);
+    for (final onglet in ["Aujourd'hui", 'Planning', 'Salon', 'Compte']) {
+      expect(
+        find.widgetWithText(NavigationDestination, onglet),
+        findsOneWidget,
+      );
+    }
 
-    await ouvrirMenuCompte(tester);
+    await ouvrirOnglet(tester, 'Salon');
+    expect(find.text('Mes horaires'), findsOneWidget);
+    expect(find.text('Prestations'), findsNothing);
+
+    await ouvrirOnglet(tester, 'Compte');
     expect(find.text('Connecté avec'), findsOneWidget);
     expect(find.text('amira@salon.test'), findsOneWidget);
-    expect(find.text('Se déconnecter'), findsOneWidget);
-    expect(find.textContaining('Passer à'), findsNothing);
+    expect(find.text('Coiffeur'), findsOneWidget);
+    expect(find.byType(SegmentedButton<Espace>), findsNothing);
   });
 
   testWidgets('gérant (et client) : espace gérant seulement', (tester) async {
     await lancer(tester);
     await seConnecter(tester, 'gerant@salon.test');
-    expect(find.text('Espace gérant'), findsOneWidget);
-    expect(find.text("Planning de l'équipe"), findsOneWidget);
+    expect(find.textContaining('Espace gérant'), findsOneWidget);
+    expect(find.text('Encaissé aujourd\'hui'), findsOneWidget);
+
+    await ouvrirOnglet(tester, 'Salon');
+    expect(find.text('Historique'), findsOneWidget);
     expect(find.text('Prestations'), findsOneWidget);
     expect(find.text('Équipe'), findsOneWidget);
-    expect(find.text('Mon planning'), findsNothing);
-    expect(find.textContaining('Passer à'), findsNothing);
+
+    await ouvrirOnglet(tester, 'Compte');
+    expect(find.text('Gérant'), findsOneWidget);
+    expect(find.byType(SegmentedButton<Espace>), findsNothing);
   });
 
   testWidgets(
-    'gérant et coiffeur : choix de l\'espace, puis bascule dans les deux sens',
+    'gérant et coiffeur : choix de l\'espace, puis bascule dans les deux sens (onglet Compte)',
     (tester) async {
       await lancer(tester);
       await seConnecter(tester, 'patron@salon.test');
@@ -211,20 +236,24 @@ void main() {
 
       await tester.tap(find.text('Espace gérant'));
       await tester.pumpAndSettle();
-      expect(find.text('Espace gérant'), findsOneWidget);
+      expect(find.textContaining('Espace gérant'), findsOneWidget);
 
-      await tester.tap(find.text('Passer à l\'espace coiffeur'));
+      await ouvrirOnglet(tester, 'Compte');
+      expect(find.text('Gérant et coiffeur'), findsOneWidget);
+      await tester.tap(find.text('Coiffeur'));
       await tester.pumpAndSettle();
-      expect(find.text('Espace coiffeur'), findsOneWidget);
+      // Nouvel espace : retour sur « Aujourd'hui ».
+      expect(find.textContaining('Espace coiffeur'), findsOneWidget);
 
-      await tester.tap(find.text('Passer à l\'espace gérant'));
+      await ouvrirOnglet(tester, 'Compte');
+      await tester.tap(find.text('Gérant'));
       await tester.pumpAndSettle();
-      expect(find.text('Espace gérant'), findsOneWidget);
+      expect(find.textContaining('Espace gérant'), findsOneWidget);
     },
   );
 
   testWidgets(
-    '360 × 640 : bascule et déconnexion visibles sans défiler, avec les quatre cartes du gérant (#41)',
+    '360 × 640 : barre d\'onglets visible sans défiler ; bascule et déconnexion dans « Compte »',
     (tester) async {
       petitEcran(tester);
       await lancer(tester);
@@ -232,20 +261,19 @@ void main() {
       await tester.tap(find.text('Espace gérant'));
       await tester.pumpAndSettle();
 
-      visibleSansDefiler(tester, find.text("Passer à l'espace coiffeur"));
-      visibleSansDefiler(tester, find.byTooltip('Menu du compte'));
-
-      await ouvrirMenuCompte(tester);
+      for (final onglet in ["Aujourd'hui", 'Planning', 'Salon', 'Compte']) {
+        visibleSansDefiler(
+          tester,
+          find.widgetWithText(NavigationDestination, onglet),
+        );
+      }
+      await ouvrirOnglet(tester, 'Compte');
+      visibleSansDefiler(tester, find.byType(SegmentedButton<Espace>));
       visibleSansDefiler(tester, find.text('Se déconnecter'));
-      // Le menu propose aussi la bascule.
-      expect(find.text("Passer à l'espace coiffeur"), findsNWidgets(2));
-      await tester.tap(find.text("Passer à l'espace coiffeur").last);
-      await tester.pumpAndSettle();
-      expect(find.text('Espace coiffeur'), findsOneWidget);
     },
   );
 
-  testWidgets('logo « Salon RDV » : connexion, puis barre du haut des espaces', (
+  testWidgets('logo « Salon RDV » : connexion, puis onglet Compte', (
     tester,
   ) async {
     final semantique = tester.ensureSemantics();
@@ -255,13 +283,8 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
 
     await seConnecter(tester, 'gerant@salon.test');
-    expect(
-      find.descendant(
-        of: find.byType(AppBar),
-        matching: find.bySemanticsLabel('Salon RDV'),
-      ),
-      findsOneWidget,
-    );
+    await ouvrirOnglet(tester, 'Compte');
+    expect(find.bySemanticsLabel('Salon RDV'), findsOneWidget);
     semantique.dispose();
   });
 
@@ -269,8 +292,8 @@ void main() {
     await lancer(tester);
     await seConnecter(tester, 'client@salon.test');
     expect(find.text('Accès réservé à l\'équipe'), findsOneWidget);
-    expect(find.text('Espace gérant'), findsNothing);
-    expect(find.text('Espace coiffeur'), findsNothing);
+    expect(find.textContaining('Espace gérant'), findsNothing);
+    expect(find.textContaining('Espace coiffeur'), findsNothing);
 
     await tester.tap(find.text('Se déconnecter'));
     await tester.pumpAndSettle();
@@ -287,18 +310,19 @@ void main() {
     roles.enPanne = false;
     await tester.tap(find.text('Réessayer'));
     await tester.pumpAndSettle();
-    expect(find.text('Espace coiffeur'), findsOneWidget);
+    expect(find.textContaining('Espace coiffeur'), findsOneWidget);
   });
 
-  testWidgets('déconnexion depuis un espace : retour à la connexion', (
-    tester,
-  ) async {
-    await lancer(tester);
-    await seConnecter(tester, 'amira@salon.test');
-    await ouvrirMenuCompte(tester);
-    await tester.tap(find.text('Se déconnecter'));
-    await tester.pumpAndSettle();
-    expect(find.text('Espace pro'), findsOneWidget);
-    expect(auth.compte, isNull);
-  });
+  testWidgets(
+    'déconnexion depuis un espace (onglet Compte) : retour à la connexion',
+    (tester) async {
+      await lancer(tester);
+      await seConnecter(tester, 'amira@salon.test');
+      await ouvrirOnglet(tester, 'Compte');
+      await tester.tap(find.text('Se déconnecter'));
+      await tester.pumpAndSettle();
+      expect(find.text('Espace pro'), findsOneWidget);
+      expect(auth.compte, isNull);
+    },
+  );
 }

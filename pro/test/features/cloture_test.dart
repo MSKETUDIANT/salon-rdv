@@ -44,6 +44,8 @@ Future<void> appuyer(WidgetTester tester, Finder cible) async {
 final r1 = find.bySemanticsLabel(RegExp(r'^09:00, Salma'));
 final r2 = find.bySemanticsLabel(RegExp(r'^14:00, Karim'));
 final boutonTermine = find.widgetWithText(FilledButton, 'Terminé');
+// Planning de l'équipe : un coiffeur à la fois (#64).
+final youssef = find.widgetWithText(ChoiceChip, 'Youssef');
 
 // Remplace r2 (Youssef, terminé) par la même ligne avec un montant encaissé.
 void encaisserR2(double montant) {
@@ -175,6 +177,7 @@ void main() {
       tester,
     ) async {
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      await appuyer(tester, youssef);
       await appuyer(tester, r2);
       expect(find.text('Pas encore'), findsOneWidget);
       expect(boutonTermine, findsNothing);
@@ -194,6 +197,7 @@ void main() {
       tester,
     ) async {
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      await appuyer(tester, youssef);
       await appuyer(tester, r2);
       await appuyer(tester, find.widgetWithText(FilledButton, 'Encaisser'));
       await tester.enterText(find.byType(TextField), '-3');
@@ -212,6 +216,7 @@ void main() {
         'Ce rendez-vous est déjà encaissé.',
       );
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      await appuyer(tester, youssef);
       await appuyer(tester, r2);
       await appuyer(tester, find.widgetWithText(FilledButton, 'Encaisser'));
       await appuyer(tester, find.widgetWithText(FilledButton, 'Encaisser'));
@@ -223,6 +228,7 @@ void main() {
     ) async {
       encaisserR2(80);
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      await appuyer(tester, youssef);
       await appuyer(tester, r2);
       expect(find.text('80 DT'), findsNWidgets(2)); // prix et encaissé
       expect(find.widgetWithText(FilledButton, 'Encaisser'), findsNothing);

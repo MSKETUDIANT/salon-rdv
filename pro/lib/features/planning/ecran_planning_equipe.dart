@@ -7,10 +7,10 @@ import '../../ui/charte.dart';
 import '../../ui/format.dart';
 import 'elements_planning.dart';
 
-// Planning de toute l'équipe pour le gérant (BF-G5) : une colonne par
-// coiffeur sur la journée, axe des heures commun, navigation entre les
-// jours. Défilement horizontal si l'équipe ne tient pas en largeur. Depuis la
-// fiche d'un rendez-vous : clôture pour un coiffeur et encaissement (#11).
+// Planning de toute l'équipe pour le gérant (BF-G5) : la frise d'un coiffeur
+// sur la journée, choisi par des pastilles en haut (#64), navigation entre les
+// jours. Depuis la fiche d'un rendez-vous : clôture pour un coiffeur et
+// encaissement (#11).
 class EcranPlanningEquipe extends StatefulWidget {
   const EcranPlanningEquipe({super.key, required this.planning});
   final DepotPlanning planning;
@@ -20,8 +20,9 @@ class EcranPlanningEquipe extends StatefulWidget {
 }
 
 class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
-  static const _largeurColonne = 148.0;
   DateTime? _maintenant;
+  // Coiffeur affiché ; le premier de l'équipe par défaut.
+  String? _coiffeur;
   DateTime? _aujourdhui;
   DateTime? _jour;
   int _version = 0;
@@ -48,6 +49,12 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
 
   void _actualiser() => setState(() => _version++);
 
+  static String _resume(int n) => n == 0
+      ? 'Aucun rendez-vous ce jour-là'
+      : n == 1
+      ? '1 rendez-vous'
+      : '$n rendez-vous';
+
   // Fiche d'un rendez-vous ; après une clôture ou un encaissement, message et
   // relecture.
   Future<void> _ouvrir(RendezVous r, String coiffeur) async {
@@ -69,7 +76,7 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
     final textes = Theme.of(context).textTheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Planning de l\'équipe'),
+        title: const Text('Planning'),
         actions: [
           IconButton(
             onPressed: _actualiser,
@@ -90,11 +97,19 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
           ),
           children: [
             Chargement<(DateTime, List<Coiffeur>, DonneesPlanning)>(
-              key: ValueKey('$_version-$_jour'),
+              // _version change avec la date (_deplacer, aujourd'hui) ; pas le
+              // choix du coiffeur, déjà chargé.
+              key: ValueKey(_version),
               lire: _lire,
               afficher: (context, resultat, _) {
                 final (jour, coiffeurs, donnees) = resultat;
-                final ids = [for (final c in coiffeurs) c.id];
+                final choisi = coiffeurs.isEmpty
+                    ? null
+                    : coiffeurs.firstWhere(
+                        (c) => c.id == _coiffeur,
+                        orElse: () => coiffeurs.first,
+                      );
+                final ids = [if (choisi != null) choisi.id];
                 final (debut, fin) = fenetreDuJour(donnees, ids, jour);
                 final total = donnees.rendezVous
                     .where((r) => memeJour(r.debut, jour))
@@ -122,87 +137,66 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                                 '${total == 0 ? 'aucun rendez-vous' : '$total rendez-vous'}',
                       style: textes.bodyLarge,
                     ),
-                    // À 360 px, deux colonnes tiennent ; au-delà, on le dit.
-                    if (coiffeurs.length > 2) ...[
-                      const SizedBox(height: Espaces.s1),
+                    if (choisi != null) ...[
+                      const SizedBox(height: Espaces.s3),
+                      // Un coiffeur à la fois : pastilles de choix, défilantes
+                      // si l'équipe ne tient pas en largeur.
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            for (final c in coiffeurs) ...[
+                              ChoiceChip(
+                                label: Text(c.nom),
+                                labelStyle: textes.labelLarge!.copyWith(
+                                  color: c.id == choisi.id
+                                      ? Couleurs.surface
+                                      : Couleurs.texte,
+                                ),
+                                selected: c.id == choisi.id,
+                                showCheckmark: false,
+                                onSelected: (_) =>
+                                    setState(() => _coiffeur = c.id),
+                              ),
+                              const SizedBox(width: Espaces.s2),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: Espaces.s3),
                       Text(
-                        "Faites glisser les colonnes pour voir toute l'équipe.",
+                        '${choisi.nom} : ${_resume(donnees.rendezVousDu(choisi.id, jour).length).toLowerCase()}',
                         style: textes.bodySmall,
                       ),
-                    ],
-                    const SizedBox(height: Espaces.s3),
-                    if (coiffeurs.isNotEmpty)
+                      const SizedBox(height: Espaces.s2),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(rayon),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Column(
-                              children: [
-                                const SizedBox(height: 32),
-                                AxeHeures(debut: debut, fin: fin),
-                              ],
-                            ),
+                            AxeHeures(debut: debut, fin: fin),
                             Expanded(
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    for (final c in coiffeurs)
-                                      Container(
-                                        width: _largeurColonne,
-                                        margin: const EdgeInsets.only(
-                                          right: Espaces.s1,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: [
-                                            SizedBox(
-                                              height: 32,
-                                              child: Semantics(
-                                                header: true,
-                                                child: Text(
-                                                  c.nom,
-                                                  style: textes.titleSmall,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ),
-                                            ColonneJour(
-                                              jour: jour,
-                                              debut: debut,
-                                              fin: fin,
-                                              plages: donnees.plagesDu(
-                                                c.id,
-                                                jour,
-                                              ),
-                                              absences: donnees.absencesDu(
-                                                c.id,
-                                                jour,
-                                              ),
-                                              rendezVous: donnees.rendezVousDu(
-                                                c.id,
-                                                jour,
-                                              ),
-                                              surRendezVous: (r) =>
-                                                  _ouvrir(r, c.nom),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
+                              child: ColonneJour(
+                                jour: jour,
+                                debut: debut,
+                                fin: fin,
+                                plages: donnees.plagesDu(choisi.id, jour),
+                                absences: donnees.absencesDu(choisi.id, jour),
+                                rendezVous: donnees.rendezVousDu(
+                                  choisi.id,
+                                  jour,
                                 ),
+                                maintenant: _maintenant!,
+                                surRendezVous: (r) => _ouvrir(r, choisi.nom),
                               ),
                             ),
                           ],
                         ),
                       ),
+                    ],
                     const SizedBox(height: Espaces.s2),
                     Text(
-                      'Zones grisées : hors des horaires de chaque coiffeur.',
+                      'Zones grisées : hors des horaires du coiffeur.',
                       style: textes.bodySmall,
                     ),
                   ],

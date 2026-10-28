@@ -17,6 +17,30 @@ abstract final class Couleurs {
   static const erreur = Color(0xFFB42318);
 }
 
+// Statuts d'un rendez-vous (#64) : frise du planning, « Aujourd'hui »,
+// gestes. Dérivées de la charte ; le statut est toujours écrit aussi (jamais
+// la couleur seule). Contrastes vérifiés par test/ui/charte_test.dart.
+//   à venir : fond surface, bordure et libellé accent ;
+//   en cours : fond accent, texte blanc ;
+//   à clôturer : fond ambre pâle, bordure et libellé ambre foncé ;
+//   terminé : fond gris clair, texte et libellé secondaire ;
+//   absent : fond rose pâle, libellé rouge foncé.
+// Gestes : vert foncé plein (« Terminé ») et rouge foncé plein (« Client
+// absent »), texte blanc.
+abstract final class CouleursStatut {
+  static const termineFond = Color(0xFFEFEDE8);
+  static const absentFond = Color(0xFFFBEAE8);
+  static const absentTexte = Color(0xFF8F1D13);
+  static const aCloturerFond = Color(0xFFFCEFD6);
+  static const aCloturerBordure = Color(0xFFA35A00);
+  static const aCloturerTexte = Color(0xFF8A4B00);
+  // Fonds révélés par les gestes : couleurs d'action pleines et foncées,
+  // distinctes des fonds des états (le vert, plus foncé que l'accent du
+  // rendez-vous en cours), texte et icône blancs.
+  static const gesteTermine = Color(0xFF0B3325);
+  static const gesteAbsent = Color(0xFF7A1A10);
+}
+
 // Échelle typographique : 16 / 18 / 22 / 28 / 36 px, interligne 1,5.
 abstract final class Tailles {
   static const base = 16.0;
@@ -247,6 +271,29 @@ ThemeData themeCharte() {
       backgroundColor: Couleurs.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(rayon)),
     ),
+    // Barre d'onglets (#64), comme celle du site sur téléphone (charte §4) :
+    // fond surface, onglet courant en accent et gras avec une pastille
+    // `separateur` derrière l'icône, les autres en texte secondaire ;
+    // libellés de 16 px.
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Couleurs.surface,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      height: 72,
+      indicatorColor: Couleurs.separateur,
+      labelTextStyle: WidgetStateProperty.resolveWith(
+        (etats) => etats.contains(WidgetState.selected)
+            ? textes.labelLarge!.copyWith(color: Couleurs.accent)
+            : textes.bodyMedium!.copyWith(color: Couleurs.texteSecondaire),
+      ),
+      iconTheme: WidgetStateProperty.resolveWith(
+        (etats) => IconThemeData(
+          color: etats.contains(WidgetState.selected)
+              ? Couleurs.accent
+              : Couleurs.texteSecondaire,
+        ),
+      ),
+    ),
     progressIndicatorTheme: const ProgressIndicatorThemeData(
       color: Couleurs.accent,
     ),
@@ -255,6 +302,22 @@ ThemeData themeCharte() {
       contentTextStyle: textes.bodyMedium!.copyWith(color: Couleurs.surface),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(rayon)),
       behavior: SnackBarBehavior.floating,
+      // « Annuler » après un geste (#64) : blanc sur `texte`.
+      actionTextColor: Couleurs.surface,
+    ),
+    // Pastilles de choix (coiffeur du planning, #64) : arrondi `pastille`,
+    // choisie en accent et texte blanc, les autres en surface et bordure.
+    chipTheme: ChipThemeData(
+      backgroundColor: Couleurs.surface,
+      selectedColor: Couleurs.accent,
+      side: const BorderSide(color: Couleurs.bordure),
+      shape: const StadiumBorder(),
+      // Couleur du libellé : sur chaque pastille (blanc si choisie).
+      labelStyle: textes.labelLarge,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Espaces.s2,
+        vertical: Espaces.s2,
+      ),
     ),
   );
 }

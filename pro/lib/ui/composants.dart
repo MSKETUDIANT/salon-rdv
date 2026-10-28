@@ -163,7 +163,10 @@ class PageCharte extends StatelessWidget {
       appBar: barre
           ? AppBar(
               title: logo ? const LogoSalonRdv() : null,
-              actions: [...actions, const SizedBox(width: Espaces.s1)],
+              actions: [
+                ...actions,
+                const SizedBox(width: Espaces.s1),
+              ],
             )
           : null,
       body: ListeCharte(

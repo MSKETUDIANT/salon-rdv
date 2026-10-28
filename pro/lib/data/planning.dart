@@ -57,6 +57,29 @@ class RendezVous {
   // « Terminé » et « Client absent » : rendez-vous confirmé et commencé.
   bool cloturable(DateTime maintenant) =>
       statut == StatutRendezVous.confirmee && !debut.isAfter(maintenant);
+
+  EtatRendezVous etat(DateTime maintenant) => switch (statut) {
+    StatutRendezVous.terminee => EtatRendezVous.termine,
+    StatutRendezVous.absent => EtatRendezVous.absent,
+    StatutRendezVous.confirmee when debut.isAfter(maintenant) =>
+      EtatRendezVous.aVenir,
+    StatutRendezVous.confirmee when fin.isAfter(maintenant) =>
+      EtatRendezVous.enCours,
+    StatutRendezVous.confirmee => EtatRendezVous.aCloturer,
+  };
+}
+
+// État affiché d'un rendez-vous (#64) : son statut en base, et l'heure pour
+// un rendez-vous confirmé (à venir, en cours, ou fini mais pas clôturé).
+enum EtatRendezVous {
+  aVenir('À venir'),
+  enCours('En cours'),
+  aCloturer('À clôturer'),
+  termine('Terminé'),
+  absent('Absent');
+
+  const EtatRendezVous(this.libelle);
+  final String libelle;
 }
 
 // Ligne de l'historique : rendez-vous terminé ou client absent, avec son
@@ -155,6 +178,8 @@ DateTime lundiDe(DateTime jour) {
 abstract interface class DepotPlanning {
   // Compte connecté (pour le planning « à moi » du coiffeur).
   String? get moi;
+  // Nom du compte connecté (sa ligne utilisateurs), pour « Bonjour Amira ».
+  Future<String?> monNom();
   Future<DateTime> maintenantAuSalon();
   Future<List<Coiffeur>> coiffeurs();
   // Du premier au dernier jour inclus ; coiffeurId null : tous ceux que le
@@ -236,6 +261,18 @@ class PlanningSupabase implements DepotPlanning {
 
   @override
   String? get moi => _client.auth.currentUser?.id;
+
+  @override
+  Future<String?> monNom() => _appel(() async {
+    final id = moi;
+    if (id == null) return null;
+    final ligne = await _client
+        .from('utilisateurs')
+        .select('nom')
+        .eq('id', id)
+        .maybeSingle();
+    return ligne?['nom'] as String?;
+  });
 
   @override
   Future<DateTime> maintenantAuSalon() =>
