@@ -268,3 +268,37 @@ class CarteLien extends StatelessWidget {
     );
   }
 }
+
+// Initiales d'un nom (#72) : « Amira Ben Salah » → « AB », « Youssef » → « Y ».
+String initiales(String nom) {
+  final mots = nom.trim().split(RegExp(r'\s+')).where((m) => m.isNotEmpty);
+  return mots.take(2).map((m) => m.characters.first.toUpperCase()).join();
+}
+
+// Avatar rond (#72) : initiales sur fond `separateur`, faute de photo.
+// Décoratif : le nom est toujours écrit à côté ou dans le libellé du parent.
+class Avatar extends StatelessWidget {
+  const Avatar({super.key, required this.nom, this.taille = 48});
+
+  final String nom;
+  final double taille;
+
+  @override
+  Widget build(BuildContext context) {
+    return ExcludeSemantics(
+      child: Container(
+        width: taille,
+        height: taille,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          color: Couleurs.separateur,
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          initiales(nom),
+          style: Theme.of(context).textTheme.labelLarge!.copyWith(height: 1),
+        ),
+      ),
+    );
+  }
+}

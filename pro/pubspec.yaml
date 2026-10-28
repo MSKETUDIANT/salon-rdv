@@ -25,6 +25,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Photo du salon en bandeau de l'accueil (#72) : celle du site
+  # (web/public/accueil-salon.webp), par défaut tant que le salon ne peut pas
+  # envoyer la sienne (#74).
+  assets:
+    - assets/images/salon-defaut.webp
+
   # Polices de la charte (docs/charte-graphique.md §3), embarquées comme sur le
   # site : aucun téléchargement au lancement. Versions variables (licence OFL,
   # fichiers *-OFL.txt).

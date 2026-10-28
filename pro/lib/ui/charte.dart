@@ -17,7 +17,7 @@ abstract final class Couleurs {
   static const erreur = Color(0xFFB42318);
 }
 
-// Statuts d'un rendez-vous (#64) : frise du planning, « Aujourd'hui »,
+// Statuts d'un rendez-vous (#64) : frise du planning, accueil,
 // gestes. Dérivées de la charte ; le statut est toujours écrit aussi (jamais
 // la couleur seule). Contrastes vérifiés par test/ui/charte_test.dart.
 //   à venir : fond surface, bordure et libellé accent ;

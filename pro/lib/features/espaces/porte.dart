@@ -169,7 +169,7 @@ class _PorteState extends State<Porte> {
     }
 
     final autres = espaces.where((e) => e != espace).toList();
-    // Clé par espace : la bascule repart sur l'onglet « Aujourd'hui ».
+    // Clé par espace : la bascule repart sur l'onglet « Accueil ».
     return EcranEspace(
       key: ValueKey(espace),
       salon: widget.salon,
