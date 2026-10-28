@@ -192,8 +192,9 @@ void main() {
     await lancer(tester);
     await seConnecter(tester, 'amira@salon.test');
     expect(find.textContaining('Espace coiffeur'), findsOneWidget);
-    expect(find.text("Bonjour Amira,\n1 client aujourd'hui"), findsOneWidget);
-    for (final onglet in ["Aujourd'hui", 'Planning', 'Salon', 'Compte']) {
+    expect(find.text('Bonjour Amira'), findsOneWidget);
+    expect(find.text("1 client aujourd'hui"), findsOneWidget);
+    for (final onglet in ['Accueil', 'Planning', 'Salon', 'Compte']) {
       expect(
         find.widgetWithText(NavigationDestination, onglet),
         findsOneWidget,
@@ -215,7 +216,7 @@ void main() {
     await lancer(tester);
     await seConnecter(tester, 'gerant@salon.test');
     expect(find.textContaining('Espace gérant'), findsOneWidget);
-    expect(find.text('Encaissé aujourd\'hui'), findsOneWidget);
+    expect(find.text('encaissé'), findsOneWidget);
 
     await ouvrirOnglet(tester, 'Salon');
     expect(find.text('Historique'), findsOneWidget);
@@ -242,7 +243,7 @@ void main() {
       expect(find.text('Gérant et coiffeur'), findsOneWidget);
       await tester.tap(find.text('Coiffeur'));
       await tester.pumpAndSettle();
-      // Nouvel espace : retour sur « Aujourd'hui ».
+      // Nouvel espace : retour sur « Accueil ».
       expect(find.textContaining('Espace coiffeur'), findsOneWidget);
 
       await ouvrirOnglet(tester, 'Compte');
@@ -261,7 +262,7 @@ void main() {
       await tester.tap(find.text('Espace gérant'));
       await tester.pumpAndSettle();
 
-      for (final onglet in ["Aujourd'hui", 'Planning', 'Salon', 'Compte']) {
+      for (final onglet in ['Accueil', 'Planning', 'Salon', 'Compte']) {
         visibleSansDefiler(
           tester,
           find.widgetWithText(NavigationDestination, onglet),

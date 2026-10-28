@@ -9,7 +9,7 @@ import '../../ui/charte.dart';
 import '../../ui/format.dart';
 import '../planning/elements_planning.dart';
 
-// Rendez-vous de la liste « Aujourd'hui » (#64). Appui : la fiche. Une fois
+// Rendez-vous de la liste de l'accueil (#64). Appui : la fiche. Une fois
 // commencé (glissable), glisser à droite : « Terminé » ; à gauche : « Client
 // absent ». Petite vibration au seuil, vibration de confirmation au geste.
 // TalkBack : les deux clôtures sont des actions du nœud (et restent dans la

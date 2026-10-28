@@ -9,7 +9,7 @@ import '../planning/ecran_mon_planning.dart';
 import '../planning/ecran_planning_equipe.dart';
 import 'onglets.dart';
 
-// Un espace (#64) : barre d'onglets en bas, Aujourd'hui, Planning, Salon,
+// Un espace (#64) : barre d'onglets en bas, Accueil (#72), Planning, Salon,
 // Compte. Gérant : le salon entier (planning de l'équipe #10, historique #11,
 // configuration #9) ; coiffeur : ses rendez-vous, ses horaires et absences en
 // lecture seule. Chaque onglet se charge à sa première ouverture et garde son
@@ -89,9 +89,9 @@ class _EcranEspaceState extends State<EcranEspace> {
           }),
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.wb_sunny_outlined),
-              selectedIcon: Icon(Icons.wb_sunny),
-              label: "Aujourd'hui",
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Accueil',
             ),
             NavigationDestination(
               icon: Icon(Icons.calendar_month_outlined),

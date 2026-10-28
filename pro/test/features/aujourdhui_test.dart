@@ -11,8 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../doublures/faux_planning.dart';
 
-// Onglet « Aujourd'hui » (#64) : titre, compteurs, prochain rendez-vous,
-// encaissé du gérant, gestes de clôture différée.
+// Onglet « Accueil » (#64, #72) : titre, rappels, compteurs, prochain
+// rendez-vous, encaissé et équipe du gérant, journée calme, gestes de clôture
+// différée.
 
 late FauxPlanning planning;
 final vibrations = <String>[];
@@ -117,15 +118,16 @@ void main() {
       expect(planning.appels, ['2030-1-7..2030-1-7 c1']);
       expect(find.text('Lundi 7 janvier · Espace coiffeur'), findsOneWidget);
       // 5 rendez-vous d'Amira, celui en cours compris.
-      expect(
-        find.text("Bonjour Amira,\n5 clients aujourd'hui"),
-        findsOneWidget,
-      );
+      expect(find.text('Bonjour Amira'), findsOneWidget);
+      expect(find.text("5 clients aujourd'hui"), findsOneWidget);
       expect(find.bySemanticsLabel('1 terminé'), findsOneWidget);
       expect(find.bySemanticsLabel('1 absent'), findsOneWidget);
       // À clôturer, en cours et à venir : 1 + 1 + 1.
       expect(find.bySemanticsLabel('3 restants'), findsOneWidget);
-      expect(find.text('Encaissé aujourd\'hui'), findsNothing);
+      expect(find.text('encaissé'), findsNothing);
+      expect(find.text('1 rendez-vous à clôturer'), findsOneWidget);
+      expect(find.textContaining('à encaisser'), findsNothing);
+      expect(find.text("L'équipe aujourd'hui"), findsNothing);
 
       expect(
         find.bySemanticsLabel('En cours : 09:45 – 10:30 · Nour, Coupe'),
@@ -147,18 +149,80 @@ void main() {
     ];
     await ouvrir(tester, gerant: true);
     expect(planning.appels, ['2030-1-7..2030-1-7 tous']);
-    expect(find.text("Bonjour Amira,\n8 clients aujourd'hui"), findsOneWidget);
-    expect(find.text('Encaissé aujourd\'hui'), findsOneWidget);
-    expect(find.text('45 DT'), findsOneWidget);
-    expect(find.text('1 à encaisser'), findsOneWidget);
+    expect(find.text("8 clients aujourd'hui"), findsOneWidget);
+    expect(find.bySemanticsLabel('45 DT encaissé'), findsOneWidget);
+    expect(find.text('1 rendez-vous à encaisser'), findsOneWidget);
     expect(find.bySemanticsLabel('3 terminés'), findsOneWidget);
     expect(find.text('Prochain rendez-vous du salon'), findsOneWidget);
-    expect(find.text('Coupe · avec Youssef · 30 min · 20 DT'), findsOneWidget);
+    expect(find.text('Coupe · avec Youssef'), findsOneWidget);
+    // Équipe du jour : une ligne, prénom et nombre de rendez-vous.
+    expect(find.text("L'équipe aujourd'hui"), findsOneWidget);
+    expect(find.bySemanticsLabel('Amira, 5 rendez-vous'), findsOneWidget);
+    expect(find.bySemanticsLabel('Youssef, 3 rendez-vous'), findsOneWidget);
     expect(
       find.bySemanticsLabel('11:30, Sami, Coupe, Youssef, À venir'),
       findsOneWidget,
     );
   });
+
+  testWidgets('chiffres dans l\'ordre : restants, terminé, absent, encaissé', (
+    tester,
+  ) async {
+    await ouvrir(tester, gerant: true);
+    final positions = [
+      for (final l in ['restants', 'terminés', 'absent', 'encaissé'])
+        tester.getTopLeft(find.text(l)).dx,
+    ];
+    expect(positions, [...positions]..sort());
+  });
+
+  testWidgets('journée sans rendez-vous : « Journée calme », pas de zéros', (
+    tester,
+  ) async {
+    planning.rendezVous = [];
+    await ouvrir(tester, gerant: true);
+    expect(find.text("Journée calme aujourd'hui"), findsOneWidget);
+    expect(
+      find.text('Aucun rendez-vous prévu pour l\'instant.'),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('Chiffres du jour'), findsNothing);
+    expect(find.text("L'équipe aujourd'hui"), findsNothing);
+    expect(find.text('Rendez-vous du jour'), findsNothing);
+  });
+
+  testWidgets('rappel au pluriel : « 2 rendez-vous à clôturer »', (
+    tester,
+  ) async {
+    planning.rendezVous = [
+      ...planning.rendezVous,
+      rdv('l', 'c1', 8, 0, 15, StatutRendezVous.confirmee, 'Lina'),
+    ];
+    await ouvrir(tester);
+    expect(find.text('2 rendez-vous à clôturer'), findsOneWidget);
+  });
+
+  testWidgets('sans nom : « Bonjour » seul', (tester) async {
+    planning.nom = null;
+    await ouvrir(tester);
+    expect(find.text('Bonjour'), findsOneWidget);
+  });
+
+  testWidgets(
+    'petit écran : compte à rebours sur une ligne, photo du salon en tête',
+    (tester) async {
+      planning.rendezVous = [
+        rdv('v', 'c1', 20, 45, 45, StatutRendezVous.confirmee, 'Rania'),
+      ];
+      await ouvrir(tester, gerant: true, petitEcran: true);
+      expect(find.bySemanticsLabel('Photo du salon'), findsOneWidget);
+      final dans = find.text('dans 10 h 45');
+      expect(dans, findsOneWidget);
+      // Une seule ligne de labelLarge : 16 px × 1,5.
+      expect(tester.getSize(dans).height, 24);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'glisser à droite : « Terminé » affiché, vibration, enregistré au bout de 5 s',
