@@ -4,7 +4,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(25);
+select plan(27);
 
 -- Jeu de données : salon à Tunis (UTC+1), lundi 7 janvier 2030.
 --   A et B : coiffeurs, 9h-12h, savent faire Coupe (30 min). A absent 11h-12h.
@@ -222,6 +222,24 @@ select is(
   (select prosecdef and proconfig @> array['search_path=""']
      from pg_proc where oid = 'public.reserver(uuid, timestamptz, uuid)'::regprocedure),
   true, 'reserver() : security definer, search_path fixé à vide');
+
+-- 23. Issue #59 : un verrou par coiffeur avant d'insérer. Les verrous des
+--     appels précédents (A et B, candidats de « Peu importe ») sont tenus
+--     jusqu'à la fin de la transaction du test.
+select is((
+  select count(*) from pg_locks l
+   where l.locktype = 'advisory' and l.pid = pg_backend_pid() and l.objsubid = 1
+     and ((l.classid::bigint << 32) | l.objid::bigint) in (
+       select hashtextextended('reservations:' || c, 0)
+         from unnest(array['00000000-0000-0000-0000-0000000000a1',
+                           '00000000-0000-0000-0000-0000000000b1']) as c)
+  ), 2::bigint, 'reserver() : verrou par coiffeur (A et B) tenu jusqu''à la fin de la transaction');
+
+-- 24. Attente du verrou bornée (lock_timeout sur la fonction).
+select ok(
+  (select proconfig @> array['lock_timeout=3s']
+     from pg_proc where oid = 'public.reserver(uuid, timestamptz, uuid)'::regprocedure),
+  'reserver() : lock_timeout de 3 s');
 
 select * from finish();
 rollback;
