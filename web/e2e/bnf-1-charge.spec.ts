@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { creneauLibre, emailUnique, reservationsA, SEED } from "./outils";
+import { contexteEchec, creneauLibre, emailUnique, reservationsA, SEED } from "./outils";
 
 // Issue #12, BNF-1 (fiabilité) : N clients réservent le même créneau au même
 // moment, par l'API (fonction reserver(), comme le site), sur la base locale.
@@ -67,10 +67,11 @@ test(`BNF-1 : ${N} réservations simultanées du même créneau, une seule réus
   testInfo.annotations.push({ type: "BNF-1", description: resume });
   console.log(`BNF-1, ${N} appels simultanés : ${resume}`);
 
-  expect(reussites).toHaveLength(1);
+  expect(reussites, contexteEchec({ debut, duree, reponses })).toHaveLength(1);
   expect(codes).toEqual(Array(N - 1).fill("PT409"));
 
   // En base : une seule réservation non annulée sur ce créneau chez Amira.
-  const enBase = (await reservationsA(debut)).filter((r) => r.coiffeur_id === SEED.amira);
-  expect(enBase).toHaveLength(1);
+  const surLeCreneau = await reservationsA(debut);
+  const enBase = surLeCreneau.filter((r) => r.coiffeur_id === SEED.amira);
+  expect(enBase, contexteEchec({ debut, reussites, surLeCreneau })).toHaveLength(1);
 });
