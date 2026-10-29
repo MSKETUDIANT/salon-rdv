@@ -11,7 +11,7 @@ import '../gerant/ecran_equipe.dart';
 import '../gerant/ecran_prestations.dart';
 import '../historique/ecran_historique.dart';
 
-// Onglets « Salon » et « Compte » de la barre du bas (#64).
+// Onglets « Salon » et « Profil » de la barre du bas (#64, #73, #81).
 
 // En-tête d'un onglet : petit sur-titre et titre en Newsreader.
 class _EnTete extends StatelessWidget {
@@ -52,7 +52,9 @@ class _Section extends StatelessWidget {
   }
 }
 
-// Gérant : activité (historique) et configuration (prestations, équipe).
+// Gérant (#81) : identité du salon en tête (nom, adresse, horaires déduits de
+// ceux des coiffeurs, option A de Sparta), puis listes à icônes avec un
+// chiffre : Activité (historique), Configuration (prestations, équipe).
 class OngletSalonGerant extends StatelessWidget {
   const OngletSalonGerant({
     super.key,
@@ -62,39 +64,200 @@ class OngletSalonGerant extends StatelessWidget {
   final DepotSalon salon;
   final DepotPlanning planning;
 
+  Future<_ResumeSalon> _lire() async {
+    final maintenant = await planning.maintenantAuSalon();
+    final jour = DateUtils.dateOnly(maintenant);
+    final lundi = jour.subtract(Duration(days: jour.weekday - 1));
+    final resultats = await Future.wait<dynamic>([
+      salon.identite(),
+      salon.prestations(),
+      salon.coiffeurs(),
+      planning.periode(lundi, lundi.add(const Duration(days: 6))),
+    ]);
+    final identite = resultats[0] as ({String nom, String? adresse});
+    final semaine = resultats[3] as DonneesPlanning;
+    return _ResumeSalon(
+      nom: identite.nom,
+      adresse: identite.adresse,
+      jour: jour,
+      ouverture: horairesDuSalon(semaine.plages),
+      prestations: (resultats[1] as List<Prestation>)
+          .where((p) => p.active)
+          .length,
+      coiffeurs: (resultats[2] as List<Coiffeur>).length,
+      rendezVousSemaine: semaine.rendezVous.length,
+      aEncaisser: semaine.rendezVous
+          .where(
+            (r) =>
+                r.statut == StatutRendezVous.terminee &&
+                r.montantEncaisse == null,
+          )
+          .length,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final textes = Theme.of(context).textTheme;
     void ouvrir(Widget ecran) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => ecran));
     return Scaffold(
       body: ListeCharte(
         haut: Espaces.s6,
         enfants: [
-          _EnTete(
-            surTitre: Text(
-              'Espace gérant',
-              style: Theme.of(context).textTheme.bodySmall,
+          Text('Espace gérant', style: textes.bodySmall),
+          Chargement<_ResumeSalon>(
+            lire: _lire,
+            afficher: (context, r, _) {
+              final aujourdhui = r.ouverture[r.jour.weekday];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      r.nom,
+                      style: textes.headlineMedium!.copyWith(height: 1.2),
+                    ),
+                  ),
+                  const SizedBox(height: Espaces.s2),
+                  if (r.adresse case final adresse? when adresse.isNotEmpty)
+                    _Info(icone: Icons.place_outlined, texte: adresse),
+                  _Info(
+                    icone: Icons.schedule,
+                    texte: aujourdhui == null
+                        ? 'Fermé aujourd\'hui'
+                        : 'Ouvert aujourd\'hui · ${formatHeure(aujourdhui.$1)} – ${formatHeure(aujourdhui.$2)}',
+                    detail: resumeHoraires(r.ouverture),
+                  ),
+                  const SizedBox(height: Espaces.s6),
+                  const _Section('Activité'),
+                  _Ligne(
+                    icone: Icons.history,
+                    titre: 'Historique',
+                    aDroite: r.aEncaisser > 0
+                        ? '${r.aEncaisser} à encaisser'
+                        : '${r.rendezVousSemaine} cette semaine',
+                    accent: r.aEncaisser > 0,
+                    surAppui: () => ouvrir(EcranHistorique(planning: planning)),
+                  ),
+                  const SizedBox(height: Espaces.s6),
+                  const _Section('Configuration'),
+                  _Ligne(
+                    icone: Icons.content_cut,
+                    titre: 'Prestations',
+                    aDroite: r.prestations == 1
+                        ? '1 prestation'
+                        : '${r.prestations} prestations',
+                    surAppui: () => ouvrir(EcranPrestations(salon: salon)),
+                  ),
+                  _Ligne(
+                    icone: Icons.group_outlined,
+                    titre: 'Équipe',
+                    aDroite: r.coiffeurs == 1
+                        ? '1 coiffeur'
+                        : '${r.coiffeurs} coiffeurs',
+                    surAppui: () => ouvrir(EcranEquipe(salon: salon)),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ResumeSalon {
+  const _ResumeSalon({
+    required this.nom,
+    required this.adresse,
+    required this.jour,
+    required this.ouverture,
+    required this.prestations,
+    required this.coiffeurs,
+    required this.rendezVousSemaine,
+    required this.aEncaisser,
+  });
+  final String nom;
+  final String? adresse;
+  final DateTime jour;
+  final Map<int, (TimeOfDay, TimeOfDay)> ouverture;
+  final int prestations;
+  final int coiffeurs;
+  final int rendezVousSemaine;
+  final int aEncaisser;
+}
+
+// Horaires du salon déduits de ceux des coiffeurs (#81, option A) : pour
+// chaque jour (1 = lundi), de la première arrivée au dernier départ. Jour
+// absent : fermé.
+Map<int, (TimeOfDay, TimeOfDay)> horairesDuSalon(List<PlageCoiffeur> plages) {
+  final jours = <int, (int, int)>{};
+  for (final p in plages) {
+    final d = p.plage.debut.hour * 60 + p.plage.debut.minute;
+    final f = p.plage.fin.hour * 60 + p.plage.fin.minute;
+    final actuel = jours[p.plage.jour];
+    jours[p.plage.jour] = actuel == null
+        ? (d, f)
+        : (actuel.$1 < d ? actuel.$1 : d, actuel.$2 > f ? actuel.$2 : f);
+  }
+  TimeOfDay heure(int m) => TimeOfDay(hour: m ~/ 60, minute: m % 60);
+  return {
+    for (final MapEntry(key: j, value: (d, f)) in jours.entries)
+      j: (heure(d), heure(f)),
+  };
+}
+
+// Semaine, un groupe de jours aux mêmes horaires par ligne (comme Google
+// Maps ; jamais de plage coupée en fin de ligne) : « Lun 10:00 – 18:00 »,
+// « Mar–Sam 09:00 – 19:00 », « Dim fermé ».
+String resumeHoraires(Map<int, (TimeOfDay, TimeOfDay)> ouverture) {
+  const noms = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  String plage(int j) {
+    final o = ouverture[j];
+    return o == null ? 'fermé' : '${formatHeure(o.$1)} – ${formatHeure(o.$2)}';
+  }
+
+  final morceaux = <String>[];
+  var debut = 1;
+  for (var j = 1; j <= 7; j++) {
+    if (j < 7 && plage(j + 1) == plage(j)) continue;
+    final jours = debut == j
+        ? noms[j - 1]
+        : '${noms[debut - 1]}–${noms[j - 1]}';
+    morceaux.add('$jours ${plage(j)}');
+    debut = j + 1;
+  }
+  return morceaux.join('\n');
+}
+
+// Ligne d'information de l'en-tête : icône, texte, détail en petit dessous.
+class _Info extends StatelessWidget {
+  const _Info({required this.icone, required this.texte, this.detail});
+  final IconData icone;
+  final String texte;
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final textes = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Espaces.s2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(child: Icon(icone, color: Couleurs.texteSecondaire)),
+          const SizedBox(width: Espaces.s3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(texte, style: textes.bodyLarge),
+                if (detail != null) Text(detail!, style: textes.bodySmall),
+              ],
             ),
-            titre: 'Salon',
-          ),
-          const _Section('Activité'),
-          CarteLien(
-            titre: 'Historique',
-            description: 'Prestations réalisées, absents et encaissements',
-            surAppui: () => ouvrir(EcranHistorique(planning: planning)),
-          ),
-          const SizedBox(height: Espaces.s6),
-          const _Section('Configuration'),
-          CarteLien(
-            titre: 'Prestations',
-            description: 'Catalogue : créer, modifier, désactiver',
-            surAppui: () => ouvrir(EcranPrestations(salon: salon)),
-          ),
-          const SizedBox(height: Espaces.s3),
-          CarteLien(
-            titre: 'Équipe',
-            description: 'Horaires, absences et compétences de chaque coiffeur',
-            surAppui: () => ouvrir(EcranEquipe(salon: salon)),
           ),
         ],
       ),
@@ -342,17 +505,17 @@ class OngletProfil extends StatelessWidget {
             ),
           ],
           const SizedBox(height: Espaces.s4),
-          const _LigneProfil(
+          const _Ligne(
             icone: Icons.edit_outlined,
             titre: 'Modifier mes infos',
             aDroite: 'Bientôt',
           ),
-          const _LigneProfil(
+          const _Ligne(
             icone: Icons.lock_outline,
             titre: 'Mot de passe',
             aDroite: 'Bientôt',
           ),
-          const _LigneProfil(
+          const _Ligne(
             icone: Icons.info_outline,
             titre: 'À propos',
             aDroite: 'Version $versionApp',
@@ -374,35 +537,58 @@ class OngletProfil extends StatelessWidget {
 
 // Ligne du profil, sans cadre : icône, titre, texte à droite, filet dessous.
 // Les entrées à venir (#74) sont affichées, sans action.
-class _LigneProfil extends StatelessWidget {
-  const _LigneProfil({
+class _Ligne extends StatelessWidget {
+  const _Ligne({
     required this.icone,
     required this.titre,
     required this.aDroite,
+    this.surAppui,
+    this.accent = false,
   });
   final IconData icone;
   final String titre;
   final String aDroite;
+  // Ligne qui ouvre un écran (chevron) ; sans action : entrée à venir.
+  final VoidCallback? surAppui;
+  // Chiffre qui appelle une action (« 4 à encaisser ») : en ambre.
+  final bool accent;
 
   @override
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     return Semantics(
       container: true,
+      button: surAppui != null,
       label: '$titre, $aDroite',
+      onTap: surAppui,
       excludeSemantics: true,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 48),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: Couleurs.separateur)),
-        ),
-        child: Row(
-          children: [
-            Icon(icone, color: Couleurs.texteSecondaire),
-            const SizedBox(width: Espaces.s3),
-            Expanded(child: Text(titre, style: textes.bodyLarge)),
-            Text(aDroite, style: textes.bodySmall),
-          ],
+      child: InkWell(
+        onTap: surAppui,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Couleurs.separateur)),
+          ),
+          child: Row(
+            children: [
+              Icon(icone, color: Couleurs.texteSecondaire),
+              const SizedBox(width: Espaces.s3),
+              Expanded(child: Text(titre, style: textes.bodyLarge)),
+              Text(
+                aDroite,
+                style: accent
+                    ? textes.labelLarge!.copyWith(
+                        color: CouleursStatut.aCloturerTexte,
+                      )
+                    : textes.bodySmall,
+              ),
+              if (surAppui != null)
+                const Icon(
+                  Icons.chevron_right,
+                  color: Couleurs.texteSecondaire,
+                ),
+            ],
+          ),
         ),
       ),
     );

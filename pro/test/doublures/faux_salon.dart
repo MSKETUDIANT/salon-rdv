@@ -49,6 +49,10 @@ class FauxSalon implements DepotSalon {
   }
 
   @override
+  Future<({String nom, String? adresse})> identite() async =>
+      (nom: 'Salon de démo', adresse: '1 rue de la Coupe');
+
+  @override
   Future<List<Prestation>> prestations() async =>
       [..._prestations]..sort((a, b) => a.nom.compareTo(b.nom));
 

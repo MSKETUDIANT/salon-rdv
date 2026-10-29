@@ -67,6 +67,8 @@ class ErreurSalon implements Exception {
 }
 
 abstract interface class DepotSalon {
+  // Nom et adresse du salon (#81).
+  Future<({String nom, String? adresse})> identite();
   Future<List<Prestation>> prestations();
   Future<void> creerPrestation({
     required String nom,
@@ -164,6 +166,16 @@ class SalonSupabase implements DepotSalon {
   @override
   Future<DateTime> maintenantAuSalon() =>
       _appel(() async => depuisUtc(DateTime.now(), await _fuseauDuSalon()));
+
+  @override
+  Future<({String nom, String? adresse})> identite() => _appel(() async {
+    final ligne = await _client
+        .from('salons')
+        .select('nom, adresse')
+        .eq('id', _salonId)
+        .single();
+    return (nom: ligne['nom'] as String, adresse: ligne['adresse'] as String?);
+  });
 
   Future<T> _appel<T>(Future<T> Function() action) async {
     try {

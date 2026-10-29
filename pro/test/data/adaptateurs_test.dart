@@ -254,6 +254,17 @@ void main() {
     late SalonSupabase salon;
     setUp(() => salon = SalonSupabase(api.client, salonId));
 
+    test('identité : nom et adresse du salon', () async {
+      api.repondre('GET', 'salons', {'nom': 'Salon de démo', 'adresse': null});
+      final identite = await salon.identite();
+      expect(identite.nom, 'Salon de démo');
+      expect(identite.adresse, isNull);
+      expect(
+        api.vers('salons').single.url.queryParameters['id'],
+        'eq.$salonId',
+      );
+    });
+
     test('prestations : numeric en double, filtre et tri', () async {
       api.repondre('GET', 'prestations', [
         {
