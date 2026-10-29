@@ -13,7 +13,7 @@ Vérification de l'issue #12, selon la méthode prévue au cahier des charges
 | BNF-3 Sécurité | Haute | un client ne voit que ses réservations ; seul le gérant modifie horaires, absences, catalogue | tests d'accès par rôle sur toutes les tables ; Security Advisor : aucun défaut bloquant, 2 points tranchés par Sparta | **Passe** (protection des mots de passe : activation à confirmer) |
 | BNF-4 Utilisabilité | Haute | un nouveau client réserve en moins de 2 min, sans aide | test avec 5 vrais utilisateurs à faire (`docs/bnf-4-fiche-test.md`) | **À faire** (Sparta) |
 | BNF-5 Performance | Moyenne | liste des créneaux en moins de 3 s, téléphone d'entrée de gamme, 3G | médiane **3,33 s** en « Fast 3G » | **Écart** de 0,33 s, expliqué ; suite : #46 |
-| BNF-6 Maintenabilité | Moyenne | code en modules ; règles de réservation couvertes par des tests | découpe en modules relue ; règles de réservation couvertes (SQL, 100 % des lignes de `lib/` qui les appliquent) | **Passe**, 2 écarts mineurs ; suite : #47 |
+| BNF-6 Maintenabilité | Moyenne | code en modules ; règles de réservation couvertes par des tests | découpe en modules relue ; règles de réservation couvertes (SQL, 100 % des lignes de `lib/` qui les appliquent) | **Passe** ; écart app pro comblé par #47, reste 1 écart mineur (site) |
 | BNF-7 Portabilité | Basse | navigateur d'ordinateur et Android | Chrome sur ordinateur : automatique, réussi ; Android et navigateur de Sparta : à faire | **En partie**, reste manuel (Sparta) |
 | BNF-8 Compatibilité | Basse | pas d'interopérabilité exigée en v1 | non exigé en v1 | **Sans objet** |
 | BNF-9 Utilisabilité | Haute | 3 écrans au plus, hors authentification | 3 écrans (prestations, créneaux, confirmation) | **Passe** |
@@ -271,15 +271,19 @@ cahier :
 | Base | non mesurable en lignes pour le SQL | toutes les branches reliées à un test (BNF-2), 408 tests |
 | Site, `lib/` | 77,7 % | `creneaux.ts`, `reservation.ts`, `mes-reservations.ts` : 100 % |
 | Site, total (`npm run test:couverture`) | 76,5 % (branches 85,2 %) | — |
-| App pro (`flutter test --coverage`) | 78,9 % ; dossiers d'écrans 82 à 100 % | règles dans la base |
+| App pro (`flutter test --coverage`) | 95,3 % (#47, 2026-10-29 ; avant : 78,9 %) ; `lib/data/` 98 %, `ecran_equipe.dart` 100 % | règles dans la base |
 
-**Écarts mineurs** :
+**Écart mineur** :
 
 - côté site, les pages serveur (`app/**/page.tsx`) et `lib/supabase/` sont à
-  0 % en tests unitaires : les tests de bout en bout les couvrent ;
-- côté app pro, `lib/data/` est à 24 % (accès à Supabase, testé par les tests
-  SQL et l'API, pas par des tests Dart), et l'écran `ecran_equipe.dart` (#9)
-  n'a aucun test. Suite : issue #47.
+  0 % en tests unitaires : les tests de bout en bout les couvrent.
+
+**Comblé par #47** (2026-10-29) : côté app pro, `lib/data/` passe de 24 % à
+98 % (adaptateurs Supabase testés avec une fausse API, `test/data/adaptateurs_test.dart` :
+lecture des lignes à l'heure du salon, `numeric` en `double`, paramètres
+envoyés, erreurs `PT400`, `PT403`, `PT409`, `23505`, `23514`, `42501`, `23P01`,
+refus silencieux de la RLS) ; `ecran_equipe.dart` passe de 0 % à 100 %
+(`test/features/equipe_test.dart`).
 
 ## BNF-7 — Portabilité
 
