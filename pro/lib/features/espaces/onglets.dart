@@ -13,29 +13,6 @@ import '../historique/ecran_historique.dart';
 
 // Onglets « Salon » et « Profil » de la barre du bas (#64, #73, #81).
 
-// En-tête d'un onglet : petit sur-titre et titre en Newsreader.
-class _EnTete extends StatelessWidget {
-  const _EnTete({required this.surTitre, required this.titre});
-  final Widget surTitre;
-  final String titre;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        surTitre,
-        const SizedBox(height: Espaces.s1),
-        Semantics(
-          header: true,
-          child: Text(titre, style: Theme.of(context).textTheme.displaySmall),
-        ),
-        const SizedBox(height: Espaces.s6),
-      ],
-    );
-  }
-}
-
 class _Section extends StatelessWidget {
   const _Section(this.titre);
   final String titre;
@@ -288,10 +265,16 @@ class OngletSalonCoiffeur extends StatelessWidget {
       body: ListeCharte(
         haut: Espaces.s6,
         enfants: [
-          _EnTete(
-            surTitre: Text('Espace coiffeur', style: textes.bodySmall),
-            titre: 'Salon',
+          // Titre aux proportions de l'onglet Salon du gérant (#100).
+          Text('Espace coiffeur', style: textes.bodySmall),
+          Semantics(
+            header: true,
+            child: Text(
+              'Salon',
+              style: textes.headlineMedium!.copyWith(height: 1.2),
+            ),
           ),
+          const SizedBox(height: Espaces.s6),
           Chargement<(DateTime, DonneesPlanning)>(
             lire: _lire,
             afficher: (context, resultat, _) {
@@ -306,37 +289,34 @@ class OngletSalonCoiffeur extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const _Section('Mes horaires'),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Espaces.s4,
-                        vertical: Espaces.s1,
-                      ),
-                      child: Column(
-                        children: [
-                          for (var i = 0; i < 7; i++) ...[
-                            if (i > 0) const Divider(),
-                            _LigneHoraire(
-                              jour: nomsJours[i],
-                              plages: donnees.plagesDu(
-                                moi,
-                                lundi.add(Duration(days: i)),
-                              ),
-                            ),
-                          ],
-                        ],
+                  // Sans carte (#100) : un jour par ligne, filets fins.
+                  for (var i = 0; i < 7; i++) ...[
+                    _LigneHoraire(
+                      jour: nomsJours[i],
+                      plages: donnees.plagesDu(
+                        moi,
+                        lundi.add(Duration(days: i)),
                       ),
                     ),
-                  ),
+                    const Divider(),
+                  ],
                   const SizedBox(height: Espaces.s6),
                   const _Section('Mes absences (30 prochains jours)'),
                   if (absences.isEmpty)
                     Text('Aucune absence prévue.', style: textes.bodyLarge)
                   else
-                    for (final a in absences) ...[
-                      Card(
+                    // Sans carte (#100) : une absence par ligne, filet fin.
+                    for (final a in absences)
+                      Container(
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Couleurs.separateur),
+                          ),
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.all(Espaces.s4),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: Espaces.s3,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -354,8 +334,6 @@ class OngletSalonCoiffeur extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: Espaces.s3),
-                    ],
                   const SizedBox(height: Espaces.s4),
                   Text(
                     'Horaires et absences sont modifiés par le gérant du salon.',
