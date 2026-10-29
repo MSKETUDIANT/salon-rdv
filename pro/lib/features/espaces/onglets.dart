@@ -277,69 +277,68 @@ class OngletProfil extends StatelessWidget {
         haut: Espaces.s6,
         enfants: [
           // Le nom se lit en tâche de fond ; en attendant (ou sans nom),
-          // l'e-mail tient lieu de nom. En ligne (avatar à gauche) : à
-          // 360 × 640, bascule et déconnexion restent visibles sans défiler
-          // (#41).
+          // l'e-mail tient lieu de nom. Tout tient à 360 × 640 : bascule et
+          // déconnexion visibles sans défiler (#41).
           FutureBuilder<String?>(
             future: planning.monNom().catchError((_) => null),
             builder: (context, lecture) {
               final nom = lecture.data?.trim();
               final affiche = nom == null || nom.isEmpty ? compte : nom;
-              return Row(
-                children: [
-                  Avatar(nom: affiche, taille: 72),
-                  const SizedBox(width: Espaces.s4),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Semantics(
-                          header: true,
-                          child: Text(affiche, style: textes.headlineSmall),
-                        ),
-                        if (affiche != compte)
-                          Text(compte, style: textes.bodySmall),
-                        const SizedBox(height: Espaces.s1),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: Espaces.s3,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Couleurs.separateur,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(roles, style: textes.labelLarge),
-                        ),
-                      ],
+              return SizedBox(
+                width: double.infinity,
+                child: Column(
+                  children: [
+                    Avatar(nom: affiche, taille: 80),
+                    const SizedBox(height: Espaces.s2),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        affiche,
+                        textAlign: TextAlign.center,
+                        style: textes.headlineSmall!.copyWith(height: 1.3),
+                      ),
                     ),
-                  ),
-                ],
+                    if (affiche != compte)
+                      Text(compte, style: textes.bodySmall),
+                    const SizedBox(height: Espaces.s1),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Espaces.s3,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Couleurs.separateur,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(roles, style: textes.labelLarge),
+                    ),
+                  ],
+                ),
               );
             },
           ),
+          // Choix de l'espace, juste sous l'en-tête : seulement pour un compte
+          // gérant et coiffeur.
           if (autre != null) ...[
-            const SizedBox(height: Espaces.s6),
-            const _Section('Espace'),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<Espace>(
-                segments: const [
-                  ButtonSegment(value: Espace.gerant, label: Text('Gérant')),
-                  ButtonSegment(
-                    value: Espace.coiffeur,
-                    label: Text('Coiffeur'),
-                  ),
-                ],
-                selected: {espace},
-                showSelectedIcon: false,
-                onSelectionChanged: (choix) => surBascule?.call(choix.first),
+            const SizedBox(height: Espaces.s4),
+            Semantics(
+              container: true,
+              label: 'Espace',
+              child: SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<Espace>(
+                  segments: const [
+                    ButtonSegment(value: Espace.gerant, label: Text('Gérant')),
+                    ButtonSegment(
+                      value: Espace.coiffeur,
+                      label: Text('Coiffeur'),
+                    ),
+                  ],
+                  selected: {espace},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (choix) => surBascule?.call(choix.first),
+                ),
               ),
-            ),
-            const SizedBox(height: Espaces.s2),
-            Text(
-              "Les onglets suivent l'espace choisi.",
-              style: textes.bodySmall,
             ),
           ],
           const SizedBox(height: Espaces.s4),
@@ -393,7 +392,7 @@ class _LigneProfil extends StatelessWidget {
       label: '$titre, $aDroite',
       excludeSemantics: true,
       child: Container(
-        constraints: const BoxConstraints(minHeight: 52),
+        constraints: const BoxConstraints(minHeight: 48),
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: Couleurs.separateur)),
         ),
