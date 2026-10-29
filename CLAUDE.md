@@ -57,6 +57,13 @@ Règle métier critique : zéro double réservation, garantie par la base
   options avec leurs avantages et inconvénients, recommande la meilleure selon
   les standards ergonomiques des grandes applications, puis attends mon choix
   avant de coder. (Les petits choix techniques restent tranchés seul.)
+- Avant de présenter un travail, vérifie-le toi-même sur l'émulateur, sur tous
+  les écrans concernés (captures comprises), au regard de l'objectif du projet
+  (gestion d'un salon de coiffure) et des standards des grandes applications de
+  planning. Relis mes remarques sur les livraisons précédentes et ne reproduis
+  pas les mêmes défauts. Corrige tes propres défauts avant de présenter le
+  résultat, et donne la liste des critères vérifiés. Ne présente une livraison
+  que si elle passe cette vérification.
 - Ordre de mise en ligne : merge de la PR sur main, puis db push depuis main.
 
 ## 5. Conventions
