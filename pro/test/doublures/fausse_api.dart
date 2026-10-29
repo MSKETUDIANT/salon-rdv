@@ -18,8 +18,14 @@ class FausseApi {
     authOptions: const AuthClientOptions(autoRefreshToken: false),
   );
 
+  // Sans réseau (#83) : chaque requête échoue comme sans connexion.
+  bool horsReseau = false;
+
   Future<http.Response> _repondre(http.Request requete) async {
     requetes.add(requete);
+    if (horsReseau) {
+      throw http.ClientException('Failed host lookup', requete.url);
+    }
     final cle = '${requete.method} ${requete.url.path}';
     final reponse = reponses[cle];
     if (reponse == null) {

@@ -125,6 +125,7 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
           ),
           children: [
             Chargement<(DateTime, List<Coiffeur>, DonneesPlanning)>(
+              silhouette: const SilhouettePlanning(),
               // _version change avec la date (_deplacer, aujourd'hui) ; pas le
               // choix du coiffeur, déjà chargé.
               key: ValueKey(_version),

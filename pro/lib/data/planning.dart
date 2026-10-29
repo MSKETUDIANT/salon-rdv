@@ -254,8 +254,8 @@ class PlanningSupabase implements DepotPlanning {
       throw ErreurSalon(messageErreurPlanning(erreur.code, erreur.message));
     } on ErreurSalon {
       rethrow;
-    } catch (_) {
-      throw ErreurSalon(messageErreurBase(null));
+    } catch (erreur) {
+      throw ErreurSalon(messageErreurInattendue(erreur));
     }
   }
 

@@ -164,7 +164,10 @@ class AxeHeures extends StatelessWidget {
     );
     return ExcludeSemantics(
       child: SizedBox(
-        width: largeurAxe,
+        // Élargi avec la police du téléphone (#83), jusqu'à 1,8 fois.
+        width:
+            largeurAxe *
+            math.min(1.8, MediaQuery.textScalerOf(context).scale(1)),
         height: (fin - debut) * pixelsParMinute,
         child: Stack(
           children: [
@@ -401,9 +404,11 @@ class _CarteRendezVous extends StatelessWidget {
             // l'état) ; état écrit. Jamais la couleur seule.
             child: LayoutBuilder(
               builder: (context, contraintes) {
+                // 24 px par ligne, agrandis avec la police du téléphone (#83).
+                final hauteurLigne = MediaQuery.textScalerOf(context).scale(24);
                 final lignes = math.max(
                   1,
-                  (contraintes.maxHeight / 24).floor(),
+                  (contraintes.maxHeight / hauteurLigne).floor(),
                 );
                 final titre = Text.rich(
                   TextSpan(
@@ -434,18 +439,27 @@ class _CarteRendezVous extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: textes.bodySmall!.copyWith(color: style.texte),
                 );
-                if (lignes < 2) return avecIcone(titre);
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    titre,
-                    if (lignes == 2)
-                      avecIcone(prestation)
-                    else ...[
-                      prestation,
-                      LibelleEtat(etat: etat),
-                    ],
-                  ],
+                // Bloc plus court qu'une ligne (15 min, grande police) : le
+                // texte dépasse et le bloc le coupe, sans erreur.
+                return OverflowBox(
+                  alignment: Alignment.topLeft,
+                  minHeight: 0,
+                  maxHeight: double.infinity,
+                  child: lignes < 2
+                      ? avecIcone(titre)
+                      : Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            titre,
+                            if (lignes == 2)
+                              avecIcone(prestation)
+                            else ...[
+                              prestation,
+                              LibelleEtat(etat: etat),
+                            ],
+                          ],
+                        ),
                 );
               },
             ),
