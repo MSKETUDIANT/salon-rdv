@@ -53,6 +53,10 @@ Règle métier critique : zéro double réservation, garantie par la base
 - Une issue à la fois. Ne touche pas à ce qui est hors de l'issue en cours.
 - Si une consigne te paraît fausse ou contradictoire, dis-le avant d'agir.
 - Si tu ne sais pas, dis-le. Ne devine pas.
+- Quand une décision de conception n'est pas évidente, présente deux ou trois
+  options avec leurs avantages et inconvénients, recommande la meilleure selon
+  les standards ergonomiques des grandes applications, puis attends mon choix
+  avant de coder. (Les petits choix techniques restent tranchés seul.)
 - Ordre de mise en ligne : merge de la PR sur main, puis db push depuis main.
 
 ## 5. Conventions
