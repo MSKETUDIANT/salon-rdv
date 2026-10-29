@@ -179,34 +179,37 @@ class _VueJour extends StatelessWidget {
           plages.isEmpty ? '$resume · ne travaille pas ce jour-là' : resume,
           style: textes.bodyLarge,
         ),
-        const SizedBox(height: Espaces.s3),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(rayon),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AxeHeures(
-                debut: debut,
-                fin: fin,
-                maintenant: memeJour(maintenant, jour)
-                    ? maintenant.hour * 60 + maintenant.minute
-                    : null,
-              ),
-              Expanded(
-                child: ColonneJour(
-                  jour: jour,
+        // Jour de repos (#79) : le message seul, sans grille.
+        if (plages.isNotEmpty || rdv.isNotEmpty) ...[
+          const SizedBox(height: Espaces.s3),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(rayon),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AxeHeures(
                   debut: debut,
                   fin: fin,
-                  plages: plages,
-                  absences: donnees.absencesDu(coiffeur, jour),
-                  rendezVous: rdv,
-                  surRendezVous: surRendezVous,
-                  maintenant: maintenant,
+                  maintenant: memeJour(maintenant, jour)
+                      ? maintenant.hour * 60 + maintenant.minute
+                      : null,
                 ),
-              ),
-            ],
+                Expanded(
+                  child: ColonneJour(
+                    jour: jour,
+                    debut: debut,
+                    fin: fin,
+                    plages: plages,
+                    absences: donnees.absencesDu(coiffeur, jour),
+                    rendezVous: rdv,
+                    surRendezVous: surRendezVous,
+                    maintenant: maintenant,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

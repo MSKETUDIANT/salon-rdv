@@ -49,6 +49,11 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
 
   void _actualiser() => setState(() => _version++);
 
+  // Jour de repos : pas d'horaires et aucun rendez-vous.
+  static bool _repos(DonneesPlanning donnees, String coiffeur, DateTime jour) =>
+      donnees.plagesDu(coiffeur, jour).isEmpty &&
+      donnees.rendezVousDu(coiffeur, jour).isEmpty;
+
   // Fiche d'un rendez-vous ; après une clôture ou un encaissement, message et
   // relecture.
   Future<void> _ouvrir(RendezVous r, String coiffeur) async {
@@ -155,37 +160,41 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                               ),
                         style: textes.bodyLarge,
                       ),
-                      const SizedBox(height: Espaces.s2),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(rayon),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AxeHeures(
-                              debut: debut,
-                              fin: fin,
-                              maintenant: memeJour(_maintenant!, jour)
-                                  ? _maintenant!.hour * 60 + _maintenant!.minute
-                                  : null,
-                            ),
-                            Expanded(
-                              child: ColonneJour(
-                                jour: jour,
+                      // Jour de repos (#79) : le message seul, sans grille.
+                      if (!_repos(donnees, choisi.id, jour)) ...[
+                        const SizedBox(height: Espaces.s2),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(rayon),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AxeHeures(
                                 debut: debut,
                                 fin: fin,
-                                plages: donnees.plagesDu(choisi.id, jour),
-                                absences: donnees.absencesDu(choisi.id, jour),
-                                rendezVous: donnees.rendezVousDu(
-                                  choisi.id,
-                                  jour,
-                                ),
-                                maintenant: _maintenant!,
-                                surRendezVous: (r) => _ouvrir(r, choisi.nom),
+                                maintenant: memeJour(_maintenant!, jour)
+                                    ? _maintenant!.hour * 60 +
+                                          _maintenant!.minute
+                                    : null,
                               ),
-                            ),
-                          ],
+                              Expanded(
+                                child: ColonneJour(
+                                  jour: jour,
+                                  debut: debut,
+                                  fin: fin,
+                                  plages: donnees.plagesDu(choisi.id, jour),
+                                  absences: donnees.absencesDu(choisi.id, jour),
+                                  rendezVous: donnees.rendezVousDu(
+                                    choisi.id,
+                                    jour,
+                                  ),
+                                  maintenant: _maintenant!,
+                                  surRendezVous: (r) => _ouvrir(r, choisi.nom),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ],
                 );

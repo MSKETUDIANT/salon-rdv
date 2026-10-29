@@ -151,6 +151,20 @@ void main() {
       );
     });
 
+    testWidgets('jour de repos : le message seul, sans grille (#79)', (
+      tester,
+    ) async {
+      await ouvrir(tester, EcranMonPlanning(planning: planning));
+      expect(find.byType(ColonneJour), findsOneWidget);
+      await appuyer(tester, find.byTooltip('Jour suivant'));
+      expect(
+        find.text('Aucun rendez-vous · ne travaille pas ce jour-là'),
+        findsOneWidget,
+      );
+      expect(find.byType(ColonneJour), findsNothing);
+      expect(find.byType(AxeHeures), findsNothing);
+    });
+
     testWidgets('tirer vers le bas relit le planning (#79)', (tester) async {
       await ouvrir(tester, EcranMonPlanning(planning: planning));
       expect(find.byTooltip('Actualiser'), findsNothing);
@@ -219,7 +233,14 @@ void main() {
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
       await appuyer(tester, find.byTooltip('Jour suivant'));
       expect(planning.appels.last, '2030-1-8..2030-1-8 tous');
-      expect(find.textContaining('Aucun rendez-vous'), findsOneWidget);
+      // Mardi : jour de repos d'Amira, sans rendez-vous : le message seul,
+      // sans grille ni lignes horaires (#79).
+      expect(
+        find.text('Aucun rendez-vous · ne travaille pas ce jour-là'),
+        findsOneWidget,
+      );
+      expect(find.byType(ColonneJour), findsNothing);
+      expect(find.byType(AxeHeures), findsNothing);
     });
   });
 
