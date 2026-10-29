@@ -170,6 +170,11 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
             Votre connexion a expiré. Changez de compte pour recevoir un nouveau code.
           </p>
         )}
+        {resultat?.statut === "occupe" && (
+          <p role="alert" className="text-base text-erreur">
+            Beaucoup de réservations arrivent en même temps. Réessayez dans un instant.
+          </p>
+        )}
         {resultat?.statut === "erreur" && (
           <p role="alert" className="text-base text-erreur">
             La réservation n&apos;a pas pu être enregistrée. Réessayez.

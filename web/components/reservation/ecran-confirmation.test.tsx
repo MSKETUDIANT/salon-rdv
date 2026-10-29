@@ -160,6 +160,29 @@ describe("EcranConfirmation", () => {
     expect(screen.getByRole("button", { name: "Réservation…" })).toBeTruthy();
   });
 
+  it("trop de réservations en même temps (55P03) : « Réessayez dans un instant », puis réessai", async () => {
+    faux.session = { user: { email: "salma@exemple.tn" } };
+    faux.rpc = vi
+      .fn()
+      .mockResolvedValueOnce({ data: null, error: { code: "55P03" } })
+      .mockResolvedValueOnce({ data: [{ id: "r1", coiffeur_id: "y" }], error: null });
+    render(<EcranConfirmation catalogue={catalogue} />);
+    await screen.findByText("salma@exemple.tn");
+
+    const confirmer = () =>
+      act(async () => fireEvent.click(screen.getByRole("button", { name: "Confirmer la réservation" })));
+    await confirmer();
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Beaucoup de réservations arrivent en même temps. Réessayez dans un instant.",
+    );
+    expect(screen.queryByText(/n'a pas pu être enregistrée/)).toBeNull();
+    expect(etat.replace).not.toHaveBeenCalled();
+
+    // Le client reste sur l'écran et valide de nouveau.
+    await confirmer();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Réservation confirmée");
+  });
+
   it("réservation confirmée : pas de retour automatique", async () => {
     faux.session = { user: { email: "salma@exemple.tn" } };
     render(<EcranConfirmation catalogue={catalogue} />);

@@ -90,10 +90,13 @@ export type ResultatReservation =
   | { statut: "confirmee"; coiffeurId: string }
   | { statut: "pris" }
   | { statut: "deconnecte" }
+  | { statut: "occupe" }
   | { statut: "erreur" };
 
 // Enregistre la réservation (fonction SQL reserver, qui revérifie la
-// disponibilité). PT409 : le créneau vient d'être pris.
+// disponibilité). PT409 : le créneau vient d'être pris. 55P03 : trop de
+// réservations au même moment pour ce coiffeur, verrou non obtenu en 3 s
+// (#59, #71) : le client peut réessayer tel quel.
 export async function reserver(supabase: Client, demande: Demande): Promise<ResultatReservation> {
   const { data, error } = await supabase.rpc("reserver", {
     p_prestation: demande.prestation.id,
@@ -103,6 +106,7 @@ export async function reserver(supabase: Client, demande: Demande): Promise<Resu
   if (error) {
     if (error.code === "PT409") return { statut: "pris" };
     if (error.code === "PT401") return { statut: "deconnecte" };
+    if (error.code === "55P03") return { statut: "occupe" };
     return { statut: "erreur" };
   }
   return data?.[0] ? { statut: "confirmee", coiffeurId: data[0].coiffeur_id } : { statut: "erreur" };
