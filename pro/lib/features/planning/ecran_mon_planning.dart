@@ -6,6 +6,7 @@ import '../../ui/charte.dart';
 import '../../ui/format.dart';
 import '../aujourdhui/carte_glissable.dart';
 import 'elements_planning.dart';
+import 'formulaire_client_passage.dart';
 
 // Planning du coiffeur connecté (BF-K1), comme celui du gérant (#98, option
 // A) : bande des jours de la semaine et flèches par semaine, « Aujourd'hui »
@@ -65,6 +66,19 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
     _actualiser();
   }
 
+  // Client de passage (#103) : formulaire, puis message et relecture.
+  Future<void> _nouveauRendezVous() async {
+    final enregistre = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            FormulaireClientPassage(planning: widget.planning, gerant: false),
+      ),
+    );
+    if (enregistre != true || !mounted) return;
+    confirmer(context, 'Rendez-vous ajouté.');
+    _actualiser();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,6 +98,11 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _nouveauRendezVous,
+        icon: const Icon(Icons.add),
+        label: const Text('Nouveau rendez-vous'),
+      ),
       body: RefreshIndicator(
         onRefresh: () async => _actualiser(),
         child: ListView(
@@ -95,7 +114,9 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
             Espaces.s4,
             0,
             Espaces.s4,
-            Espaces.s8,
+            // Place sous le dernier rendez-vous : le bouton flottant
+            // « Nouveau rendez-vous » ne le cache pas (#103).
+            96,
           ),
           children: [
             Chargement<(DateTime, DonneesPlanning)>(
