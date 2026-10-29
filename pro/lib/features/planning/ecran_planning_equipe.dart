@@ -81,9 +81,10 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
           // Tirer vers le bas marche aussi quand la journée tient à l'écran.
           physics: const AlwaysScrollableScrollPhysics(),
           // Mêmes marges que ListeCharte (ui/composants.dart).
+          // Pas de marge en haut (#79) : la date suit le titre de près.
           padding: const EdgeInsets.fromLTRB(
             Espaces.s4,
-            Espaces.s4,
+            0,
             Espaces.s4,
             Espaces.s8,
           ),
@@ -134,13 +135,18 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                         child: Row(
                           children: [
                             for (final c in coiffeurs) ...[
+                              // Vert en petite touche (#79) : coiffeur choisi
+                              // en vert sur gris clair, sans cadre.
                               ChoiceChip(
                                 label: Text(c.nom),
                                 labelStyle: textes.labelLarge!.copyWith(
                                   color: c.id == choisi.id
-                                      ? Couleurs.surface
-                                      : Couleurs.texte,
+                                      ? Couleurs.accent
+                                      : Couleurs.texteSecondaire,
                                 ),
+                                selectedColor: Couleurs.separateur,
+                                backgroundColor: Couleurs.fond,
+                                side: BorderSide.none,
                                 selected: c.id == choisi.id,
                                 showCheckmark: false,
                                 onSelected: (_) =>

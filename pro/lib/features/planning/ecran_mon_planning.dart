@@ -73,9 +73,10 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
           // Tirer vers le bas marche aussi quand la journée tient à l'écran.
           physics: const AlwaysScrollableScrollPhysics(),
           // Mêmes marges que ListeCharte (ui/composants.dart).
+          // Pas de marge en haut (#79) : la date suit le titre de près.
           padding: const EdgeInsets.fromLTRB(
             Espaces.s4,
-            Espaces.s4,
+            0,
             Espaces.s4,
             Espaces.s8,
           ),

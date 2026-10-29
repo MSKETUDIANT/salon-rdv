@@ -327,12 +327,14 @@ class ColonneJour extends StatelessWidget {
                 ),
               ),
             ),
+          // 2 px de chaque côté (#79) : deux rendez-vous qui se suivent ne
+          // se touchent pas.
           for (final r in rendezVous)
             Positioned(
-              top: _y(_minutes(r.debut)),
+              top: _y(_minutes(r.debut)) + 2,
               height: math.max(
                 zoneTactileMin,
-                _y(_minutes(r.fin)) - _y(_minutes(r.debut)),
+                _y(_minutes(r.fin)) - _y(_minutes(r.debut)) - 4,
               ),
               left: Espaces.s1,
               right: Espaces.s1,
@@ -373,11 +375,17 @@ class _CarteRendezVous extends StatelessWidget {
       // sinon TalkBack annoncerait un bouton impossible à activer.
       onTap: surAppui,
       excludeSemantics: true,
+      // Fond doux, sans bordure (#79) ; « à venir » (fond blanc dans la
+      // frise) prend une teinte légère de l'accent pour se détacher.
       child: Material(
-        color: style.fond,
+        color: etat == EtatRendezVous.aVenir
+            ? Color.alphaBlend(
+                Couleurs.accent.withValues(alpha: 0.08),
+                Couleurs.surface,
+              )
+            : style.fond,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(rayon),
-          side: BorderSide(color: style.bordure),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
