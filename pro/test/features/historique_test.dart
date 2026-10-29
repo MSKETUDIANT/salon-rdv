@@ -11,7 +11,7 @@ import 'package:salon_pro/ui/charte.dart';
 
 import '../doublures/faux_planning.dart';
 
-// Historique du gérant (#11). Droits et filtres côté base :
+// Historique du gérant (#11, refait par #82). Droits et filtres côté base :
 // supabase/tests/cloture_encaissement.test.sql ; ici, l'affichage. Dans la
 // doublure, il est lundi 7 janvier 2030 ; lignes : r2 (Youssef, encaissé
 // 75 DT), r4 (Amira, à encaisser), r5 (Amira, client absent).
@@ -52,17 +52,56 @@ void main() {
       find.text('Du lundi 7 janvier au dimanche 13 janvier'),
       findsOneWidget,
     );
-    expect(find.text('Total encaissé : 75 DT'), findsOneWidget);
+    // Total en très grand, sur le fond (#82).
+    // 75 DT : le total, et le prix de la ligne de Karim.
+    expect(find.text('75 DT'), findsNWidgets(2));
+    expect(find.bySemanticsLabel('Total encaissé : 75 DT'), findsOneWidget);
     expect(find.text('2 prestations réalisées · 1 absent'), findsOneWidget);
     expect(find.text('1 à encaisser'), findsOneWidget);
 
     expect(find.text('Lundi 7 janvier'), findsOneWidget);
     expect(find.text('Mardi 8 janvier'), findsOneWidget);
-    expect(find.text('09:00  Karim · Couleur'), findsOneWidget);
-    expect(find.text('À encaisser · prix 20 DT'), findsOneWidget);
-    expect(find.text('Client absent'), findsOneWidget);
+    // Une ligne par prestation, prix une seule fois.
+    expect(
+      find.bySemanticsLabel('09:00, Karim, Couleur, Youssef, encaissé, 75 DT'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('09:30, Salma, Coupe, Amira, à encaisser, 20 DT'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('11:00, Nour, Brushing, Amira, absent'),
+      findsOneWidget,
+    );
+    expect(find.text('Absent'), findsOneWidget);
+    expect(find.textContaining('prix'), findsNothing);
+    expect(find.text('Corriger le montant'), findsNothing);
+    // « Encaisser » seulement sur la ligne non payée.
     expect(find.text('Encaisser'), findsOneWidget);
-    expect(find.text('Corriger le montant'), findsOneWidget);
+    // Plus de cadre ni de liste déroulante.
+    expect(find.byType(Card), findsNothing);
+    expect(find.byType(DropdownButtonFormField<String?>), findsNothing);
+  });
+
+  testWidgets('« 1 à encaisser » : filtre, puis « Tout voir »', (tester) async {
+    await ouvrir(tester);
+    await appuyer(tester, find.text('1 à encaisser'));
+    expect(find.bySemanticsLabel(RegExp(r'^09:30, Salma')), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^09:00, Karim')), findsNothing);
+    expect(find.bySemanticsLabel(RegExp(r'^11:00, Nour')), findsNothing);
+    // Pas de nouvelle lecture : filtre sur la liste déjà chargée.
+    expect(planning.appels, hasLength(1));
+    await appuyer(tester, find.text('Tout voir'));
+    expect(find.bySemanticsLabel(RegExp(r'^09:00, Karim')), findsOneWidget);
+  });
+
+  testWidgets('toucher une ligne payée : correction du montant', (
+    tester,
+  ) async {
+    await ouvrir(tester);
+    await appuyer(tester, find.text('Karim'));
+    expect(find.widgetWithText(TextField, '75'), findsOneWidget);
   });
 
   testWidgets('périodes : mois, puis mois dernier', (tester) async {
@@ -103,12 +142,14 @@ void main() {
 
   testWidgets('filtre coiffeur : Amira seulement', (tester) async {
     await ouvrir(tester);
-    await appuyer(tester, find.byType(DropdownButtonFormField<String?>));
-    await appuyer(tester, find.text('Amira').last);
+    // Filtre en pastilles : « Tous » puis prénom et petit avatar (#82).
+    await appuyer(tester, find.widgetWithText(ChoiceChip, 'Amira'));
     expect(planning.appels.last, 'historique 2030-1-7..2030-1-13 c1');
-    expect(find.text('Total encaissé : 0 DT'), findsOneWidget);
+    expect(find.bySemanticsLabel('Total encaissé : 0 DT'), findsOneWidget);
     expect(find.text('1 prestation réalisée · 1 absent'), findsOneWidget);
-    expect(find.text('09:00  Karim · Couleur'), findsNothing);
+    expect(find.bySemanticsLabel(RegExp(r'^09:00, Karim')), findsNothing);
+    await appuyer(tester, find.widgetWithText(ChoiceChip, 'Tous'));
+    expect(planning.appels.last, 'historique 2030-1-7..2030-1-13 tous');
   });
 
   testWidgets('« Encaisser » depuis une ligne, puis relecture', (tester) async {
@@ -128,7 +169,7 @@ void main() {
       find.text('Aucune prestation réalisée ni absence sur cette période.'),
       findsOneWidget,
     );
-    expect(find.text('Total encaissé : 0 DT'), findsOneWidget);
+    expect(find.bySemanticsLabel('Total encaissé : 0 DT'), findsOneWidget);
   });
 
   testWidgets('refus de la base : message et « Réessayer »', (tester) async {
@@ -139,6 +180,6 @@ void main() {
     expect(find.text('Historique réservé au gérant du salon.'), findsOneWidget);
     planning.erreur = null;
     await appuyer(tester, find.text('Réessayer'));
-    expect(find.text('Total encaissé : 75 DT'), findsOneWidget);
+    expect(find.bySemanticsLabel('Total encaissé : 75 DT'), findsOneWidget);
   });
 }

@@ -10,7 +10,9 @@ import '../planning/formulaire_encaissement.dart';
 
 // Historique du salon pour le gérant (#11, BF-K3, BF-G4) : prestations
 // réalisées, clients absents et encaissements, filtrés par période et par
-// coiffeur. Encaissement ou correction du montant depuis chaque ligne.
+// coiffeur. Refait par #82 : sans cadre, total en grand, « à encaisser » en
+// filtre, une ligne par prestation ; encaissement depuis la ligne, correction
+// du montant en touchant une ligne payée.
 class EcranHistorique extends StatefulWidget {
   const EcranHistorique({super.key, required this.planning});
   final DepotPlanning planning;
@@ -42,6 +44,8 @@ class _EcranHistoriqueState extends State<EcranHistorique> {
   // null : tous les coiffeurs.
   String? _coiffeur;
   int _version = 0;
+  // « N à encaisser » touché : la liste ne montre que ceux-là (#82).
+  bool _seulementAEncaisser = false;
 
   // Bornes de la période, à l'heure du salon : 31 jours au plus.
   (DateTime, DateTime) _bornes(DateTime aujourdhui) {
@@ -107,120 +111,165 @@ class _EcranHistoriqueState extends State<EcranHistorique> {
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Historique'),
-        actions: [
-          IconButton(
-            onPressed: _relire,
-            tooltip: 'Actualiser',
-            icon: const Icon(Icons.refresh),
+      appBar: AppBar(title: const Text('Historique')),
+      // Tirer vers le bas pour actualiser (#82, comme le planning).
+      body: RefreshIndicator(
+        onRefresh: () async => _relire(),
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            Espaces.s4,
+            0,
+            Espaces.s4,
+            Espaces.s8,
           ),
-        ],
-      ),
-      body: ListeCharte(
-        enfants: [
-          SegmentedButton<_Periode>(
-            segments: [
-              for (final p in _Periode.values)
-                ButtonSegment(value: p, label: Text(p.libelle)),
-            ],
-            selected: {_periode},
-            showSelectedIcon: false,
-            // Marge latérale réduite : « Mois dernier » tient sur une ligne à
-            // 360 px (test/features/historique_test.dart).
-            style: const ButtonStyle(
-              padding: WidgetStatePropertyAll(
-                EdgeInsets.symmetric(horizontal: Espaces.s1),
-              ),
-            ),
-            onSelectionChanged: (choix) => setState(() {
-              _periode = choix.first;
-              _version++;
-            }),
-          ),
-          const SizedBox(height: Espaces.s4),
-          Chargement<_Donnees>(
-            key: ValueKey('$_version-$_periode-$_coiffeur'),
-            lire: _lire,
-            afficher: (context, d, _) => Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Période : pastilles sans cadre, choisie en vert sur gris clair.
+            Wrap(
+              spacing: Espaces.s2,
               children: [
-                _FiltreCoiffeur(
-                  coiffeurs: d.coiffeurs,
-                  choisi: _coiffeur,
-                  surChoix: (id) => setState(() {
-                    _coiffeur = id;
-                    _version++;
-                  }),
-                ),
-                const SizedBox(height: Espaces.s4),
-                Semantics(
-                  liveRegion: true,
-                  child: Text(
-                    'Du ${formatDate(d.du).toLowerCase()} au ${formatDate(d.au).toLowerCase()}',
-                    style: textes.titleMedium,
+                for (final p in _Periode.values)
+                  _Pastille(
+                    libelle: p.libelle,
+                    choisie: p == _periode,
+                    surChoix: () => setState(() {
+                      _periode = p;
+                      _seulementAEncaisser = false;
+                      _version++;
+                    }),
                   ),
-                ),
-                const SizedBox(height: Espaces.s3),
-                _Totaux(lignes: d.lignes),
-                const SizedBox(height: Espaces.s4),
-                if (d.lignes.isEmpty)
-                  Text(
-                    'Aucune prestation réalisée ni absence sur cette période.',
-                    style: textes.bodyLarge,
-                  )
-                else
-                  _ListeParJour(lignes: d.lignes, surEncaisser: _encaisser),
               ],
             ),
-          ),
-        ],
+            Chargement<_Donnees>(
+              key: ValueKey('$_version-$_periode-$_coiffeur'),
+              lire: _lire,
+              afficher: (context, d, _) {
+                final aEncaisser = d.lignes.where((l) => l.aEncaisser).length;
+                final filtre = _seulementAEncaisser && aEncaisser > 0;
+                final lignes = filtre
+                    ? [
+                        for (final l in d.lignes)
+                          if (l.aEncaisser) l,
+                      ]
+                    : d.lignes;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: Espaces.s2),
+                    // Coiffeur : « Tous » puis prénom et petit avatar.
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _Pastille(
+                            libelle: 'Tous',
+                            choisie: _coiffeur == null,
+                            surChoix: () => _choisirCoiffeur(null),
+                          ),
+                          for (final c in d.coiffeurs) ...[
+                            const SizedBox(width: Espaces.s2),
+                            _Pastille(
+                              libelle: _prenom(c.nom),
+                              avatar: c.nom,
+                              choisie: _coiffeur == c.id,
+                              surChoix: () => _choisirCoiffeur(c.id),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: Espaces.s4),
+                    _Totaux(
+                      du: d.du,
+                      au: d.au,
+                      lignes: d.lignes,
+                      aEncaisser: aEncaisser,
+                      filtre: filtre,
+                      surFiltre: () => setState(
+                        () => _seulementAEncaisser = !_seulementAEncaisser,
+                      ),
+                    ),
+                    const SizedBox(height: Espaces.s4),
+                    if (lignes.isEmpty)
+                      Text(
+                        'Aucune prestation réalisée ni absence sur cette période.',
+                        style: textes.bodyLarge,
+                      )
+                    else
+                      _ListeParJour(lignes: lignes, surEncaisser: _encaisser),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
+
+  void _choisirCoiffeur(String? id) {
+    if (id == _coiffeur) return;
+    setState(() {
+      _coiffeur = id;
+      _seulementAEncaisser = false;
+      _version++;
+    });
+  }
 }
 
-class _FiltreCoiffeur extends StatelessWidget {
-  const _FiltreCoiffeur({
-    required this.coiffeurs,
-    required this.choisi,
-    required this.surChoix,
-  });
+// Premier mot du nom : « Patron Démo » → « Patron ».
+String _prenom(String nom) => nom.trim().split(RegExp(r'\s+')).first;
 
-  final List<Coiffeur> coiffeurs;
-  final String? choisi;
-  final ValueChanged<String?> surChoix;
+// Pastille de choix sans cadre (comme les onglets du planning, #79) : choisie
+// en vert sur gris clair, les autres en gris ; avatar facultatif.
+class _Pastille extends StatelessWidget {
+  const _Pastille({
+    required this.libelle,
+    required this.choisie,
+    required this.surChoix,
+    this.avatar,
+  });
+  final String libelle;
+  final bool choisie;
+  final VoidCallback surChoix;
+  final String? avatar;
 
   @override
   Widget build(BuildContext context) {
-    final textes = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ExcludeSemantics(child: Text('Coiffeur', style: textes.labelLarge)),
-        const SizedBox(height: Espaces.s2),
-        Semantics(
-          label: 'Coiffeur',
-          child: DropdownButtonFormField<String?>(
-            initialValue: choisi,
-            isExpanded: true,
-            style: textes.bodyLarge,
-            items: [
-              const DropdownMenuItem(value: null, child: Text('Tous')),
-              for (final c in coiffeurs)
-                DropdownMenuItem(value: c.id, child: Text(c.nom)),
-            ],
-            onChanged: surChoix,
-          ),
-        ),
-      ],
+    return ChoiceChip(
+      avatar: avatar == null ? null : Avatar(nom: avatar!, taille: 24),
+      label: Text(libelle),
+      labelStyle: Theme.of(context).textTheme.labelLarge!.copyWith(
+        color: choisie ? Couleurs.accent : Couleurs.texteSecondaire,
+      ),
+      selectedColor: Couleurs.separateur,
+      backgroundColor: Couleurs.fond,
+      side: BorderSide.none,
+      showCheckmark: false,
+      selected: choisie,
+      onSelected: (_) => surChoix(),
     );
   }
 }
 
+// Total encaissé en très grand sur le fond ; « N à encaisser » en action : un
+// toucher ne montre que les rendez-vous à encaisser, un autre montre tout (#82,
+// option 2A).
 class _Totaux extends StatelessWidget {
-  const _Totaux({required this.lignes});
+  const _Totaux({
+    required this.du,
+    required this.au,
+    required this.lignes,
+    required this.aEncaisser,
+    required this.filtre,
+    required this.surFiltre,
+  });
+  final DateTime du;
+  final DateTime au;
   final List<LigneHistorique> lignes;
+  final int aEncaisser;
+  final bool filtre;
+  final VoidCallback surFiltre;
 
   @override
   Widget build(BuildContext context) {
@@ -229,32 +278,83 @@ class _Totaux extends StatelessWidget {
         .where((l) => l.statut == StatutRendezVous.terminee)
         .length;
     final absents = lignes.length - realisees;
-    final aEncaisser = lignes.where((l) => l.aEncaisser).length;
     final total = lignes.fold<double>(0, (s, l) => s + (l.montant ?? 0));
-    final chiffres = textes.bodyLarge!.copyWith(
-      fontFeatures: const [FontFeature.tabularFigures()],
-    );
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Espaces.s4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Total encaissé : ${formatPrix(total)}',
-              style: textes.titleMedium,
-            ),
-            const SizedBox(height: Espaces.s1),
-            Text(
-              '$realisees prestation${realisees > 1 ? 's' : ''} réalisée${realisees > 1 ? 's' : ''}'
-              ' · $absents absent${absents > 1 ? 's' : ''}',
-              style: chiffres,
-            ),
-            if (aEncaisser > 0)
-              Text('$aEncaisser à encaisser', style: chiffres),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          liveRegion: true,
+          child: Text(
+            'Du ${formatDate(du).toLowerCase()} au ${formatDate(au).toLowerCase()}',
+            style: textes.bodySmall,
+          ),
         ),
-      ),
+        const SizedBox(height: Espaces.s2),
+        Semantics(
+          container: true,
+          label: 'Total encaissé : ${formatPrix(total)}',
+          excludeSemantics: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Encaissé', style: textes.bodySmall),
+              Text(
+                formatPrix(total),
+                style: textes.displaySmall!.copyWith(
+                  fontSize: 44,
+                  height: 1.1,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: Espaces.s1),
+        Text(
+          '$realisees prestation${realisees > 1 ? 's' : ''} réalisée${realisees > 1 ? 's' : ''}'
+          ' · $absents absent${absents > 1 ? 's' : ''}',
+          style: textes.bodySmall,
+        ),
+        if (aEncaisser > 0) ...[
+          const SizedBox(height: Espaces.s3),
+          Semantics(
+            button: true,
+            toggled: filtre,
+            child: Material(
+              color: CouleursStatut.aCloturerFond,
+              borderRadius: BorderRadius.circular(999),
+              child: InkWell(
+                onTap: surFiltre,
+                borderRadius: BorderRadius.circular(999),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Espaces.s4,
+                    vertical: Espaces.s2,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ExcludeSemantics(
+                        child: Icon(
+                          filtre ? Icons.close : Icons.filter_list,
+                          color: CouleursStatut.aCloturerTexte,
+                        ),
+                      ),
+                      const SizedBox(width: Espaces.s2),
+                      Text(
+                        filtre ? 'Tout voir' : '$aEncaisser à encaisser',
+                        style: textes.labelLarge!.copyWith(
+                          color: CouleursStatut.aCloturerTexte,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -274,18 +374,14 @@ class _ListeParJour extends StatelessWidget {
       if (jour == null || j != jour) {
         jour = j;
         enfants.addAll([
-          if (enfants.isNotEmpty) const SizedBox(height: Espaces.s3),
+          if (enfants.isNotEmpty) const SizedBox(height: Espaces.s4),
           Semantics(
             header: true,
-            child: Text(formatDate(j), style: textes.titleSmall),
+            child: Text(formatDate(j), style: textes.labelSmall),
           ),
-          const SizedBox(height: Espaces.s2),
         ]);
       }
-      enfants.addAll([
-        _CarteLigne(ligne: l, surEncaisser: () => surEncaisser(l)),
-        const SizedBox(height: Espaces.s2),
-      ]);
+      enfants.add(_Ligne(ligne: l, surEncaisser: () => surEncaisser(l)));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -294,8 +390,13 @@ class _ListeParJour extends StatelessWidget {
   }
 }
 
-class _CarteLigne extends StatelessWidget {
-  const _CarteLigne({required this.ligne, required this.surEncaisser});
+// Une ligne par prestation, sans cadre (#82) : coiffeur en petit avatar,
+// heure, client et prestation à gauche ; à droite le prix une seule fois
+// (ambre si à encaisser, « Absent » en rouge) et, s'il n'est pas payé, un petit
+// bouton « Encaisser » (option 1A). Toucher une ligne payée corrige le montant
+// (option 3A).
+class _Ligne extends StatelessWidget {
+  const _Ligne({required this.ligne, required this.surEncaisser});
   final LigneHistorique ligne;
   final VoidCallback surEncaisser;
 
@@ -305,37 +406,106 @@ class _CarteLigne extends StatelessWidget {
     final l = ligne;
     final heure = formatHeure(TimeOfDay.fromDateTime(l.debut));
     final montant = l.montant;
-    final etat = l.statut == StatutRendezVous.absent
-        ? 'Client absent'
+    final absent = l.statut == StatutRendezVous.absent;
+    final etat = absent
+        ? 'absent'
         : montant == null
-        ? 'À encaisser · prix ${formatPrix(l.prix)}'
-        : 'Encaissé : ${formatPrix(montant)}';
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Espaces.s3),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$heure  ${l.clientNom} · ${l.prestation}',
-              style: textes.bodyLarge!.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
+        ? 'à encaisser, ${formatPrix(l.prix)}'
+        : 'encaissé, ${formatPrix(montant)}';
+    final droite = absent
+        ? Text(
+            'Absent',
+            style: textes.labelLarge!.copyWith(
+              color: CouleursStatut.absentTexte,
             ),
-            Text(l.coiffeur, style: textes.bodySmall),
-            const SizedBox(height: Espaces.s1),
-            Text(etat, style: textes.titleSmall),
-            if (l.statut == StatutRendezVous.terminee)
-              TextButton(
-                onPressed: surEncaisser,
-                child: Text(
-                  montant == null ? 'Encaisser' : 'Corriger le montant',
-                  semanticsLabel:
-                      '${montant == null ? 'Encaisser' : 'Corriger le montant de'} '
-                      '$heure, ${l.clientNom}',
+          )
+        : Text(
+            formatPrix(montant ?? l.prix),
+            style: textes.labelLarge!.copyWith(
+              color: montant == null
+                  ? CouleursStatut.aCloturerTexte
+                  : Couleurs.texte,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          );
+    return Semantics(
+      container: true,
+      label: '$heure, ${l.clientNom}, ${l.prestation}, ${l.coiffeur}, $etat',
+      child: InkWell(
+        onTap: absent || montant == null ? null : surEncaisser,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 64),
+          padding: const EdgeInsets.symmetric(vertical: Espaces.s2),
+          decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: Couleurs.separateur)),
+          ),
+          child: Row(
+            children: [
+              Avatar(nom: l.coiffeur, taille: 28),
+              const SizedBox(width: Espaces.s2),
+              ExcludeSemantics(
+                child: SizedBox(
+                  width: 52,
+                  child: Text(
+                    heure,
+                    style: textes.labelLarge!.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
                 ),
               ),
-          ],
+              Expanded(
+                child: ExcludeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.clientNom,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textes.titleSmall,
+                      ),
+                      Text(
+                        l.prestation,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: textes.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: Espaces.s2),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  ExcludeSemantics(child: droite),
+                  if (!absent && montant == null)
+                    TextButton(
+                      onPressed: surEncaisser,
+                      style: TextButton.styleFrom(
+                        foregroundColor: CouleursStatut.aCloturerTexte,
+                        backgroundColor: CouleursStatut.aCloturerFond,
+                        shape: const StadiumBorder(),
+                        minimumSize: const Size(zoneTactileMin, 36),
+                        // Bouton, pas lien : sans le soulignement des boutons
+                        // texte de la charte.
+                        textStyle: textes.labelLarge!.copyWith(
+                          decoration: TextDecoration.none,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: Espaces.s3,
+                        ),
+                      ),
+                      child: Text(
+                        'Encaisser',
+                        semanticsLabel: 'Encaisser $heure, ${l.clientNom}',
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
