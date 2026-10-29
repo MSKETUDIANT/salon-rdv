@@ -358,7 +358,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
-          id: string
+          id?: string
           nom: string
           telephone?: string | null
         }
@@ -469,6 +469,21 @@ export type Database = {
       }
       reserver: {
         Args: { p_coiffeur?: string; p_debut: string; p_prestation: string }
+        Returns: {
+          coiffeur_id: string
+          debut: string
+          fin: string
+          id: string
+        }[]
+      }
+      reserver_pour_client: {
+        Args: {
+          p_coiffeur?: string
+          p_debut: string
+          p_nom: string
+          p_prestation: string
+          p_telephone: string
+        }
         Returns: {
           coiffeur_id: string
           debut: string

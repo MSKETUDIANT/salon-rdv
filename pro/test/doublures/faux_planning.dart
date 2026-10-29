@@ -176,6 +176,66 @@ class FauxPlanning implements DepotPlanning {
   }
 
   @override
+  Future<List<Prestation>> prestationsActives() async => const [
+    Prestation(
+      id: 'p1',
+      nom: 'Coupe',
+      prix: 20,
+      dureeMinutes: 30,
+      active: true,
+    ),
+    Prestation(
+      id: 'p2',
+      nom: 'Brushing',
+      prix: 25,
+      dureeMinutes: 30,
+      active: true,
+    ),
+  ];
+
+  // Créneaux libres renvoyés par creneauxLibres (#103).
+  List<CreneauLibre> creneaux = [
+    CreneauLibre(
+      coiffeurId: 'c1',
+      debut: DateTime(2030, 1, 7, 10, 30),
+      instant: DateTime.utc(2030, 1, 7, 9, 30),
+    ),
+    CreneauLibre(
+      coiffeurId: 'c1',
+      debut: DateTime(2030, 1, 7, 11, 0),
+      instant: DateTime.utc(2030, 1, 7, 10, 0),
+    ),
+  ];
+
+  @override
+  Future<List<CreneauLibre>> creneauxLibres(
+    String prestationId,
+    DateTime jour, {
+    String? coiffeurId,
+  }) async => creneaux;
+
+  // Erreur levée par la prochaine réservation pour un client, puis remise à
+  // null.
+  ErreurSalon? erreurReservation;
+
+  @override
+  Future<void> reserverPourClient({
+    required String nom,
+    String? telephone,
+    required String prestationId,
+    required CreneauLibre creneau,
+    String? coiffeurId,
+  }) async {
+    final e = erreurReservation;
+    erreurReservation = null;
+    if (e != null) throw e;
+    actions.add(
+      'passage $nom ${telephone ?? '-'} $prestationId '
+      '${creneau.debut.hour}:${creneau.debut.minute} ${coiffeurId ?? 'peu importe'}',
+    );
+  }
+
+  @override
   Future<void> cloturer(String rendezVousId, StatutRendezVous statut) =>
       _action('$rendezVousId ${statut.name}');
 

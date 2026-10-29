@@ -80,13 +80,11 @@ select ok(
   'salon_id absent avec plusieurs salons : utilisateur créé, aucun rôle'
 );
 
--- 7. Une ligne utilisateurs ne peut pas exister sans compte auth.
-select throws_ok(
-  $$ insert into public.utilisateurs (id, nom)
-     values ('00000000-0000-0000-0000-0000000000ff', 'Fantôme') $$,
-  '23503',
-  null,
-  'utilisateurs sans compte auth : refusé (clé étrangère)'
+-- 7. #103 (option B2) : une fiche sans compte auth est possible (client de
+--    passage), avec un identifiant généré.
+select lives_ok(
+  $$ insert into public.utilisateurs (nom) values ('Client de passage') $$,
+  'utilisateurs sans compte auth : fiche de client de passage acceptée'
 );
 
 -- ------------------------------------------------------------

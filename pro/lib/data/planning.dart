@@ -131,6 +131,19 @@ class PlageCoiffeur {
 
 // Ce qu'il faut pour afficher une période : rendez-vous, absences et plages
 // de travail (pour griser les heures hors horaires).
+// Créneau libre (#103) : début à l'heure du salon et l'instant exact à
+// renvoyer à la base.
+class CreneauLibre {
+  const CreneauLibre({
+    required this.coiffeurId,
+    required this.debut,
+    required this.instant,
+  });
+  final String coiffeurId;
+  final DateTime debut;
+  final DateTime instant;
+}
+
 class DonneesPlanning {
   const DonneesPlanning({
     required this.rendezVous,
@@ -192,6 +205,22 @@ abstract interface class DepotPlanning {
 
   // statut : terminee ou absent.
   Future<void> cloturer(String rendezVousId, StatutRendezVous statut);
+
+  // Client de passage (#103) : prestations proposées, créneaux libres d'un
+  // jour (comme le site), rendez-vous créé par l'équipe.
+  Future<List<Prestation>> prestationsActives();
+  Future<List<CreneauLibre>> creneauxLibres(
+    String prestationId,
+    DateTime jour, {
+    String? coiffeurId,
+  });
+  Future<void> reserverPourClient({
+    required String nom,
+    String? telephone,
+    required String prestationId,
+    required CreneauLibre creneau,
+    String? coiffeurId,
+  });
   // Gérant : premier encaissement d'un rendez-vous terminé, puis correction
   // du montant seulement.
   Future<void> encaisser(String rendezVousId, double montant);
@@ -395,6 +424,91 @@ class PlanningSupabase implements DepotPlanning {
           .select('id'),
     ),
   );
+
+  @override
+  Future<List<Prestation>> prestationsActives() => _appel(() async {
+    final lignes = await _client
+        .from('prestations')
+        .select('id, nom, prix, duree_minutes, active')
+        .eq('salon_id', _salonId)
+        .eq('active', true)
+        .order('nom', ascending: true);
+    return [
+      for (final l in lignes)
+        Prestation(
+          id: l['id'] as String,
+          nom: l['nom'] as String,
+          prix: (l['prix'] as num).toDouble(),
+          dureeMinutes: l['duree_minutes'] as int,
+          active: true,
+        ),
+    ];
+  });
+
+  @override
+  Future<List<CreneauLibre>> creneauxLibres(
+    String prestationId,
+    DateTime jour, {
+    String? coiffeurId,
+  }) => _appel(() async {
+    final fuseau = await _fuseauDuSalon();
+    final lignes =
+        await _client.rpc(
+              'creneaux_disponibles',
+              params: {
+                'p_prestation': prestationId,
+                'p_du': _dateSql(jour),
+                'p_au': _dateSql(jour),
+                'p_coiffeur': coiffeurId,
+              },
+            )
+            as List;
+    final creneaux = <String, CreneauLibre>{};
+    for (final l in lignes) {
+      final instant = DateTime.parse(l['debut'] as String);
+      // Une heure par créneau, quel que soit le nombre de coiffeurs libres.
+      creneaux.putIfAbsent(
+        instant.toIso8601String(),
+        () => CreneauLibre(
+          coiffeurId: l['coiffeur_id'] as String,
+          debut: depuisUtc(instant, fuseau),
+          instant: instant,
+        ),
+      );
+    }
+    return creneaux.values.toList()..sort((a, b) => a.debut.compareTo(b.debut));
+  });
+
+  @override
+  Future<void> reserverPourClient({
+    required String nom,
+    String? telephone,
+    required String prestationId,
+    required CreneauLibre creneau,
+    String? coiffeurId,
+  }) async {
+    try {
+      await _client.rpc(
+        'reserver_pour_client',
+        params: {
+          'p_nom': nom,
+          'p_telephone': telephone,
+          'p_prestation': prestationId,
+          'p_debut': creneau.instant.toUtc().toIso8601String(),
+          'p_coiffeur': coiffeurId,
+        },
+      );
+    } on PostgrestException catch (erreur) {
+      throw ErreurSalon(switch (erreur.code) {
+        'PT409' => 'Ce créneau vient d\'être pris. Choisissez-en un autre.',
+        'PT400' => 'Indiquez le nom du client.',
+        'PT403' => 'Action réservée à l\'équipe du salon.',
+        _ => messageErreurBase(erreur.code),
+      });
+    } catch (erreur) {
+      throw ErreurSalon(messageErreurInattendue(erreur));
+    }
+  }
 
   @override
   Future<void> encaisser(String rendezVousId, double montant) =>
