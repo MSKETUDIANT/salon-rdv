@@ -341,11 +341,11 @@ class OngletSalonCoiffeur extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Du ${formatDateHeure(a.debut)}',
+                                'Du ${formatDateHeure(a.debut).toLowerCase()}',
                                 style: textes.bodyLarge,
                               ),
                               Text(
-                                'au ${formatDateHeure(a.fin)}',
+                                'au ${formatDateHeure(a.fin).toLowerCase()}',
                                 style: textes.bodyLarge,
                               ),
                               if (a.motif != null && a.motif!.isNotEmpty)

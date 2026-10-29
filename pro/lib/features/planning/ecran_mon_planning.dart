@@ -4,13 +4,15 @@ import '../../data/planning.dart';
 import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
 import '../../ui/format.dart';
+import '../aujourdhui/carte_glissable.dart';
 import 'elements_planning.dart';
 
-// Planning du coiffeur connecté (BF-K1) : vue Jour (heures hors horaires
-// grisées) et vue Semaine ; appui sur un rendez-vous pour le détail (BF-K2)
-// et la clôture : terminé, client absent (BF-K3, BF-K4).
-// Relu à l'ouverture, à chaque changement de date, en tirant la liste vers
-// le bas (#79 : plus de bouton « Actualiser »).
+// Planning du coiffeur connecté (BF-K1), comme celui du gérant (#98, option
+// A) : bande des jours de la semaine et flèches par semaine, « Aujourd'hui »
+// dans la barre du titre, vue horaire ou vue liste ; appui sur un rendez-vous
+// pour le détail (BF-K2) et la clôture : terminé, client absent (BF-K3,
+// BF-K4). Relu à l'ouverture, à chaque changement de jour, en tirant la liste
+// vers le bas.
 class EcranMonPlanning extends StatefulWidget {
   const EcranMonPlanning({super.key, required this.planning});
   final DepotPlanning planning;
@@ -19,33 +21,33 @@ class EcranMonPlanning extends StatefulWidget {
   State<EcranMonPlanning> createState() => _EcranMonPlanningState();
 }
 
-enum _Vue { jour, semaine }
-
 class _EcranMonPlanningState extends State<EcranMonPlanning> {
-  _Vue _vue = _Vue.jour;
   DateTime? _maintenant;
   DateTime? _aujourdhui;
   DateTime? _jour;
   int _version = 0;
+  // Vue liste de la journée au lieu de la vue horaire.
+  bool _liste = false;
 
   Future<(DateTime, DonneesPlanning)> _lire() async {
     _maintenant = await widget.planning.maintenantAuSalon();
     _aujourdhui ??= DateUtils.dateOnly(_maintenant!);
     final jour = _jour ??= _aujourdhui!;
-    final du = _vue == _Vue.jour ? jour : lundiDe(jour);
-    final au = _vue == _Vue.jour ? jour : du.add(const Duration(days: 6));
     final donnees = await widget.planning.periode(
-      du,
-      au,
+      jour,
+      jour,
       coiffeurId: widget.planning.moi,
     );
     return (jour, donnees);
   }
 
-  void _deplacer(int sens) => setState(() {
-    _jour = _jour!.add(Duration(days: sens * (_vue == _Vue.jour ? 1 : 7)));
-    _version++;
-  });
+  void _allerA(DateTime jour) {
+    if (_jour != null && memeJour(jour, _jour!)) return;
+    setState(() {
+      _jour = jour;
+      _version++;
+    });
+  }
 
   void _actualiser() => setState(() => _version++);
 
@@ -66,14 +68,29 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Planning')),
+      appBar: AppBar(
+        title: const Text('Planning'),
+        actions: [
+          // Retour au jour actuel, seulement hors de ce jour (comme le gérant).
+          if (_jour != null && !memeJour(_jour!, _aujourdhui!))
+            TextButton(
+              onPressed: () => _allerA(_aujourdhui!),
+              child: const Text("Aujourd'hui"),
+            ),
+          IconButton(
+            onPressed: () => setState(() => _liste = !_liste),
+            tooltip: _liste ? 'Vue horaire' : 'Vue liste',
+            icon: Icon(_liste ? Icons.schedule : Icons.view_list),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async => _actualiser(),
         child: ListView(
           // Tirer vers le bas marche aussi quand la journée tient à l'écran.
           physics: const AlwaysScrollableScrollPhysics(),
-          // Mêmes marges que ListeCharte (ui/composants.dart).
-          // Pas de marge en haut (#79) : la date suit le titre de près.
+          // Mêmes marges que ListeCharte (ui/composants.dart), sans marge en
+          // haut : la date suit le titre de près.
           padding: const EdgeInsets.fromLTRB(
             Espaces.s4,
             0,
@@ -81,67 +98,39 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
             Espaces.s8,
           ),
           children: [
-            SegmentedButton<_Vue>(
-              segments: const [
-                ButtonSegment(value: _Vue.jour, label: Text('Jour')),
-                ButtonSegment(value: _Vue.semaine, label: Text('Semaine')),
-              ],
-              selected: {_vue},
-              showSelectedIcon: false,
-              onSelectionChanged: (choix) => setState(() {
-                _vue = choix.first;
-                _version++;
-              }),
-            ),
-            const SizedBox(height: Espaces.s3),
             Chargement<(DateTime, DonneesPlanning)>(
               silhouette: const SilhouettePlanning(),
-              key: ValueKey('$_version-$_vue-$_jour'),
+              key: ValueKey(_version),
               lire: _lire,
               afficher: (context, resultat, _) {
                 final (jour, donnees) = resultat;
-                final moi = widget.planning.moi ?? '';
-                final lundi = lundiDe(jour);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Flèches par semaine ; le jour se choisit dans la bande.
                     NavigationDates(
-                      unite: _vue == _Vue.jour ? 'jour' : 'semaine',
-                      libelle: _vue == _Vue.jour
-                          ? formatDate(jour)
-                          : 'Semaine du ${formatDate(lundi).toLowerCase()}',
-                      surPrecedent: () => _deplacer(-1),
-                      surSuivant: () => _deplacer(1),
-                      surAujourdhui:
-                          (_vue == _Vue.jour
-                              ? memeJour(jour, _aujourdhui!)
-                              : memeJour(lundi, lundiDe(_aujourdhui!)))
-                          ? null
-                          : () => setState(() {
-                              _jour = _aujourdhui;
-                              _version++;
-                            }),
+                      unite: 'semaine',
+                      libelle: formatDate(jour),
+                      surPrecedent: () =>
+                          _allerA(jour.subtract(const Duration(days: 7))),
+                      surSuivant: () =>
+                          _allerA(jour.add(const Duration(days: 7))),
+                      surAujourdhui: null,
+                    ),
+                    BandeJours(
+                      jour: jour,
+                      aujourdhui: _aujourdhui!,
+                      surChoix: _allerA,
                     ),
                     const SizedBox(height: Espaces.s3),
-                    if (_vue == _Vue.jour)
-                      _VueJour(
-                        jour: jour,
-                        donnees: donnees,
-                        coiffeur: moi,
-                        maintenant: _maintenant!,
-                        surRendezVous: _ouvrir,
-                      )
-                    else
-                      _VueSemaine(
-                        lundi: lundi,
-                        donnees: donnees,
-                        coiffeur: moi,
-                        surJour: (j) => setState(() {
-                          _vue = _Vue.jour;
-                          _jour = j;
-                          _version++;
-                        }),
-                      ),
+                    _VueJour(
+                      jour: jour,
+                      donnees: donnees,
+                      coiffeur: widget.planning.moi ?? '',
+                      maintenant: _maintenant!,
+                      liste: _liste,
+                      surRendezVous: _ouvrir,
+                    ),
                   ],
                 );
               },
@@ -159,12 +148,14 @@ class _VueJour extends StatelessWidget {
     required this.donnees,
     required this.coiffeur,
     required this.maintenant,
+    required this.liste,
     required this.surRendezVous,
   });
   final DateTime jour;
   final DonneesPlanning donnees;
   final String coiffeur;
   final DateTime maintenant;
+  final bool liste;
   final ValueChanged<RendezVous> surRendezVous;
 
   @override
@@ -181,8 +172,19 @@ class _VueJour extends StatelessWidget {
           plages.isEmpty ? '$resume · ne travaille pas ce jour-là' : resume,
           style: textes.bodyLarge,
         ),
+        if (liste) ...[
+          const SizedBox(height: Espaces.s2),
+          for (final r in rdv)
+            CarteGlissable(
+              rendezVous: r,
+              etat: r.etat(maintenant),
+              glissable: false,
+              surAppui: () => surRendezVous(r),
+              surGeste: (_) {},
+            ),
+        ]
         // Jour de repos (#79) : le message seul, sans grille.
-        if (plages.isNotEmpty || rdv.isNotEmpty) ...[
+        else if (plages.isNotEmpty || rdv.isNotEmpty) ...[
           const SizedBox(height: Espaces.s3),
           ClipRRect(
             borderRadius: BorderRadius.circular(rayon),
@@ -212,79 +214,6 @@ class _VueJour extends StatelessWidget {
             ),
           ),
         ],
-      ],
-    );
-  }
-}
-
-class _VueSemaine extends StatelessWidget {
-  const _VueSemaine({
-    required this.lundi,
-    required this.donnees,
-    required this.coiffeur,
-    required this.surJour,
-  });
-  final DateTime lundi;
-  final DonneesPlanning donnees;
-  final String coiffeur;
-  final ValueChanged<DateTime> surJour;
-
-  @override
-  Widget build(BuildContext context) {
-    final textes = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        for (var i = 0; i < 7; i++)
-          Builder(
-            builder: (context) {
-              final jour = lundi.add(Duration(days: i));
-              final rdv = donnees.rendezVousDu(coiffeur, jour);
-              final absences = donnees.absencesDu(coiffeur, jour);
-              final plages = donnees.plagesDu(coiffeur, jour);
-              return Padding(
-                padding: const EdgeInsets.only(bottom: Espaces.s3),
-                child: Card(
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(rayon),
-                    onTap: () => surJour(jour),
-                    child: Padding(
-                      padding: const EdgeInsets.all(Espaces.s3),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(formatDate(jour), style: textes.titleSmall),
-                          const SizedBox(height: Espaces.s1),
-                          if (plages.isEmpty && rdv.isEmpty)
-                            Text('Ne travaille pas', style: textes.bodySmall)
-                          else if (rdv.isEmpty)
-                            Text(
-                              'Aucun rendez-vous · ${plages.map((p) => '${formatHeure(p.debut)}–${formatHeure(p.fin)}').join(', ')}',
-                              style: textes.bodySmall,
-                            ),
-                          for (final a in absences)
-                            Text(
-                              'Absent ${formatHeure(TimeOfDay.fromDateTime(a.debut))}–${formatHeure(TimeOfDay.fromDateTime(a.fin))}'
-                              '${a.motif == null ? '' : ' · ${a.motif}'}',
-                              style: textes.bodySmall,
-                            ),
-                          for (final r in rdv)
-                            Text(
-                              '${formatHeure(TimeOfDay.fromDateTime(r.debut))}  ${r.clientNom} · ${r.prestation}',
-                              style: textes.bodyLarge!.copyWith(
-                                fontFeatures: const [
-                                  FontFeature.tabularFigures(),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
       ],
     );
   }
