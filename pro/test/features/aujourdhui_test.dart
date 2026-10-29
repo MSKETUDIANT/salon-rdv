@@ -122,8 +122,9 @@ void main() {
       expect(find.text("5 clients aujourd'hui"), findsOneWidget);
       expect(find.bySemanticsLabel('1 terminé'), findsOneWidget);
       expect(find.bySemanticsLabel('1 absent'), findsOneWidget);
-      // À clôturer, en cours et à venir : 1 + 1 + 1.
-      expect(find.bySemanticsLabel('3 restants'), findsOneWidget);
+      // En cours et à venir : 1 + 1 ; le rendez-vous à clôturer est dans le
+      // rappel, pas dans les restants (#72).
+      expect(find.bySemanticsLabel('2 restants'), findsOneWidget);
       expect(find.text('encaissé'), findsNothing);
       expect(find.text('1 à clôturer'), findsOneWidget);
       expect(find.textContaining('à encaisser'), findsNothing);
@@ -198,6 +199,39 @@ void main() {
     ];
     await ouvrir(tester);
     expect(find.text('2 à clôturer'), findsOneWidget);
+  });
+
+  testWidgets(
+    'fin de journée : 0 restant, « Plus de rendez-vous à venir », rappel',
+    (tester) async {
+      planning.rendezVous = [
+        rdv('t', 'c1', 8, 0, 30, StatutRendezVous.terminee, 'Inès'),
+        rdv('c', 'c1', 9, 0, 30, StatutRendezVous.confirmee, 'Salma'),
+      ];
+      await ouvrir(tester);
+      expect(find.bySemanticsLabel('0 restant'), findsOneWidget);
+      expect(
+        find.text("Plus de rendez-vous à venir aujourd'hui."),
+        findsOneWidget,
+      );
+      expect(find.text('1 à clôturer'), findsOneWidget);
+    },
+  );
+
+  testWidgets("appui sur le rappel : la liste défile jusqu'au rendez-vous", (
+    tester,
+  ) async {
+    await ouvrir(tester, petitEcran: true);
+    final cible = find.bySemanticsLabel(RegExp(r'^09:00, Salma'));
+    final position = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position;
+    expect(position.pixels, 0);
+    await tester.tap(find.text('1 à clôturer'));
+    await tester.pumpAndSettle();
+    expect(position.pixels, greaterThan(0));
+    final haut = tester.getTopLeft(cible).dy;
+    expect(haut, inInclusiveRange(0, 640 - 72));
   });
 
   testWidgets('sans nom : « Bonjour » seul', (tester) async {
