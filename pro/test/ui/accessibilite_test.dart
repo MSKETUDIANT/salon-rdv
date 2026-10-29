@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -167,5 +170,49 @@ void main() {
     testWidgets('$nom : zones tactiles, libellés, contrastes', (tester) async {
       await verifier(tester, ecran());
     });
+  }
+
+  // Police agrandie dans les réglages du téléphone (#83) : à 130 % et 200 %,
+  // à 360 × 640, aucun débordement (Flutter fait échouer le test sinon).
+  // Avec les vraies polices : celle des tests donne 16 px à chaque caractère,
+  // bien plus large que Figtree.
+  setUpAll(() async {
+    for (final (famille, fichier) in [
+      (policeTexte, 'assets/fonts/Figtree.ttf'),
+      (policeTitre, 'assets/fonts/Newsreader.ttf'),
+    ]) {
+      final octets = File(fichier).readAsBytesSync();
+      await (FontLoader(
+        famille,
+      )..addFont(Future.value(ByteData.sublistView(octets)))).load();
+    }
+  });
+  for (final echelle in [1.3, 2.0]) {
+    for (final MapEntry(key: nom, value: ecran) in ecrans.entries) {
+      testWidgets('$nom : police à ${(echelle * 100).round()} %', (
+        tester,
+      ) async {
+        tester.view.physicalSize = const Size(720, 1280);
+        tester.view.devicePixelRatio = 2;
+        addTearDown(tester.view.reset);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: themeCharte(),
+            locale: const Locale('fr'),
+            supportedLocales: const [Locale('fr')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            builder: (context, enfant) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(echelle)),
+              child: enfant!,
+            ),
+            home: ecran(),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      });
+    }
   }
 }

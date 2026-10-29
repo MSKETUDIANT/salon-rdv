@@ -445,11 +445,38 @@ void main() {
           isA<ErreurSalon>().having(
             (e) => e.message,
             'message',
-            'L\'enregistrement a échoué. Vérifiez le réseau, puis réessayez.',
+            messageErreurInconnue,
           ),
         ),
       );
     });
+
+    test(
+      'sans réseau : message clair, pas d\'erreur technique (#83)',
+      () async {
+        api.horsReseau = true;
+        await expectLater(
+          salon.prestations(),
+          throwsA(
+            isA<ErreurSalon>().having(
+              (e) => e.message,
+              'message',
+              'Pas de connexion internet. Vérifiez le réseau, puis réessayez.',
+            ),
+          ),
+        );
+        await expectLater(
+          PlanningSupabase(api.client, salonId).coiffeurs(),
+          throwsA(
+            isA<ErreurSalon>().having(
+              (e) => e.message,
+              'message',
+              messageHorsReseau,
+            ),
+          ),
+        );
+      },
+    );
   });
 
   group('Session', () {

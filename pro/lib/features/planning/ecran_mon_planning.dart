@@ -95,6 +95,7 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
             ),
             const SizedBox(height: Espaces.s3),
             Chargement<(DateTime, DonneesPlanning)>(
+              silhouette: const SilhouettePlanning(),
               key: ValueKey('$_version-$_vue-$_jour'),
               lire: _lire,
               afficher: (context, resultat, _) {

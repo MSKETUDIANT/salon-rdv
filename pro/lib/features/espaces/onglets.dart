@@ -499,6 +499,23 @@ class OngletProfil extends StatelessWidget {
                   ],
                   selected: {espace},
                   showSelectedIcon: false,
+                  // Vert en petite touche (#83, option 2A) : choix en vert
+                  // sur gris clair, l'autre en gris, bord très léger.
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith(
+                      (etats) => etats.contains(WidgetState.selected)
+                          ? Couleurs.separateur
+                          : Couleurs.fond,
+                    ),
+                    foregroundColor: WidgetStateProperty.resolveWith(
+                      (etats) => etats.contains(WidgetState.selected)
+                          ? Couleurs.accent
+                          : Couleurs.texteSecondaire,
+                    ),
+                    side: const WidgetStatePropertyAll(
+                      BorderSide(color: Couleurs.separateur),
+                    ),
+                  ),
                   onSelectionChanged: (choix) => surBascule?.call(choix.first),
                 ),
               ),
@@ -524,7 +541,13 @@ class OngletProfil extends StatelessWidget {
           Center(
             child: TextButton.icon(
               onPressed: surDeconnexion,
-              style: TextButton.styleFrom(foregroundColor: Couleurs.erreur),
+              // Rouge, sans le soulignement vert des boutons texte (#83).
+              style: TextButton.styleFrom(
+                foregroundColor: Couleurs.erreur,
+                textStyle: Theme.of(context).textTheme.labelLarge!.copyWith(
+                  decoration: TextDecoration.none,
+                ),
+              ),
               icon: const Icon(Icons.logout),
               label: const Text('Se déconnecter'),
             ),

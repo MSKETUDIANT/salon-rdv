@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -120,6 +122,24 @@ abstract interface class DepotSalon {
 }
 
 // Messages des erreurs renvoyées par la base (codes PostgreSQL).
+// Erreur hors base (#83) : sans réseau, un message clair ; sinon un message
+// neutre, jamais d'erreur technique. Détection par le type, sans dart:io
+// (l'app tourne aussi dans le navigateur).
+const messageHorsReseau =
+    'Pas de connexion internet. Vérifiez le réseau, puis réessayez.';
+const messageErreurInconnue = 'Une erreur est survenue. Réessayez.';
+
+bool erreurReseau(Object erreur) {
+  if (erreur is TimeoutException) return true;
+  final type = erreur.runtimeType.toString();
+  return type.contains('Socket') ||
+      type.contains('ClientException') ||
+      type.contains('Handshake');
+}
+
+String messageErreurInattendue(Object erreur) =>
+    erreurReseau(erreur) ? messageHorsReseau : messageErreurInconnue;
+
 String messageErreurBase(String? code) {
   switch (code) {
     case '23P01':
@@ -184,8 +204,8 @@ class SalonSupabase implements DepotSalon {
       throw ErreurSalon(messageErreurBase(erreur.code));
     } on ErreurSalon {
       rethrow;
-    } catch (_) {
-      throw ErreurSalon(messageErreurBase(null));
+    } catch (erreur) {
+      throw ErreurSalon(messageErreurInattendue(erreur));
     }
   }
 
