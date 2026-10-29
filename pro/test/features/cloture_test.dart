@@ -128,8 +128,8 @@ void main() {
       'à venir : pas de bouton, heure à partir de laquelle clôturer',
       (tester) async {
         await ouvrir(tester, EcranMonPlanning(planning: planning));
-        await appuyer(tester, find.byTooltip('Jour suivant'));
-        await appuyer(tester, find.byTooltip('Jour suivant'));
+        // Mercredi dans la bande des jours (#98).
+        await appuyer(tester, find.bySemanticsLabel('Mercredi 9 janvier'));
         await appuyer(tester, find.bySemanticsLabel(RegExp(r'^11:00, Nour')));
         expect(
           find.text('Clôture possible à partir du mercredi 9 janvier, 11:00.'),

@@ -37,7 +37,7 @@ void main() {
     // Lundi et mercredi 9h-18h, les autres jours non travaillés.
     expect(find.text('09:00 – 18:00'), findsNWidgets(2));
     expect(find.text('Ne travaille pas'), findsNWidgets(5));
-    expect(find.text('Du Lundi 7 janvier, 15:00'), findsOneWidget);
+    expect(find.text('Du lundi 7 janvier, 15:00'), findsOneWidget);
     expect(find.text('Formation'), findsOneWidget);
     expect(find.textContaining('modifiés par le gérant'), findsOneWidget);
     expect(find.byType(FilledButton), findsNothing);

@@ -84,72 +84,50 @@ void main() {
       expect(find.text('À clôturer'), findsWidgets);
     });
 
-    testWidgets('jour suivant, puis retour à aujourd\'hui', (tester) async {
+    testWidgets("bande des jours : mardi, puis « Aujourd'hui » (#98)", (
+      tester,
+    ) async {
       await ouvrir(tester, EcranMonPlanning(planning: planning));
-      expect(find.text('Revenir à aujourd\'hui'), findsNothing);
-      await appuyer(tester, find.byTooltip('Jour suivant'));
+      // Plus de sélecteur Jour | Semaine (option A de Sparta).
+      expect(find.text('Semaine'), findsNothing);
+      expect(find.widgetWithText(TextButton, "Aujourd'hui"), findsNothing);
+      await appuyer(tester, find.bySemanticsLabel('Mardi 8 janvier'));
+      expect(planning.appels.last, '2030-1-8..2030-1-8 c1');
       expect(find.text('Mardi 8 janvier'), findsOneWidget);
       expect(
         find.text('Aucun rendez-vous · ne travaille pas ce jour-là'),
         findsOneWidget,
       );
-      expect(planning.appels.last, '2030-1-8..2030-1-8 c1');
 
-      await appuyer(tester, find.text('Revenir à aujourd\'hui'));
+      await appuyer(tester, find.widgetWithText(TextButton, "Aujourd'hui"));
       expect(find.text('Lundi 7 janvier'), findsOneWidget);
+      expect(planning.appels.last, '2030-1-7..2030-1-7 c1');
     });
 
-    testWidgets('semaine : du lundi au dimanche, un jour ouvre la vue Jour', (
+    testWidgets('flèches : semaine suivante, même jour de la semaine', (
       tester,
     ) async {
       await ouvrir(tester, EcranMonPlanning(planning: planning));
-      await appuyer(tester, find.text('Semaine'));
-      expect(planning.appels.last, '2030-1-7..2030-1-13 c1');
-      expect(find.text('Semaine du lundi 7 janvier'), findsOneWidget);
-      expect(find.text('09:00  Salma · Coupe'), findsOneWidget);
-      expect(find.text('11:00  Nour · Brushing'), findsOneWidget);
-      expect(find.text('Absent 15:00–16:00 · Formation'), findsOneWidget);
-      expect(find.text('Ne travaille pas'), findsNWidgets(5));
-
-      await appuyer(tester, find.text('Mercredi 9 janvier'));
-      expect(planning.appels.last, '2030-1-9..2030-1-9 c1');
-      expect(
-        find.bySemanticsLabel('11:00, Nour, Brushing, À venir'),
-        findsOneWidget,
-      );
+      await appuyer(tester, find.byTooltip('Semaine suivante'));
+      expect(planning.appels.last, '2030-1-14..2030-1-14 c1');
+      expect(find.text('Lundi 14 janvier'), findsOneWidget);
     });
 
-    testWidgets('semaine : plages du jour triées par heure de début', (
+    testWidgets('icône « Vue liste » : la journée en liste, puis retour', (
       tester,
     ) async {
-      // Vendredi en horaire coupé, plage de l'après-midi renvoyée d'abord.
-      planning.plages = [
-        ...planning.plages,
-        const PlageCoiffeur(
-          coiffeurId: 'c1',
-          plage: Plage(
-            id: 'h5',
-            jour: 5,
-            debut: TimeOfDay(hour: 14, minute: 0),
-            fin: TimeOfDay(hour: 19, minute: 0),
-          ),
-        ),
-        const PlageCoiffeur(
-          coiffeurId: 'c1',
-          plage: Plage(
-            id: 'h4',
-            jour: 5,
-            debut: TimeOfDay(hour: 9, minute: 0),
-            fin: TimeOfDay(hour: 13, minute: 0),
-          ),
-        ),
-      ];
       await ouvrir(tester, EcranMonPlanning(planning: planning));
-      await appuyer(tester, find.text('Semaine'));
+      expect(find.byType(ColonneJour), findsOneWidget);
+      await appuyer(tester, find.byTooltip('Vue liste'));
+      expect(find.byType(ColonneJour), findsNothing);
       expect(
-        find.text('Aucun rendez-vous · 09:00–13:00, 14:00–19:00'),
+        find.bySemanticsLabel(RegExp(r'^09:00, Salma, Coupe')),
         findsOneWidget,
       );
+      // Pas de nouvelle lecture : la journée est déjà chargée.
+      expect(planning.appels, hasLength(1));
+      await appuyer(tester, find.byTooltip('Vue horaire'));
+      expect(find.byType(ColonneJour), findsOneWidget);
     });
 
     testWidgets('jour de repos : le message seul, sans grille (#79)', (
@@ -157,7 +135,7 @@ void main() {
     ) async {
       await ouvrir(tester, EcranMonPlanning(planning: planning));
       expect(find.byType(ColonneJour), findsOneWidget);
-      await appuyer(tester, find.byTooltip('Jour suivant'));
+      await appuyer(tester, find.bySemanticsLabel('Mardi 8 janvier'));
       expect(
         find.text('Aucun rendez-vous · ne travaille pas ce jour-là'),
         findsOneWidget,
