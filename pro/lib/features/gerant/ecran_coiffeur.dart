@@ -141,11 +141,10 @@ class _SectionHorairesState extends State<SectionHoraires> {
           style: textes.bodySmall,
         ),
         const SizedBox(height: Espaces.s3),
-        Bouton(
-          libelle: 'Ajouter une plage',
-          secondaire: true,
-          pleineLargeur: true,
-          surAppui: _ajouter,
+        // Comme « Ajouter une prestation » : bouton vert à sa largeur.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Bouton(libelle: 'Ajouter une plage', surAppui: _ajouter),
         ),
       ],
     );
@@ -462,11 +461,10 @@ class _SectionAbsencesState extends State<SectionAbsences> {
           },
         ),
         const SizedBox(height: Espaces.s3),
-        Bouton(
-          libelle: 'Ajouter une absence',
-          secondaire: true,
-          pleineLargeur: true,
-          surAppui: _ajouter,
+        // Comme « Ajouter une prestation » : bouton vert à sa largeur.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Bouton(libelle: 'Ajouter une absence', surAppui: _ajouter),
         ),
       ],
     );

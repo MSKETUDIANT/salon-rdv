@@ -91,7 +91,7 @@ class _PorteState extends State<Porte> {
           // Même erreur et même « Réessayer » que ui/chargement.dart.
           const MessageErreur('Impossible de lire vos accès.'),
           const SizedBox(height: Espaces.s3),
-          Bouton(libelle: 'Réessayer', secondaire: true, surAppui: _lireRoles),
+          Bouton(libelle: 'Réessayer', surAppui: _lireRoles),
           const SizedBox(height: Espaces.s2),
           TextButton(
             onPressed: widget.auth.seDeconnecter,
@@ -152,8 +152,8 @@ class _PorteState extends State<Porte> {
           ),
           const SizedBox(height: Espaces.s6),
           for (final choix in espaces) ...[
+            // Vraie action : vert plein (option A de Sparta).
             Bouton(
-              secondaire: true,
               libelle: choix.titre,
               surAppui: () => setState(() => _espace = choix),
             ),

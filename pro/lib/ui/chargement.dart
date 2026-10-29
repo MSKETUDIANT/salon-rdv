@@ -52,7 +52,7 @@ class _ChargementState<T> extends State<Chargement<T>> {
             children: [
               MessageErreur(message),
               const SizedBox(height: Espaces.s3),
-              Bouton(libelle: 'Réessayer', secondaire: true, surAppui: _relire),
+              Bouton(libelle: 'Réessayer', surAppui: _relire),
             ],
           );
         }
