@@ -59,11 +59,14 @@ void main() {
         expect(find.text('Coupe femme'), findsOneWidget);
         expect(find.text('35 DT · 45 min'), findsOneWidget);
         expect(find.text('10,500 DT · 15 min'), findsOneWidget);
-        expect(
-          find.text('Désactivée : plus proposée aux clients'),
-          findsOneWidget,
-        );
-        expect(find.text('Réactiver'), findsOneWidget);
+        expect(find.text('Désactivée'), findsOneWidget);
+        // Interrupteur « proposée aux clients » (#92) : éteint pour la
+        // prestation désactivée seulement.
+        final interrupteurs = tester.widgetList<Switch>(find.byType(Switch));
+        expect(interrupteurs.where((i) => !i.value), hasLength(1));
+        // Plus de liens soulignés sur chaque ligne.
+        expect(find.text('Modifier'), findsNothing);
+        expect(find.byType(Card), findsNothing);
       },
     );
 
@@ -155,19 +158,20 @@ void main() {
 
     testWidgets('désactiver puis réactiver, sans suppression', (tester) async {
       await ouvrir(tester, EcranPrestations(salon: salon));
-      await tester.tap(find.bySemanticsLabel('Désactiver Coupe femme'));
+      await tester.tap(
+        find.bySemanticsLabel('Coupe femme proposée aux clients'),
+      );
       await tester.pumpAndSettle();
       expect(salon.journal, ['activation p1 false']);
-      expect(
-        find.text('Désactivée : plus proposée aux clients'),
-        findsNWidgets(2),
-      );
+      expect(find.text('Désactivée'), findsNWidgets(2));
       expect(
         find.textContaining('n\'est plus proposée aux clients'),
         findsOneWidget,
       );
 
-      await tester.tap(find.bySemanticsLabel('Réactiver Coupe femme'));
+      await tester.tap(
+        find.bySemanticsLabel('Coupe femme proposée aux clients'),
+      );
       await tester.pumpAndSettle();
       expect(salon.journal.last, 'activation p1 true');
     });

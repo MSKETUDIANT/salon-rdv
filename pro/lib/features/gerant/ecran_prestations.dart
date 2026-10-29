@@ -7,6 +7,8 @@ import '../../ui/composants.dart';
 import '../../ui/format.dart';
 
 // Catalogue du salon (BF-G2) : créer, modifier, désactiver une prestation.
+// Refait par #92 (même logique que le lot 2) : liste sans cartes, filets fins ;
+// toucher une ligne la modifie, l'interrupteur la propose ou non aux clients.
 // Pas de suppression : une prestation désactivée n'est plus proposée aux
 // clients mais reste dans l'historique des réservations.
 class EcranPrestations extends StatefulWidget {
@@ -59,12 +61,16 @@ class _EcranPrestationsState extends State<EcranPrestations> {
       appBar: AppBar(title: const Text('Prestations')),
       body: ListeCharte(
         enfants: [
-          Bouton(
-            libelle: 'Ajouter une prestation',
-            pleineLargeur: true,
-            surAppui: () => _ouvrirFormulaire(),
+          // Action principale : bouton vert à sa largeur (comme « Ouvrir la
+          // fiche » de l'accueil), pas un bandeau plein.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Bouton(
+              libelle: 'Ajouter une prestation',
+              surAppui: () => _ouvrirFormulaire(),
+            ),
           ),
-          const SizedBox(height: Espaces.s6),
+          const SizedBox(height: Espaces.s4),
           Chargement<List<Prestation>>(
             key: ValueKey(_version),
             lire: widget.salon.prestations,
@@ -78,14 +84,12 @@ class _EcranPrestationsState extends State<EcranPrestations> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final p in prestations) ...[
-                    _CartePrestation(
+                  for (final p in prestations)
+                    _LignePrestation(
                       prestation: p,
                       surModifier: () => _ouvrirFormulaire(p),
                       surBasculer: () => _basculer(p),
                     ),
-                    const SizedBox(height: Espaces.s3),
-                  ],
                 ],
               );
             },
@@ -96,8 +100,10 @@ class _EcranPrestationsState extends State<EcranPrestations> {
   }
 }
 
-class _CartePrestation extends StatelessWidget {
-  const _CartePrestation({
+// Ligne d'une prestation : icône, nom, prix et durée ; désactivée en gris,
+// avec la mention. Interrupteur à droite : proposée ou non aux clients.
+class _LignePrestation extends StatelessWidget {
+  const _LignePrestation({
     required this.prestation,
     required this.surModifier,
     required this.surBasculer,
@@ -111,47 +117,65 @@ class _CartePrestation extends StatelessWidget {
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     final p = prestation;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(Espaces.s4),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(p.nom, style: textes.titleMedium),
-            const SizedBox(height: Espaces.s1),
-            Text(
-              '${formatPrix(p.prix)} · ${formatDuree(p.dureeMinutes)}',
-              style: textes.bodyLarge!.copyWith(
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            if (!p.active) ...[
-              const SizedBox(height: Espaces.s1),
-              Text(
-                'Désactivée : plus proposée aux clients',
-                style: textes.bodySmall,
-              ),
-            ],
-            const SizedBox(height: Espaces.s2),
-            Wrap(
-              spacing: Espaces.s6,
-              children: [
-                TextButton(
-                  onPressed: surModifier,
-                  child: Text('Modifier', semanticsLabel: 'Modifier ${p.nom}'),
-                ),
-                TextButton(
-                  onPressed: surBasculer,
-                  child: Text(
-                    p.active ? 'Désactiver' : 'Réactiver',
-                    semanticsLabel:
-                        '${p.active ? 'Désactiver' : 'Réactiver'} ${p.nom}',
+    final couleur = p.active ? Couleurs.texte : Couleurs.texteSecondaire;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 64),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Couleurs.separateur)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: 'Modifier ${p.nom}',
+              onTap: surModifier,
+              excludeSemantics: true,
+              child: InkWell(
+                onTap: surModifier,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: Espaces.s2),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.content_cut,
+                        color: Couleurs.texteSecondaire,
+                      ),
+                      const SizedBox(width: Espaces.s3),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              p.nom,
+                              style: textes.titleSmall!.copyWith(
+                                color: couleur,
+                              ),
+                            ),
+                            Text(
+                              '${formatPrix(p.prix)} · ${formatDuree(p.dureeMinutes)}',
+                              style: textes.bodySmall!.copyWith(
+                                fontFeatures: const [
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
+                            ),
+                            if (!p.active)
+                              Text('Désactivée', style: textes.bodySmall),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ],
-        ),
+          ),
+          Semantics(
+            label: '${p.nom} proposée aux clients',
+            child: Switch(value: p.active, onChanged: (_) => surBasculer()),
+          ),
+        ],
       ),
     );
   }

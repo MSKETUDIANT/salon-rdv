@@ -41,7 +41,13 @@ void main() {
     expect(find.text('Équipe'), findsOneWidget);
     expect(find.text('Amira'), findsOneWidget);
     expect(find.text('Youssef'), findsOneWidget);
-    expect(find.text('Horaires, absences et compétences'), findsNWidgets(2));
+    // Une ligne par coiffeur (#92) : avatar et nom ; la description est lue
+    // par TalkBack.
+    expect(
+      find.bySemanticsLabel('Amira, horaires, absences et compétences'),
+      findsOneWidget,
+    );
+    expect(find.byType(Card), findsNothing);
   });
 
   testWidgets('salon sans coiffeur : message, pas de liste', (tester) async {
@@ -50,7 +56,7 @@ void main() {
       find.textContaining('Aucun coiffeur dans ce salon.'),
       findsOneWidget,
     );
-    expect(find.text('Horaires, absences et compétences'), findsNothing);
+    expect(find.bySemanticsLabel(RegExp('horaires, absences')), findsNothing);
   });
 
   testWidgets('erreur de lecture : message, puis « Réessayer » relit', (
