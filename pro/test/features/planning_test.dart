@@ -8,6 +8,7 @@ import 'package:salon_pro/features/planning/ecran_mon_planning.dart';
 import 'package:salon_pro/features/planning/ecran_planning_equipe.dart';
 import 'package:salon_pro/features/planning/elements_planning.dart';
 import 'package:salon_pro/ui/charte.dart';
+import 'package:salon_pro/ui/composants.dart';
 import 'package:salon_pro/ui/format.dart';
 
 import '../doublures/faux_planning.dart';
@@ -229,9 +230,17 @@ void main() {
       },
     );
 
-    testWidgets('jour suivant : nouvelle lecture', (tester) async {
+    testWidgets('bande des jours : un toucher, nouvelle lecture (#80)', (
+      tester,
+    ) async {
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
-      await appuyer(tester, find.byTooltip('Jour suivant'));
+      // Semaine du lundi 7 au dimanche 13 janvier ; aujourd'hui = lundi.
+      expect(
+        find.bySemanticsLabel("Lundi 7 janvier, aujourd'hui"),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Dimanche 13 janvier'), findsOneWidget);
+      await appuyer(tester, find.bySemanticsLabel('Mardi 8 janvier'));
       expect(planning.appels.last, '2030-1-8..2030-1-8 tous');
       // Mardi : jour de repos d'Amira, sans rendez-vous : le message seul,
       // sans grille ni lignes horaires (#79).
@@ -241,6 +250,66 @@ void main() {
       );
       expect(find.byType(ColonneJour), findsNothing);
       expect(find.byType(AxeHeures), findsNothing);
+    });
+  });
+
+  group("Planning de l'équipe, semaine et vue liste (#80)", () {
+    setUp(() {
+      planning = FauxPlanning();
+      return initializeDateFormatting('fr');
+    });
+
+    testWidgets('flèches : semaine suivante, même jour de la semaine', (
+      tester,
+    ) async {
+      await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      await appuyer(tester, find.byTooltip('Semaine suivante'));
+      expect(planning.appels.last, '2030-1-14..2030-1-14 tous');
+      expect(find.bySemanticsLabel('Lundi 14 janvier'), findsOneWidget);
+      // « Aujourd'hui » dans la barre du titre (#80), plus de lien sous la
+      // date ; il ramène au jour actuel et disparaît.
+      expect(find.text("Revenir à aujourd'hui"), findsNothing);
+      await appuyer(tester, find.widgetWithText(TextButton, "Aujourd'hui"));
+      expect(planning.appels.last, '2030-1-7..2030-1-7 tous');
+      expect(find.widgetWithText(TextButton, "Aujourd'hui"), findsNothing);
+    });
+
+    testWidgets('semaine sur deux mois : les deux mois au-dessus', (
+      tester,
+    ) async {
+      await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      expect(find.text('janvier – février'), findsNothing);
+      for (var i = 0; i < 3; i++) {
+        await appuyer(tester, find.byTooltip('Semaine suivante'));
+      }
+      // Lundi 28 janvier → dimanche 3 février.
+      expect(find.text('janvier – février'), findsOneWidget);
+    });
+
+    testWidgets('onglets : prénom et petit avatar', (tester) async {
+      await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      final amira = find.widgetWithText(ChoiceChip, 'Amira');
+      expect(
+        find.descendant(of: amira, matching: find.byType(Avatar)),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('icône « Vue liste » : la journée en liste, puis retour', (
+      tester,
+    ) async {
+      await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      expect(find.byType(ColonneJour), findsOneWidget);
+      await appuyer(tester, find.byTooltip('Vue liste'));
+      expect(find.byType(ColonneJour), findsNothing);
+      expect(
+        find.bySemanticsLabel(RegExp(r'^09:00, Salma, Coupe')),
+        findsOneWidget,
+      );
+      // Pas de nouvelle lecture : la journée est déjà chargée.
+      expect(planning.appels, hasLength(1));
+      await appuyer(tester, find.byTooltip('Vue horaire'));
+      expect(find.byType(ColonneJour), findsOneWidget);
     });
   });
 

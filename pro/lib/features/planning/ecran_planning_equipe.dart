@@ -4,12 +4,16 @@ import '../../data/planning.dart';
 import '../../data/salon.dart';
 import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
+import '../../ui/composants.dart';
 import '../../ui/format.dart';
+import '../aujourdhui/carte_glissable.dart';
 import 'elements_planning.dart';
 
 // Planning de toute l'équipe pour le gérant (BF-G5) : la frise d'un coiffeur
 // sur la journée, choisi par des pastilles en haut (#64), son résumé dessous
-// (#79), navigation entre les jours ; tirer vers le bas pour actualiser. Depuis la fiche d'un rendez-vous : clôture pour un coiffeur et
+// (#79), bande des jours de la semaine et flèches par semaine (#80), vue
+// horaire ou vue liste (icône dans la barre du titre, #80) ; tirer vers le bas
+// pour actualiser. Depuis la fiche d'un rendez-vous : clôture pour un coiffeur et
 // encaissement (#11).
 class EcranPlanningEquipe extends StatefulWidget {
   const EcranPlanningEquipe({super.key, required this.planning});
@@ -26,6 +30,8 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
   DateTime? _aujourdhui;
   DateTime? _jour;
   int _version = 0;
+  // Vue liste de la journée (#80) au lieu de la vue horaire.
+  bool _liste = false;
 
   Future<(DateTime, List<Coiffeur>, DonneesPlanning)> _lire() async {
     _maintenant = await widget.planning.maintenantAuSalon();
@@ -47,7 +53,18 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
     _version++;
   });
 
+  void _choisirJour(DateTime jour) {
+    if (memeJour(jour, _jour!)) return;
+    setState(() {
+      _jour = jour;
+      _version++;
+    });
+  }
+
   void _actualiser() => setState(() => _version++);
+
+  // Premier mot du nom : « Patron Démo » → « Patron ».
+  static String _prenom(String nom) => nom.trim().split(RegExp(r'\s+')).first;
 
   // Jour de repos : pas d'horaires et aucun rendez-vous.
   static bool _repos(DonneesPlanning donnees, String coiffeur, DateTime jour) =>
@@ -74,7 +91,25 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Planning')),
+      appBar: AppBar(
+        title: const Text('Planning'),
+        actions: [
+          // Retour au jour actuel, seulement hors de ce jour (#80, option A).
+          if (_jour != null && !memeJour(_jour!, _aujourdhui!))
+            TextButton(
+              onPressed: () => setState(() {
+                _jour = _aujourdhui;
+                _version++;
+              }),
+              child: const Text("Aujourd'hui"),
+            ),
+          IconButton(
+            onPressed: () => setState(() => _liste = !_liste),
+            tooltip: _liste ? 'Vue horaire' : 'Vue liste',
+            icon: Icon(_liste ? Icons.schedule : Icons.view_list),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async => _actualiser(),
         child: ListView(
@@ -107,17 +142,19 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Flèches par semaine ; le jour se choisit dans la bande.
                     NavigationDates(
-                      unite: 'jour',
+                      unite: 'semaine',
                       libelle: formatDate(jour),
-                      surPrecedent: () => _deplacer(-1),
-                      surSuivant: () => _deplacer(1),
-                      surAujourdhui: memeJour(jour, _aujourdhui!)
-                          ? null
-                          : () => setState(() {
-                              _jour = _aujourdhui;
-                              _version++;
-                            }),
+                      surPrecedent: () => _deplacer(-7),
+                      surSuivant: () => _deplacer(7),
+                      // « Aujourd'hui » est dans la barre du titre (#80).
+                      surAujourdhui: null,
+                    ),
+                    BandeJours(
+                      jour: jour,
+                      aujourdhui: _aujourdhui!,
+                      surChoix: _choisirJour,
                     ),
                     if (coiffeurs.isEmpty) ...[
                       const SizedBox(height: Espaces.s2),
@@ -137,8 +174,10 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                             for (final c in coiffeurs) ...[
                               // Vert en petite touche (#79) : coiffeur choisi
                               // en vert sur gris clair, sans cadre.
+                              // Prénom et petit avatar (#80, choix de Sparta).
                               ChoiceChip(
-                                label: Text(c.nom),
+                                avatar: Avatar(nom: c.nom, taille: 24),
+                                label: Text(_prenom(c.nom)),
                                 labelStyle: textes.labelLarge!.copyWith(
                                   color: c.id == choisi.id
                                       ? Couleurs.accent
@@ -167,7 +206,17 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                         style: textes.bodyLarge,
                       ),
                       // Jour de repos (#79) : le message seul, sans grille.
-                      if (!_repos(donnees, choisi.id, jour)) ...[
+                      if (_liste) ...[
+                        const SizedBox(height: Espaces.s2),
+                        for (final r in donnees.rendezVousDu(choisi.id, jour))
+                          CarteGlissable(
+                            rendezVous: r,
+                            etat: r.etat(_maintenant!),
+                            glissable: false,
+                            surAppui: () => _ouvrir(r, choisi.nom),
+                            surGeste: (_) {},
+                          ),
+                      ] else if (!_repos(donnees, choisi.id, jour)) ...[
                         const SizedBox(height: Espaces.s2),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(rayon),
