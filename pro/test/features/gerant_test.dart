@@ -200,6 +200,17 @@ void main() {
   group('Fiche coiffeur (BF-G1, BF-G3)', () {
     const amira = Coiffeur(id: 'c1', nom: 'Amira');
 
+    testWidgets('sans cadre : horaires, absences et compétences en lignes', (
+      tester,
+    ) async {
+      await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
+      // Logique du lot 2 (#96) : plus aucune carte encadrée.
+      expect(find.byType(Card), findsNothing);
+      expect(find.text('Horaires'), findsOneWidget);
+      expect(find.text('Absences'), findsOneWidget);
+      expect(find.text('Compétences'), findsOneWidget);
+    });
+
     testWidgets(
       'horaires : les 7 jours, ajout d\'une plage, chevauchement refusé',
       (tester) async {
@@ -284,8 +295,8 @@ void main() {
           ),
         ];
         await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
-        expect(find.text('Du Lundi 14 janvier, 09:00'), findsOneWidget);
-        expect(find.text('au Lundi 14 janvier, 12:00'), findsOneWidget);
+        expect(find.text('Du lundi 14 janvier, 09:00'), findsOneWidget);
+        expect(find.text('au lundi 14 janvier, 12:00'), findsOneWidget);
         expect(find.text('Congé'), findsOneWidget);
 
         await tester.tap(

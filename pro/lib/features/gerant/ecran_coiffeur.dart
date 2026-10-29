@@ -114,25 +114,18 @@ class _SectionHorairesState extends State<SectionHoraires> {
         Chargement<List<Plage>>(
           key: ValueKey(_version),
           lire: () => widget.salon.plages(widget.coiffeur.id),
-          afficher: (context, plages, _) => Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: Espaces.s4,
-                vertical: Espaces.s2,
-              ),
-              child: Column(
-                children: [
-                  for (var jour = 1; jour <= 7; jour++) ...[
-                    if (jour > 1) const Divider(),
-                    _LigneJour(
-                      jour: jour,
-                      plages: plages.where((p) => p.jour == jour).toList(),
-                      surSupprimer: _supprimer,
-                    ),
-                  ],
-                ],
-              ),
-            ),
+          // Sans carte (#96) : un jour par ligne, filets fins.
+          afficher: (context, plages, _) => Column(
+            children: [
+              for (var jour = 1; jour <= 7; jour++) ...[
+                _LigneJour(
+                  jour: jour,
+                  plages: plages.where((p) => p.jour == jour).toList(),
+                  surSupprimer: _supprimer,
+                ),
+                const Divider(),
+              ],
+            ],
           ),
         ),
         const SizedBox(height: Espaces.s3),
@@ -413,15 +406,16 @@ class _SectionAbsencesState extends State<SectionAbsences> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Sans carte (#96) : une absence par ligne, filet fin.
                 for (final a in absences) ...[
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        Espaces.s4,
-                        Espaces.s2,
-                        Espaces.s1,
-                        Espaces.s2,
+                  Container(
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Couleurs.separateur),
                       ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: Espaces.s2),
                       child: Row(
                         children: [
                           Expanded(
@@ -429,11 +423,11 @@ class _SectionAbsencesState extends State<SectionAbsences> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Du ${formatDateHeure(a.debut)}',
+                                  'Du ${formatDateHeure(a.debut).toLowerCase()}',
                                   style: textes.bodyLarge,
                                 ),
                                 Text(
-                                  'au ${formatDateHeure(a.fin)}',
+                                  'au ${formatDateHeure(a.fin).toLowerCase()}',
                                   style: textes.bodyLarge,
                                 ),
                                 if (a.motif != null && a.motif!.isNotEmpty)
@@ -454,7 +448,6 @@ class _SectionAbsencesState extends State<SectionAbsences> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: Espaces.s3),
                 ],
               ],
             );
@@ -826,23 +819,25 @@ class _SectionCompetencesState extends State<SectionCompetences> {
               style: textes.bodySmall,
             ),
             const SizedBox(height: Espaces.s2),
-            Card(
-              child: Column(
-                children: [
-                  for (final p in prestations)
-                    CheckboxListTile(
-                      value: _cochees!.contains(p.id),
-                      onChanged: (v) => _basculer(p, v ?? false),
-                      title: Text(p.nom, style: textes.bodyLarge),
-                      subtitle: p.active
-                          ? null
-                          : Text('Désactivée', style: textes.bodySmall),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      activeColor: Couleurs.accent,
-                      side: const BorderSide(color: Couleurs.bordure, width: 2),
-                    ),
+            // Sans carte (#96) : une prestation par ligne, filet fin.
+            Column(
+              children: [
+                for (final p in prestations) ...[
+                  CheckboxListTile(
+                    value: _cochees!.contains(p.id),
+                    onChanged: (v) => _basculer(p, v ?? false),
+                    title: Text(p.nom, style: textes.bodyLarge),
+                    subtitle: p.active
+                        ? null
+                        : Text('Désactivée', style: textes.bodySmall),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    activeColor: Couleurs.accent,
+                    side: const BorderSide(color: Couleurs.bordure, width: 2),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  const Divider(),
                 ],
-              ),
+              ],
             ),
           ],
         );
