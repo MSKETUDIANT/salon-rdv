@@ -37,6 +37,8 @@ class FauxSalon implements DepotSalon {
   int rendezVous = 0;
   // Erreur levée par la prochaine écriture, puis remise à null.
   ErreurSalon? prochaineErreur;
+  // Erreur levée par la prochaine lecture de l'équipe, puis remise à null.
+  ErreurSalon? erreurCoiffeurs;
   final journal = <String>[];
   var _suivant = 0;
 
@@ -104,7 +106,12 @@ class FauxSalon implements DepotSalon {
   }
 
   @override
-  Future<List<Coiffeur>> coiffeurs() async => _coiffeurs;
+  Future<List<Coiffeur>> coiffeurs() async {
+    final erreur = erreurCoiffeurs;
+    erreurCoiffeurs = null;
+    if (erreur != null) throw erreur;
+    return _coiffeurs;
+  }
 
   @override
   Future<List<Plage>> plages(String coiffeurId) async => [
