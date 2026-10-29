@@ -759,3 +759,80 @@ class NavigationDates extends StatelessWidget {
     );
   }
 }
+
+// Bande des jours (#80) : la semaine du jour affiché, du lundi au dimanche ;
+// un toucher change de jour. Jour choisi en pastille grise, chiffre en vert ;
+// aujourd'hui marqué d'un point vert. Toute la largeur : 7 cases d'au moins
+// 44 px sur un écran de 360 px.
+class BandeJours extends StatelessWidget {
+  const BandeJours({
+    super.key,
+    required this.jour,
+    required this.aujourdhui,
+    required this.surChoix,
+  });
+
+  final DateTime jour;
+  final DateTime aujourdhui;
+  final ValueChanged<DateTime> surChoix;
+
+  static const _lettres = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+  @override
+  Widget build(BuildContext context) {
+    final textes = Theme.of(context).textTheme;
+    final lundi = jour.subtract(Duration(days: jour.weekday - 1));
+    return Row(
+      children: [
+        for (var i = 0; i < 7; i++)
+          Expanded(
+            child: Builder(
+              builder: (context) {
+                final d = DateTime(lundi.year, lundi.month, lundi.day + i);
+                final choisi = memeJour(d, jour);
+                final auj = memeJour(d, aujourdhui);
+                return Semantics(
+                  button: true,
+                  selected: choisi,
+                  label: auj ? '${formatDate(d)}, aujourd\'hui' : formatDate(d),
+                  excludeSemantics: true,
+                  child: InkWell(
+                    onTap: () => surChoix(d),
+                    borderRadius: BorderRadius.circular(rayon),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 64),
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: BoxDecoration(
+                        color: choisi ? Couleurs.separateur : null,
+                        borderRadius: BorderRadius.circular(rayon),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(_lettres[i], style: textes.bodySmall),
+                          Text(
+                            '${d.day}',
+                            style: textes.labelLarge!.copyWith(
+                              color: choisi ? Couleurs.accent : Couleurs.texte,
+                            ),
+                          ),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: auj ? Couleurs.accent : null,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
