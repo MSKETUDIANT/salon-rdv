@@ -10,7 +10,7 @@ import '../planning/ecran_planning_equipe.dart';
 import 'onglets.dart';
 
 // Un espace (#64) : barre d'onglets en bas, Accueil (#72), Planning, Salon,
-// Compte. Gérant : le salon entier (planning de l'équipe #10, historique #11,
+// Profil (#73). Gérant : le salon entier (planning de l'équipe #10, historique #11,
 // configuration #9) ; coiffeur : ses rendez-vous, ses horaires et absences en
 // lecture seule. Chaque onglet se charge à sa première ouverture et garde son
 // état ensuite.
@@ -60,9 +60,10 @@ class _EcranEspaceState extends State<EcranEspace> {
         gerant
             ? OngletSalonGerant(salon: widget.salon, planning: widget.planning)
             : OngletSalonCoiffeur(planning: widget.planning),
-      _ => OngletCompte(
+      _ => OngletProfil(
         compte: widget.compte,
         espace: widget.espace,
+        planning: widget.planning,
         autreEspace: widget.autreEspace,
         surBascule: widget.surBascule,
         surDeconnexion: widget.surDeconnexion,
@@ -104,9 +105,9 @@ class _EcranEspaceState extends State<EcranEspace> {
               label: 'Salon',
             ),
             NavigationDestination(
-              icon: Icon(Icons.account_circle_outlined),
-              selectedIcon: Icon(Icons.account_circle),
-              label: 'Compte',
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profil',
             ),
           ],
         ),

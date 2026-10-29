@@ -194,7 +194,7 @@ void main() {
     expect(find.textContaining('Espace coiffeur'), findsOneWidget);
     expect(find.text('Bonjour Amira'), findsOneWidget);
     expect(find.text("1 client aujourd'hui"), findsOneWidget);
-    for (final onglet in ['Accueil', 'Planning', 'Salon', 'Compte']) {
+    for (final onglet in ['Accueil', 'Planning', 'Salon', 'Profil']) {
       expect(
         find.widgetWithText(NavigationDestination, onglet),
         findsOneWidget,
@@ -205,8 +205,7 @@ void main() {
     expect(find.text('Mes horaires'), findsOneWidget);
     expect(find.text('Prestations'), findsNothing);
 
-    await ouvrirOnglet(tester, 'Compte');
-    expect(find.text('Connecté avec'), findsOneWidget);
+    await ouvrirOnglet(tester, 'Profil');
     expect(find.text('amira@salon.test'), findsOneWidget);
     expect(find.text('Coiffeur'), findsOneWidget);
     expect(find.byType(SegmentedButton<Espace>), findsNothing);
@@ -223,13 +222,13 @@ void main() {
     expect(find.text('Prestations'), findsOneWidget);
     expect(find.text('Équipe'), findsOneWidget);
 
-    await ouvrirOnglet(tester, 'Compte');
+    await ouvrirOnglet(tester, 'Profil');
     expect(find.text('Gérant'), findsOneWidget);
     expect(find.byType(SegmentedButton<Espace>), findsNothing);
   });
 
   testWidgets(
-    'gérant et coiffeur : choix de l\'espace, puis bascule dans les deux sens (onglet Compte)',
+    'gérant et coiffeur : choix de l\'espace, puis bascule dans les deux sens (onglet Profil)',
     (tester) async {
       await lancer(tester);
       await seConnecter(tester, 'patron@salon.test');
@@ -239,14 +238,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Espace gérant'), findsOneWidget);
 
-      await ouvrirOnglet(tester, 'Compte');
+      await ouvrirOnglet(tester, 'Profil');
       expect(find.text('Gérant et coiffeur'), findsOneWidget);
       await tester.tap(find.text('Coiffeur'));
       await tester.pumpAndSettle();
       // Nouvel espace : retour sur « Accueil ».
       expect(find.textContaining('Espace coiffeur'), findsOneWidget);
 
-      await ouvrirOnglet(tester, 'Compte');
+      await ouvrirOnglet(tester, 'Profil');
       await tester.tap(find.text('Gérant'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Espace gérant'), findsOneWidget);
@@ -254,7 +253,7 @@ void main() {
   );
 
   testWidgets(
-    '360 × 640 : barre d\'onglets visible sans défiler ; bascule et déconnexion dans « Compte »',
+    '360 × 640 : barre d\'onglets visible sans défiler ; bascule et déconnexion dans « Profil »',
     (tester) async {
       petitEcran(tester);
       await lancer(tester);
@@ -262,19 +261,19 @@ void main() {
       await tester.tap(find.text('Espace gérant'));
       await tester.pumpAndSettle();
 
-      for (final onglet in ['Accueil', 'Planning', 'Salon', 'Compte']) {
+      for (final onglet in ['Accueil', 'Planning', 'Salon', 'Profil']) {
         visibleSansDefiler(
           tester,
           find.widgetWithText(NavigationDestination, onglet),
         );
       }
-      await ouvrirOnglet(tester, 'Compte');
+      await ouvrirOnglet(tester, 'Profil');
       visibleSansDefiler(tester, find.byType(SegmentedButton<Espace>));
       visibleSansDefiler(tester, find.text('Se déconnecter'));
     },
   );
 
-  testWidgets('logo « Salon RDV » : connexion, puis onglet Compte', (
+  testWidgets('logo « Salon RDV » sur la connexion ; profil sans logo (#73)', (
     tester,
   ) async {
     final semantique = tester.ensureSemantics();
@@ -284,8 +283,10 @@ void main() {
     expect(find.byType(AppBar), findsNothing);
 
     await seConnecter(tester, 'gerant@salon.test');
-    await ouvrirOnglet(tester, 'Compte');
-    expect(find.bySemanticsLabel('Salon RDV'), findsOneWidget);
+    await ouvrirOnglet(tester, 'Profil');
+    expect(find.bySemanticsLabel('Salon RDV'), findsNothing);
+    expect(find.bySemanticsLabel('À propos, Version 0.2.0'), findsOneWidget);
+    expect(find.bySemanticsLabel('Mot de passe, Bientôt'), findsOneWidget);
     semantique.dispose();
   });
 
@@ -315,11 +316,11 @@ void main() {
   });
 
   testWidgets(
-    'déconnexion depuis un espace (onglet Compte) : retour à la connexion',
+    'déconnexion depuis un espace (onglet Profil) : retour à la connexion',
     (tester) async {
       await lancer(tester);
       await seConnecter(tester, 'amira@salon.test');
-      await ouvrirOnglet(tester, 'Compte');
+      await ouvrirOnglet(tester, 'Profil');
       await tester.tap(find.text('Se déconnecter'));
       await tester.pumpAndSettle();
       expect(find.text('Espace pro'), findsOneWidget);

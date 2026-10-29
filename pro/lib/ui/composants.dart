@@ -269,11 +269,16 @@ class CarteLien extends StatelessWidget {
   }
 }
 
-// Initiales d'un nom (#72) : « Amira Ben Salah » → « AB », « Youssef » → « Y ».
+// Initiale d'un nom (#72) : une seule lettre partout, pour que tous les
+// avatars se ressemblent (#73) : « Amira Ben Salah » → « A ».
 String initiales(String nom) {
-  final mots = nom.trim().split(RegExp(r'\s+')).where((m) => m.isNotEmpty);
-  return mots.take(2).map((m) => m.characters.first.toUpperCase()).join();
+  final premier = nom.trim();
+  return premier.isEmpty ? '' : premier.characters.first.toUpperCase();
 }
+
+// Version affichée dans le profil (#73) ; tenue égale à celle de pubspec.yaml
+// par test/ui/version_test.dart.
+const versionApp = '0.2.0';
 
 // Avatar rond (#72) : initiales sur fond `separateur`, faute de photo.
 // Décoratif : le nom est toujours écrit à côté ou dans le libellé du parent.
@@ -296,7 +301,9 @@ class Avatar extends StatelessWidget {
         ),
         child: Text(
           initiales(nom),
-          style: Theme.of(context).textTheme.labelLarge!.copyWith(height: 1),
+          style: taille >= 72
+              ? Theme.of(context).textTheme.headlineMedium!.copyWith(height: 1)
+              : Theme.of(context).textTheme.labelLarge!.copyWith(height: 1),
         ),
       ),
     );
