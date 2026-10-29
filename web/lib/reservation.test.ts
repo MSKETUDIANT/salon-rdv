@@ -123,12 +123,15 @@ describe("reserver", () => {
     });
   });
 
-  it("PT409 : le créneau vient d'être pris ; PT401 : déconnecté ; autre : erreur", async () => {
+  it("PT409 : pris ; PT401 : déconnecté ; 55P03 : occupé, à réessayer ; autre : erreur", async () => {
     expect(await reserver(client({ rpc: { data: null, error: { code: "PT409" } } }), demande)).toEqual({
       statut: "pris",
     });
     expect(await reserver(client({ rpc: { data: null, error: { code: "PT401" } } }), demande)).toEqual({
       statut: "deconnecte",
+    });
+    expect(await reserver(client({ rpc: { data: null, error: { code: "55P03" } } }), demande)).toEqual({
+      statut: "occupe",
     });
     expect(await reserver(client({ rpc: { data: null, error: { code: "500" } } }), demande)).toEqual({
       statut: "erreur",
