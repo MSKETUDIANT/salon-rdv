@@ -77,6 +77,8 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
   // la liste) la remplacent sans repasser par le chargement : la liste garde
   // sa position.
   _Jour? _jour;
+  // Premier rendez-vous à clôturer de la liste : le rappel y fait défiler.
+  final _premierACloturer = GlobalKey();
   // Message « Annuler » de la clôture en attente.
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _message;
   late final _cloture = ClotureDifferee(
@@ -227,7 +229,10 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     int compte(EtatRendezVous e) => etats.values.where((x) => x == e).length;
     final termines = compte(EtatRendezVous.termine);
     final absents = compte(EtatRendezVous.absent);
-    final restants = rdv.length - termines - absents;
+    // Restants (#72) : à venir et en cours seulement ; les rendez-vous passés
+    // à clôturer sont dans le rappel, pas dans ce chiffre.
+    final restants =
+        compte(EtatRendezVous.aVenir) + compte(EtatRendezVous.enCours);
     final aCloturer = compte(EtatRendezVous.aCloturer);
     final aEncaisser = widget.gerant
         ? rdv
@@ -251,6 +256,9 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
       1 => '1 client aujourd\'hui',
       final n => '$n clients aujourd\'hui',
     };
+    final premierACloturer = rdv
+        .where((r) => etats[r.id] == EtatRendezVous.aCloturer)
+        .firstOrNull;
     final premierGlissable = rdv
         .where(
           (r) => r.cloturable(j.maintenant) && _cloture.enAttente(r.id) == null,
@@ -285,6 +293,18 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
               if (aCloturer > 0) '$aCloturer à clôturer',
               if (aEncaisser > 0) '$aEncaisser à encaisser',
             ].join(' · '),
+            surAppui: aCloturer == 0
+                ? null
+                : () {
+                    final cible = _premierACloturer.currentContext;
+                    if (cible != null) {
+                      Scrollable.ensureVisible(
+                        cible,
+                        duration: const Duration(milliseconds: 300),
+                        alignment: 0.1,
+                      );
+                    }
+                  },
           ),
         ],
         const SizedBox(height: Espaces.s6),
@@ -297,7 +317,10 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
           const SizedBox(height: Espaces.s3),
         ],
         if (rdv.isEmpty)
-          const _JourneeCalme()
+          const _MessageJour(
+            icone: Icons.local_cafe_outlined,
+            texte: 'Aucun rendez-vous prévu pour l\'instant.',
+          )
         else ...[
           if (prochain != null)
             _Prochain(
@@ -308,9 +331,9 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
               surAppui: () => _ouvrir(prochain, j),
             )
           else
-            Text(
-              'Plus de rendez-vous à venir aujourd\'hui.',
-              style: textes.bodyLarge,
+            const _MessageJour(
+              icone: Icons.done_all,
+              texte: 'Plus de rendez-vous à venir aujourd\'hui.',
             ),
           const SizedBox(height: Espaces.s6),
           _Chiffres(
@@ -344,6 +367,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
           const SizedBox(height: Espaces.s3),
           for (final r in rdv) ...[
             CarteGlissable(
+              key: r.id == premierACloturer?.id ? _premierACloturer : null,
               rendezVous: r,
               etat: etats[r.id]!,
               glissable:
@@ -459,48 +483,67 @@ class _BandeauSalon extends StatelessWidget {
 }
 
 // Rappel en tête, une seule ligne (« 1 à clôturer · 1 à encaisser ») : fond
-// ambre pâle, comme l'état « À clôturer ».
+// ambre pâle, comme l'état « À clôturer ». S'il y a des rendez-vous à
+// clôturer, un appui fait défiler jusqu'au premier dans la liste (#72).
 class _Rappel extends StatelessWidget {
-  const _Rappel({required this.texte});
+  const _Rappel({required this.texte, this.surAppui});
   final String texte;
+  final VoidCallback? surAppui;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Espaces.s3,
-        vertical: Espaces.s2,
-      ),
-      decoration: BoxDecoration(
+    return Semantics(
+      button: surAppui != null,
+      child: Material(
         color: CouleursStatut.aCloturerFond,
         borderRadius: BorderRadius.circular(rayon),
-      ),
-      child: Row(
-        children: [
-          ExcludeSemantics(
-            child: Icon(
-              Icons.pending_actions_outlined,
-              color: CouleursStatut.aCloturerTexte,
+        child: InkWell(
+          onTap: surAppui,
+          borderRadius: BorderRadius.circular(rayon),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: Espaces.s3,
+              vertical: Espaces.s2,
+            ),
+            child: Row(
+              children: [
+                ExcludeSemantics(
+                  child: Icon(
+                    Icons.pending_actions_outlined,
+                    color: CouleursStatut.aCloturerTexte,
+                  ),
+                ),
+                const SizedBox(width: Espaces.s2),
+                Expanded(
+                  child: Text(
+                    texte,
+                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                      color: CouleursStatut.aCloturerTexte,
+                    ),
+                  ),
+                ),
+                if (surAppui != null)
+                  const ExcludeSemantics(
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: CouleursStatut.aCloturerTexte,
+                    ),
+                  ),
+              ],
             ),
           ),
-          const SizedBox(width: Espaces.s2),
-          Expanded(
-            child: Text(
-              texte,
-              style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                color: CouleursStatut.aCloturerTexte,
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 }
 
-// Journée sans rendez-vous : un message plutôt qu'une rangée de zéros.
-class _JourneeCalme extends StatelessWidget {
-  const _JourneeCalme();
+// Message du jour, icône dans un rond : journée sans rendez-vous (pas de
+// rangée de zéros), ou plus rien à venir (#72).
+class _MessageJour extends StatelessWidget {
+  const _MessageJour({required this.icone, required this.texte});
+  final IconData icone;
+  final String texte;
 
   @override
   Widget build(BuildContext context) {
@@ -514,18 +557,12 @@ class _JourneeCalme extends StatelessWidget {
               color: Couleurs.separateur,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.local_cafe_outlined,
-              color: Couleurs.texteSecondaire,
-            ),
+            child: Icon(icone, color: Couleurs.texteSecondaire),
           ),
         ),
         const SizedBox(width: Espaces.s4),
         Expanded(
-          child: Text(
-            'Aucun rendez-vous prévu pour l\'instant.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          child: Text(texte, style: Theme.of(context).textTheme.bodySmall),
         ),
       ],
     );
