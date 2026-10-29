@@ -93,9 +93,10 @@ void main() {
         OngletSalonGerant(salon: FauxSalon(), planning: FauxPlanning()),
     'onglet Salon du coiffeur': () =>
         OngletSalonCoiffeur(planning: FauxPlanning()),
-    'onglet Compte': () => OngletCompte(
+    'onglet Profil': () => OngletProfil(
       compte: 'patron@salon.test',
       espace: Espace.gerant,
+      planning: FauxPlanning(),
       autreEspace: Espace.coiffeur,
       surBascule: (_) {},
       surDeconnexion: () {},

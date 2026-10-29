@@ -7,7 +7,6 @@ import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/format.dart';
-import '../../ui/marque.dart';
 import '../gerant/ecran_equipe.dart';
 import '../gerant/ecran_prestations.dart';
 import '../historique/ecran_historique.dart';
@@ -244,13 +243,16 @@ class _LigneHoraire extends StatelessWidget {
   }
 }
 
-// Compte : compte connecté, espace (gérant qui est aussi coiffeur),
-// déconnexion. Remplace le menu du compte de #41.
-class OngletCompte extends StatelessWidget {
-  const OngletCompte({
+// Profil (#73, maquette A de #66) : grand avatar rond, nom, e-mail et rôle ;
+// choix de l'espace pour un gérant qui est aussi coiffeur ; entrées à venir
+// (#74) à leur place, désactivées ; « À propos » et la version ; déconnexion
+// en bas. Remplace l'onglet « Compte » (#64).
+class OngletProfil extends StatelessWidget {
+  const OngletProfil({
     super.key,
     required this.compte,
     required this.espace,
+    required this.planning,
     required this.surDeconnexion,
     this.autreEspace,
     this.surBascule,
@@ -258,6 +260,7 @@ class OngletCompte extends StatelessWidget {
 
   final String compte;
   final Espace espace;
+  final DepotPlanning planning;
   final Espace? autreEspace;
   final ValueChanged<Espace>? surBascule;
   final VoidCallback surDeconnexion;
@@ -273,57 +276,134 @@ class OngletCompte extends StatelessWidget {
       body: ListeCharte(
         haut: Espaces.s6,
         enfants: [
-          const _EnTete(surTitre: LogoSalonRdv(), titre: 'Compte'),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(Espaces.s4),
-              child: SizedBox(
+          // Le nom se lit en tâche de fond ; en attendant (ou sans nom),
+          // l'e-mail tient lieu de nom. Tout tient à 360 × 640 : bascule et
+          // déconnexion visibles sans défiler (#41).
+          FutureBuilder<String?>(
+            future: planning.monNom().catchError((_) => null),
+            builder: (context, lecture) {
+              final nom = lecture.data?.trim();
+              final affiche = nom == null || nom.isEmpty ? compte : nom;
+              return SizedBox(
                 width: double.infinity,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Connecté avec', style: textes.bodySmall),
-                    Text(compte, style: textes.titleMedium),
-                    Text(roles, style: textes.bodySmall),
+                    Avatar(nom: affiche, taille: 80),
+                    const SizedBox(height: Espaces.s2),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        affiche,
+                        textAlign: TextAlign.center,
+                        style: textes.headlineSmall!.copyWith(height: 1.3),
+                      ),
+                    ),
+                    if (affiche != compte)
+                      Text(compte, style: textes.bodySmall),
+                    const SizedBox(height: Espaces.s1),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: Espaces.s3,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Couleurs.separateur,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(roles, style: textes.labelLarge),
+                    ),
                   ],
+                ),
+              );
+            },
+          ),
+          // Choix de l'espace, juste sous l'en-tête : seulement pour un compte
+          // gérant et coiffeur.
+          if (autre != null) ...[
+            const SizedBox(height: Espaces.s4),
+            Semantics(
+              container: true,
+              label: 'Espace',
+              child: SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<Espace>(
+                  segments: const [
+                    ButtonSegment(value: Espace.gerant, label: Text('Gérant')),
+                    ButtonSegment(
+                      value: Espace.coiffeur,
+                      label: Text('Coiffeur'),
+                    ),
+                  ],
+                  selected: {espace},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (choix) => surBascule?.call(choix.first),
                 ),
               ),
             ),
-          ),
-          if (autre != null) ...[
-            const SizedBox(height: Espaces.s6),
-            const _Section('Espace'),
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<Espace>(
-                segments: const [
-                  ButtonSegment(value: Espace.gerant, label: Text('Gérant')),
-                  ButtonSegment(
-                    value: Espace.coiffeur,
-                    label: Text('Coiffeur'),
-                  ),
-                ],
-                selected: {espace},
-                showSelectedIcon: false,
-                onSelectionChanged: (choix) => surBascule?.call(choix.first),
-              ),
-            ),
-            const SizedBox(height: Espaces.s2),
-            Text(
-              "Les onglets suivent l'espace choisi.",
-              style: textes.bodySmall,
-            ),
           ],
-          const SizedBox(height: Espaces.s8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
+          const SizedBox(height: Espaces.s4),
+          const _LigneProfil(
+            icone: Icons.edit_outlined,
+            titre: 'Modifier mes infos',
+            aDroite: 'Bientôt',
+          ),
+          const _LigneProfil(
+            icone: Icons.lock_outline,
+            titre: 'Mot de passe',
+            aDroite: 'Bientôt',
+          ),
+          const _LigneProfil(
+            icone: Icons.info_outline,
+            titre: 'À propos',
+            aDroite: 'Version $versionApp',
+          ),
+          const SizedBox(height: Espaces.s3),
+          Center(
+            child: TextButton.icon(
               onPressed: surDeconnexion,
-              icon: const Icon(Icons.logout, color: Couleurs.texteSecondaire),
+              style: TextButton.styleFrom(foregroundColor: Couleurs.erreur),
+              icon: const Icon(Icons.logout),
               label: const Text('Se déconnecter'),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Ligne du profil, sans cadre : icône, titre, texte à droite, filet dessous.
+// Les entrées à venir (#74) sont affichées, sans action.
+class _LigneProfil extends StatelessWidget {
+  const _LigneProfil({
+    required this.icone,
+    required this.titre,
+    required this.aDroite,
+  });
+  final IconData icone;
+  final String titre;
+  final String aDroite;
+
+  @override
+  Widget build(BuildContext context) {
+    final textes = Theme.of(context).textTheme;
+    return Semantics(
+      container: true,
+      label: '$titre, $aDroite',
+      excludeSemantics: true,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: Couleurs.separateur)),
+        ),
+        child: Row(
+          children: [
+            Icon(icone, color: Couleurs.texteSecondaire),
+            const SizedBox(width: Espaces.s3),
+            Expanded(child: Text(titre, style: textes.bodyLarge)),
+            Text(aDroite, style: textes.bodySmall),
+          ],
+        ),
       ),
     );
   }
