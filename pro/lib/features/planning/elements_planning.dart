@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/planning.dart';
 import '../../data/salon.dart';
@@ -782,7 +783,10 @@ class BandeJours extends StatelessWidget {
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     final lundi = jour.subtract(Duration(days: jour.weekday - 1));
-    return Row(
+    final dimanche = DateTime(lundi.year, lundi.month, lundi.day + 6);
+    // Semaine à cheval sur deux mois : « octobre – novembre » au-dessus.
+    final mois = DateFormat.MMMM('fr');
+    final rangee = Row(
       children: [
         for (var i = 0; i < 7; i++)
           Expanded(
@@ -832,6 +836,18 @@ class BandeJours extends StatelessWidget {
               },
             ),
           ),
+      ],
+    );
+    if (lundi.month == dimanche.month) return rangee;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '${mois.format(lundi)} – ${mois.format(dimanche)}',
+          textAlign: TextAlign.center,
+          style: textes.bodySmall,
+        ),
+        rangee,
       ],
     );
   }

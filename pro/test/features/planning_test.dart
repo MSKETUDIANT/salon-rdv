@@ -266,7 +266,24 @@ void main() {
       await appuyer(tester, find.byTooltip('Semaine suivante'));
       expect(planning.appels.last, '2030-1-14..2030-1-14 tous');
       expect(find.bySemanticsLabel('Lundi 14 janvier'), findsOneWidget);
-      expect(find.text("Revenir à aujourd'hui"), findsOneWidget);
+      // « Aujourd'hui » dans la barre du titre (#80), plus de lien sous la
+      // date ; il ramène au jour actuel et disparaît.
+      expect(find.text("Revenir à aujourd'hui"), findsNothing);
+      await appuyer(tester, find.widgetWithText(TextButton, "Aujourd'hui"));
+      expect(planning.appels.last, '2030-1-7..2030-1-7 tous');
+      expect(find.widgetWithText(TextButton, "Aujourd'hui"), findsNothing);
+    });
+
+    testWidgets('semaine sur deux mois : les deux mois au-dessus', (
+      tester,
+    ) async {
+      await ouvrir(tester, EcranPlanningEquipe(planning: planning));
+      expect(find.text('janvier – février'), findsNothing);
+      for (var i = 0; i < 3; i++) {
+        await appuyer(tester, find.byTooltip('Semaine suivante'));
+      }
+      // Lundi 28 janvier → dimanche 3 février.
+      expect(find.text('janvier – février'), findsOneWidget);
     });
 
     testWidgets('onglets : prénom et petit avatar', (tester) async {

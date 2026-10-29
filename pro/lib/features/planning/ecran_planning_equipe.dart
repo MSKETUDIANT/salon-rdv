@@ -94,12 +94,19 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
       appBar: AppBar(
         title: const Text('Planning'),
         actions: [
+          // Retour au jour actuel, seulement hors de ce jour (#80, option A).
+          if (_jour != null && !memeJour(_jour!, _aujourdhui!))
+            TextButton(
+              onPressed: () => setState(() {
+                _jour = _aujourdhui;
+                _version++;
+              }),
+              child: const Text("Aujourd'hui"),
+            ),
           IconButton(
             onPressed: () => setState(() => _liste = !_liste),
             tooltip: _liste ? 'Vue horaire' : 'Vue liste',
-            icon: Icon(
-              _liste ? Icons.calendar_view_day_outlined : Icons.view_list,
-            ),
+            icon: Icon(_liste ? Icons.schedule : Icons.view_list),
           ),
         ],
       ),
@@ -141,12 +148,8 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                       libelle: formatDate(jour),
                       surPrecedent: () => _deplacer(-7),
                       surSuivant: () => _deplacer(7),
-                      surAujourdhui: memeJour(jour, _aujourdhui!)
-                          ? null
-                          : () => setState(() {
-                              _jour = _aujourdhui;
-                              _version++;
-                            }),
+                      // « Aujourd'hui » est dans la barre du titre (#80).
+                      surAujourdhui: null,
                     ),
                     BandeJours(
                       jour: jour,
