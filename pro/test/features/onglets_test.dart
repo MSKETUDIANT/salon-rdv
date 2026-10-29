@@ -38,6 +38,8 @@ void main() {
     expect(find.text('09:00 – 18:00'), findsNWidgets(2));
     expect(find.text('Ne travaille pas'), findsNWidgets(5));
     expect(find.text('Du lundi 7 janvier, 15:00'), findsOneWidget);
+    // Logique du lot 2 (#100) : plus aucune carte encadrée.
+    expect(find.byType(Card), findsNothing);
     expect(find.text('Formation'), findsOneWidget);
     expect(find.textContaining('modifiés par le gérant'), findsOneWidget);
     expect(find.byType(FilledButton), findsNothing);
