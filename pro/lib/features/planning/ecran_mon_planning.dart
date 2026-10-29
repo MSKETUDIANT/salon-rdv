@@ -10,7 +10,7 @@ import 'elements_planning.dart';
 // grisées) et vue Semaine ; appui sur un rendez-vous pour le détail (BF-K2)
 // et la clôture : terminé, client absent (BF-K3, BF-K4).
 // Relu à l'ouverture, à chaque changement de date, en tirant la liste vers
-// le bas ou avec le bouton « Actualiser ».
+// le bas (#79 : plus de bouton « Actualiser »).
 class EcranMonPlanning extends StatefulWidget {
   const EcranMonPlanning({super.key, required this.planning});
   final DepotPlanning planning;
@@ -66,23 +66,17 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Planning'),
-        actions: [
-          IconButton(
-            onPressed: _actualiser,
-            tooltip: 'Actualiser',
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Planning')),
       body: RefreshIndicator(
         onRefresh: () async => _actualiser(),
         child: ListView(
+          // Tirer vers le bas marche aussi quand la journée tient à l'écran.
+          physics: const AlwaysScrollableScrollPhysics(),
           // Mêmes marges que ListeCharte (ui/composants.dart).
+          // Pas de marge en haut (#79) : la date suit le titre de près.
           padding: const EdgeInsets.fromLTRB(
             Espaces.s4,
-            Espaces.s4,
+            0,
             Espaces.s4,
             Espaces.s8,
           ),
@@ -178,11 +172,7 @@ class _VueJour extends StatelessWidget {
     final rdv = donnees.rendezVousDu(coiffeur, jour);
     final plages = donnees.plagesDu(coiffeur, jour);
     final (debut, fin) = fenetreDuJour(donnees, [coiffeur], jour);
-    final resume = rdv.isEmpty
-        ? 'Aucun rendez-vous'
-        : rdv.length == 1
-        ? '1 rendez-vous'
-        : '${rdv.length} rendez-vous';
+    final resume = resumeJournee(rdv);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -190,30 +180,37 @@ class _VueJour extends StatelessWidget {
           plages.isEmpty ? '$resume · ne travaille pas ce jour-là' : resume,
           style: textes.bodyLarge,
         ),
-        const SizedBox(height: Espaces.s3),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(rayon),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              AxeHeures(debut: debut, fin: fin),
-              Expanded(
-                child: ColonneJour(
-                  jour: jour,
+        // Jour de repos (#79) : le message seul, sans grille.
+        if (plages.isNotEmpty || rdv.isNotEmpty) ...[
+          const SizedBox(height: Espaces.s3),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(rayon),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AxeHeures(
                   debut: debut,
                   fin: fin,
-                  plages: plages,
-                  absences: donnees.absencesDu(coiffeur, jour),
-                  rendezVous: rdv,
-                  surRendezVous: surRendezVous,
-                  maintenant: maintenant,
+                  maintenant: memeJour(maintenant, jour)
+                      ? maintenant.hour * 60 + maintenant.minute
+                      : null,
                 ),
-              ),
-            ],
+                Expanded(
+                  child: ColonneJour(
+                    jour: jour,
+                    debut: debut,
+                    fin: fin,
+                    plages: plages,
+                    absences: donnees.absencesDu(coiffeur, jour),
+                    rendezVous: rdv,
+                    surRendezVous: surRendezVous,
+                    maintenant: maintenant,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: Espaces.s2),
-        Text('Zones grisées : hors de vos horaires.', style: textes.bodySmall),
+        ],
       ],
     );
   }

@@ -14,8 +14,11 @@ import 'formulaire_encaissement.dart';
 // (heures hors horaires grisées, absences, rendez-vous), fiche d'un
 // rendez-vous (BF-K2) avec clôture et encaissement (#11).
 
-const pixelsParMinute = 1.6;
-const largeurAxe = 52.0;
+// 2 px par minute (#79) : un rendez-vous de 30 min tient sur deux lignes
+// (heure et client, puis prestation).
+const pixelsParMinute = 2.0;
+// 60 px (#79) : la pastille de l'heure actuelle (« 18:11 ») y tient.
+const largeurAxe = 60.0;
 
 // Apparence d'un état (#64, charte : CouleursStatut). Le libellé est
 // toujours écrit, doublé d'une icône : jamais la couleur seule.
@@ -99,35 +102,59 @@ class LibelleEtat extends StatelessWidget {
   }
 }
 
-// Heures affichées : 8h-20h par défaut, élargies pour montrer toutes les
-// plages, absences et rendez-vous du jour. En minutes depuis minuit.
+// Heures affichées (#79) : seulement les horaires du jour des coiffeurs,
+// élargies aux rendez-vous qui en sortent, à l'heure pleine. Sans horaire ni
+// rendez-vous ce jour-là : 9h-18h. En minutes depuis minuit.
 (int, int) fenetreDuJour(
   DonneesPlanning donnees,
   Iterable<String> coiffeurs,
   DateTime jour,
 ) {
-  var debut = 8 * 60;
-  var fin = 20 * 60;
+  int? debut;
+  int? fin;
+  void inclure(int d, int f) {
+    debut = debut == null ? d : math.min(debut!, d);
+    fin = fin == null ? f : math.max(fin!, f);
+  }
+
   for (final c in coiffeurs) {
     for (final p in donnees.plagesDu(c, jour)) {
-      debut = math.min(debut, minutesDuJour(p.debut));
-      fin = math.max(fin, minutesDuJour(p.fin));
+      inclure(minutesDuJour(p.debut), minutesDuJour(p.fin));
     }
     for (final r in donnees.rendezVousDu(c, jour)) {
-      debut = math.min(debut, r.debut.hour * 60 + r.debut.minute);
-      fin = math.max(
-        fin,
+      inclure(
+        r.debut.hour * 60 + r.debut.minute,
         memeJour(r.fin, jour) ? r.fin.hour * 60 + r.fin.minute : 24 * 60,
       );
     }
   }
-  return ((debut ~/ 60) * 60, math.min(24 * 60, ((fin + 59) ~/ 60) * 60));
+  final d = debut ?? 9 * 60;
+  final f = fin ?? 18 * 60;
+  return ((d ~/ 60) * 60, math.min(24 * 60, ((f + 59) ~/ 60) * 60));
 }
 
+// Résumé d'une journée (#79) : « 3 rendez-vous · 2 h 15 ».
+String resumeJournee(List<RendezVous> rendezVous) {
+  if (rendezVous.isEmpty) return 'Aucun rendez-vous';
+  final minutes = rendezVous.fold<int>(0, (s, r) => s + r.dureeMinutes);
+  final nombre = rendezVous.length == 1
+      ? '1 rendez-vous'
+      : '${rendezVous.length} rendez-vous';
+  return '$nombre · ${formatDuree(minutes)}';
+}
+
+// Axe des heures ; maintenant (minutes depuis minuit, aujourd'hui seulement) :
+// l'heure actuelle écrite dans une pastille rouge, au niveau du trait (#79).
 class AxeHeures extends StatelessWidget {
-  const AxeHeures({super.key, required this.debut, required this.fin});
+  const AxeHeures({
+    super.key,
+    required this.debut,
+    required this.fin,
+    this.maintenant,
+  });
   final int debut;
   final int fin;
+  final int? maintenant;
 
   @override
   Widget build(BuildContext context) {
@@ -141,12 +168,34 @@ class AxeHeures extends StatelessWidget {
         child: Stack(
           children: [
             for (var m = debut; m < fin; m += 60)
+              // L'heure pleine s'efface sous la pastille de l'heure actuelle.
+              if (maintenant == null || (m - maintenant!).abs() > 15)
+                Positioned(
+                  top: (m - debut) * pixelsParMinute - 2,
+                  left: 0,
+                  child: Text(
+                    formatHeure(TimeOfDay(hour: m ~/ 60, minute: 0)),
+                    style: style,
+                  ),
+                ),
+            if (maintenant case final m? when m >= debut && m <= fin)
               Positioned(
-                top: (m - debut) * pixelsParMinute - 2,
+                top: (m - debut) * pixelsParMinute - 12,
                 left: 0,
-                child: Text(
-                  formatHeure(TimeOfDay(hour: m ~/ 60, minute: 0)),
-                  style: style,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: Espaces.s1),
+                  decoration: BoxDecoration(
+                    color: Couleurs.erreur,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    formatHeure(TimeOfDay(hour: m ~/ 60, minute: m % 60)),
+                    style: style.copyWith(
+                      color: Couleurs.surface,
+                      fontWeight: FontWeight.w600,
+                      fontVariations: const [FontVariation.weight(600)],
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -156,8 +205,9 @@ class AxeHeures extends StatelessWidget {
   }
 }
 
-// Une journée d'un coiffeur. Fond `separateur` hors horaires, `surface`
-// pendant ses plages ; absences en bandes ; rendez-vous en cartes.
+// Une journée d'un coiffeur. Fond de page hors horaires (une pause, la fenêtre
+// suivant ses horaires, #79), `surface` pendant ses plages ; absences en
+// bandes ; rendez-vous en blocs à la hauteur de leur durée.
 class ColonneJour extends StatelessWidget {
   const ColonneJour({
     super.key,
@@ -198,11 +248,9 @@ class ColonneJour extends StatelessWidget {
       height: hauteur,
       child: Stack(
         children: [
-          // Hors horaires : grisé (décoratif, charte §2).
+          // Hors horaires : fond de page (décoratif).
           Positioned.fill(
-            child: ExcludeSemantics(
-              child: Container(color: Couleurs.separateur),
-            ),
+            child: ExcludeSemantics(child: Container(color: Couleurs.fond)),
           ),
           for (final p in plages)
             Positioned(
@@ -248,14 +296,15 @@ class ColonneJour extends StatelessWidget {
                 ),
               ),
             ),
-          // Maintenant : trait `erreur` de 2 px avec un point, sous les
-          // rendez-vous pour ne pas barrer leur texte (décoratif, l'état
-          // « En cours » est écrit sur le rendez-vous).
+          // Maintenant : trait `erreur` de 3 px avec un point, sous les
+          // rendez-vous pour ne pas barrer leur texte ; l'heure est écrite
+          // dans l'axe (décoratif, l'état « En cours » est écrit sur le
+          // rendez-vous).
           if (memeJour(maintenant, jour) &&
               _minutes(maintenant) >= debut &&
               _minutes(maintenant) <= fin)
             Positioned(
-              top: _y(_minutes(maintenant)) - 5,
+              top: _y(_minutes(maintenant)) - 6,
               left: 0,
               right: 0,
               child: ExcludeSemantics(
@@ -263,27 +312,29 @@ class ColonneJour extends StatelessWidget {
                   child: Row(
                     children: [
                       Container(
-                        width: 10,
-                        height: 10,
+                        width: 12,
+                        height: 12,
                         decoration: const BoxDecoration(
                           color: Couleurs.erreur,
                           shape: BoxShape.circle,
                         ),
                       ),
                       Expanded(
-                        child: Container(height: 2, color: Couleurs.erreur),
+                        child: Container(height: 3, color: Couleurs.erreur),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
+          // 2 px de chaque côté (#79) : deux rendez-vous qui se suivent ne
+          // se touchent pas.
           for (final r in rendezVous)
             Positioned(
-              top: _y(_minutes(r.debut)),
+              top: _y(_minutes(r.debut)) + 2,
               height: math.max(
                 zoneTactileMin,
-                _y(_minutes(r.fin)) - _y(_minutes(r.debut)),
+                _y(_minutes(r.fin)) - _y(_minutes(r.debut)) - 4,
               ),
               left: Espaces.s1,
               right: Espaces.s1,
@@ -324,11 +375,17 @@ class _CarteRendezVous extends StatelessWidget {
       // sinon TalkBack annoncerait un bouton impossible à activer.
       onTap: surAppui,
       excludeSemantics: true,
+      // Fond doux, sans bordure (#79) ; « à venir » (fond blanc dans la
+      // frise) prend une teinte légère de l'accent pour se détacher.
       child: Material(
-        color: style.fond,
+        color: etat == EtatRendezVous.aVenir
+            ? Color.alphaBlend(
+                Couleurs.accent.withValues(alpha: 0.08),
+                Couleurs.surface,
+              )
+            : style.fond,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(rayon),
-          side: BorderSide(color: style.bordure),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -338,9 +395,9 @@ class _CarteRendezVous extends StatelessWidget {
               horizontal: Espaces.s2,
               vertical: Espaces.s1,
             ),
-            // Heure, client et prestation, puis l'état si la hauteur le
-            // permet (24 px par ligne) ; points de suspension, jamais de texte
-            // coupé.
+            // Une ligne par information, selon la hauteur (24 px par ligne,
+            // #79) : heure et client ; prestation (précédée de l'icône de
+            // l'état) ; état écrit. Jamais la couleur seule.
             child: LayoutBuilder(
               builder: (context, contraintes) {
                 final lignes = math.max(
@@ -355,30 +412,38 @@ class _CarteRendezVous extends StatelessWidget {
                         style: textes.labelSmall!.copyWith(color: style.texte),
                       ),
                       TextSpan(
-                        text: '${r.clientNom} · ${r.prestation}',
+                        text: r.clientNom,
                         style: textes.bodySmall!.copyWith(color: style.texte),
                       ),
                     ],
                   ),
-                  maxLines: lignes > 1 ? lignes - 1 : 1,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 );
-                // Une seule ligne (rendez-vous court) : l'icône de l'état
-                // devant l'heure, jamais la couleur seule.
-                if (lignes < 2) {
-                  return Row(
-                    children: [
-                      Icon(style.icone, size: 16, color: style.libelle),
-                      const SizedBox(width: Espaces.s1),
-                      Expanded(child: titre),
-                    ],
-                  );
-                }
+                Widget avecIcone(Widget texte) => Row(
+                  children: [
+                    Icon(style.icone, size: 16, color: style.libelle),
+                    const SizedBox(width: Espaces.s1),
+                    Expanded(child: texte),
+                  ],
+                );
+                final prestation = Text(
+                  r.prestation,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: textes.bodySmall!.copyWith(color: style.texte),
+                );
+                if (lignes < 2) return avecIcone(titre);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     titre,
-                    LibelleEtat(etat: etat),
+                    if (lignes == 2)
+                      avecIcone(prestation)
+                    else ...[
+                      prestation,
+                      LibelleEtat(etat: etat),
+                    ],
                   ],
                 );
               },

@@ -6,6 +6,7 @@ import 'package:salon_pro/data/planning.dart';
 import 'package:salon_pro/data/salon.dart';
 import 'package:salon_pro/features/planning/ecran_mon_planning.dart';
 import 'package:salon_pro/features/planning/ecran_planning_equipe.dart';
+import 'package:salon_pro/features/planning/elements_planning.dart';
 import 'package:salon_pro/ui/charte.dart';
 import 'package:salon_pro/ui/format.dart';
 
@@ -50,7 +51,7 @@ void main() {
       await ouvrir(tester, EcranMonPlanning(planning: planning));
       expect(planning.appels, ['2030-1-7..2030-1-7 c1']);
       expect(find.text('Lundi 7 janvier'), findsOneWidget);
-      expect(find.text('1 rendez-vous'), findsOneWidget);
+      expect(find.text('1 rendez-vous · 30 min'), findsOneWidget);
       expect(
         find.bySemanticsLabel('09:00, Salma, Coupe, À clôturer'),
         findsOneWidget,
@@ -150,9 +151,27 @@ void main() {
       );
     });
 
-    testWidgets('« Actualiser » relit le planning', (tester) async {
+    testWidgets('jour de repos : le message seul, sans grille (#79)', (
+      tester,
+    ) async {
       await ouvrir(tester, EcranMonPlanning(planning: planning));
-      await appuyer(tester, find.byTooltip('Actualiser'));
+      expect(find.byType(ColonneJour), findsOneWidget);
+      await appuyer(tester, find.byTooltip('Jour suivant'));
+      expect(
+        find.text('Aucun rendez-vous · ne travaille pas ce jour-là'),
+        findsOneWidget,
+      );
+      expect(find.byType(ColonneJour), findsNothing);
+      expect(find.byType(AxeHeures), findsNothing);
+    });
+
+    testWidgets('tirer vers le bas relit le planning (#79)', (tester) async {
+      await ouvrir(tester, EcranMonPlanning(planning: planning));
+      expect(find.byTooltip('Actualiser'), findsNothing);
+      await tester.drag(find.byType(ListView), const Offset(0, 1000));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
       expect(planning.appels, [
         '2030-1-7..2030-1-7 c1',
         '2030-1-7..2030-1-7 c1',
@@ -170,7 +189,7 @@ void main() {
       );
       planning.erreur = null;
       await appuyer(tester, find.text('Réessayer'));
-      expect(find.text('1 rendez-vous'), findsOneWidget);
+      expect(find.text('1 rendez-vous · 30 min'), findsOneWidget);
     });
   });
 
@@ -182,8 +201,9 @@ void main() {
         expect(planning.appels, ['2030-1-7..2030-1-7 tous']);
         expect(find.widgetWithText(ChoiceChip, 'Amira'), findsOneWidget);
         expect(find.widgetWithText(ChoiceChip, 'Youssef'), findsOneWidget);
-        expect(find.text('2 coiffeurs · 2 rendez-vous'), findsOneWidget);
-        // Amira par défaut : son rendez-vous, pas celui de Youssef.
+        // Résumé du coiffeur choisi (#79) ; Amira par défaut : son
+        // rendez-vous, pas celui de Youssef.
+        expect(find.text('1 rendez-vous · 30 min'), findsOneWidget);
         expect(
           find.bySemanticsLabel('09:00, Salma, Coupe, À clôturer'),
           findsOneWidget,
@@ -196,6 +216,7 @@ void main() {
           findsOneWidget,
         );
         expect(find.bySemanticsLabel(RegExp('Salma')), findsNothing);
+        expect(find.text('1 rendez-vous · 45 min'), findsOneWidget);
         // Pas de nouvelle lecture : la journée est déjà chargée.
         expect(planning.appels, ['2030-1-7..2030-1-7 tous']);
 
@@ -212,7 +233,65 @@ void main() {
       await ouvrir(tester, EcranPlanningEquipe(planning: planning));
       await appuyer(tester, find.byTooltip('Jour suivant'));
       expect(planning.appels.last, '2030-1-8..2030-1-8 tous');
-      expect(find.text('2 coiffeurs · aucun rendez-vous'), findsOneWidget);
+      // Mardi : jour de repos d'Amira, sans rendez-vous : le message seul,
+      // sans grille ni lignes horaires (#79).
+      expect(
+        find.text('Aucun rendez-vous · ne travaille pas ce jour-là'),
+        findsOneWidget,
+      );
+      expect(find.byType(ColonneJour), findsNothing);
+      expect(find.byType(AxeHeures), findsNothing);
+    });
+  });
+
+  group('vue du jour (#79)', () {
+    Plage plage(int h1, int h2) => Plage(
+      id: 'p$h1',
+      jour: 1,
+      debut: TimeOfDay(hour: h1, minute: 0),
+      fin: TimeOfDay(hour: h2, minute: 0),
+    );
+    RendezVous rdv(int h, int m, int duree) => RendezVous(
+      id: 'r$h$m',
+      coiffeurId: 'c1',
+      debut: DateTime(2030, 1, 7, h, m),
+      fin: DateTime(2030, 1, 7, h, m).add(Duration(minutes: duree)),
+      statut: StatutRendezVous.confirmee,
+      prestation: 'Coupe',
+      dureeMinutes: duree,
+      clientNom: 'Salma',
+      prix: 20,
+    );
+    final lundi = DateTime(2030, 1, 7);
+
+    test('heures affichées : seulement les horaires du coiffeur', () {
+      final donnees = DonneesPlanning(
+        rendezVous: const [],
+        absences: const [],
+        plages: [
+          PlageCoiffeur(coiffeurId: 'c1', plage: plage(10, 13)),
+          PlageCoiffeur(coiffeurId: 'c1', plage: plage(14, 17)),
+        ],
+      );
+      expect(fenetreDuJour(donnees, ['c1'], lundi), (10 * 60, 17 * 60));
+    });
+
+    test('heures affichées : élargies à un rendez-vous hors horaires', () {
+      final donnees = DonneesPlanning(
+        rendezVous: [rdv(17, 30, 45)],
+        absences: const [],
+        plages: [PlageCoiffeur(coiffeurId: 'c1', plage: plage(10, 13))],
+      );
+      expect(fenetreDuJour(donnees, ['c1'], lundi), (10 * 60, 19 * 60));
+    });
+
+    test('résumé : nombre de rendez-vous et durée totale', () {
+      expect(resumeJournee(const []), 'Aucun rendez-vous');
+      expect(resumeJournee([rdv(9, 0, 30)]), '1 rendez-vous · 30 min');
+      expect(
+        resumeJournee([rdv(9, 0, 30), rdv(10, 0, 45), rdv(11, 0, 60)]),
+        '3 rendez-vous · 2 h 15',
+      );
     });
   });
 
