@@ -8,8 +8,8 @@ import '../../ui/format.dart';
 import 'elements_planning.dart';
 
 // Planning de toute l'équipe pour le gérant (BF-G5) : la frise d'un coiffeur
-// sur la journée, choisi par des pastilles en haut (#64), navigation entre les
-// jours. Depuis la fiche d'un rendez-vous : clôture pour un coiffeur et
+// sur la journée, choisi par des pastilles en haut (#64), son résumé dessous
+// (#79), navigation entre les jours ; tirer vers le bas pour actualiser. Depuis la fiche d'un rendez-vous : clôture pour un coiffeur et
 // encaissement (#11).
 class EcranPlanningEquipe extends StatefulWidget {
   const EcranPlanningEquipe({super.key, required this.planning});
@@ -49,12 +49,6 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
 
   void _actualiser() => setState(() => _version++);
 
-  static String _resume(int n) => n == 0
-      ? 'Aucun rendez-vous ce jour-là'
-      : n == 1
-      ? '1 rendez-vous'
-      : '$n rendez-vous';
-
   // Fiche d'un rendez-vous ; après une clôture ou un encaissement, message et
   // relecture.
   Future<void> _ouvrir(RendezVous r, String coiffeur) async {
@@ -75,19 +69,12 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Planning'),
-        actions: [
-          IconButton(
-            onPressed: _actualiser,
-            tooltip: 'Actualiser',
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Planning')),
       body: RefreshIndicator(
         onRefresh: () async => _actualiser(),
         child: ListView(
+          // Tirer vers le bas marche aussi quand la journée tient à l'écran.
+          physics: const AlwaysScrollableScrollPhysics(),
           // Mêmes marges que ListeCharte (ui/composants.dart).
           padding: const EdgeInsets.fromLTRB(
             Espaces.s4,
@@ -111,9 +98,6 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                       );
                 final ids = [if (choisi != null) choisi.id];
                 final (debut, fin) = fenetreDuJour(donnees, ids, jour);
-                final total = donnees.rendezVous
-                    .where((r) => memeJour(r.debut, jour))
-                    .length;
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -129,14 +113,13 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                               _version++;
                             }),
                     ),
-                    const SizedBox(height: Espaces.s2),
-                    Text(
-                      coiffeurs.isEmpty
-                          ? 'Aucun coiffeur dans ce salon.'
-                          : '${coiffeurs.length} coiffeur${coiffeurs.length > 1 ? 's' : ''} · '
-                                '${total == 0 ? 'aucun rendez-vous' : '$total rendez-vous'}',
-                      style: textes.bodyLarge,
-                    ),
+                    if (coiffeurs.isEmpty) ...[
+                      const SizedBox(height: Espaces.s2),
+                      Text(
+                        'Aucun coiffeur dans ce salon.',
+                        style: textes.bodyLarge,
+                      ),
+                    ],
                     if (choisi != null) ...[
                       const SizedBox(height: Espaces.s3),
                       // Un coiffeur à la fois : pastilles de choix, défilantes
@@ -165,8 +148,12 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                       ),
                       const SizedBox(height: Espaces.s3),
                       Text(
-                        '${choisi.nom} : ${_resume(donnees.rendezVousDu(choisi.id, jour).length).toLowerCase()}',
-                        style: textes.bodySmall,
+                        donnees.plagesDu(choisi.id, jour).isEmpty
+                            ? '${resumeJournee(donnees.rendezVousDu(choisi.id, jour))} · ne travaille pas ce jour-là'
+                            : resumeJournee(
+                                donnees.rendezVousDu(choisi.id, jour),
+                              ),
+                        style: textes.bodyLarge,
                       ),
                       const SizedBox(height: Espaces.s2),
                       ClipRRect(
@@ -174,7 +161,13 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            AxeHeures(debut: debut, fin: fin),
+                            AxeHeures(
+                              debut: debut,
+                              fin: fin,
+                              maintenant: memeJour(_maintenant!, jour)
+                                  ? _maintenant!.hour * 60 + _maintenant!.minute
+                                  : null,
+                            ),
                             Expanded(
                               child: ColonneJour(
                                 jour: jour,
@@ -194,11 +187,6 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: Espaces.s2),
-                    Text(
-                      'Zones grisées : hors des horaires du coiffeur.',
-                      style: textes.bodySmall,
-                    ),
                   ],
                 );
               },

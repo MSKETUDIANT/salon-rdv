@@ -10,7 +10,7 @@ import 'elements_planning.dart';
 // grisées) et vue Semaine ; appui sur un rendez-vous pour le détail (BF-K2)
 // et la clôture : terminé, client absent (BF-K3, BF-K4).
 // Relu à l'ouverture, à chaque changement de date, en tirant la liste vers
-// le bas ou avec le bouton « Actualiser ».
+// le bas (#79 : plus de bouton « Actualiser »).
 class EcranMonPlanning extends StatefulWidget {
   const EcranMonPlanning({super.key, required this.planning});
   final DepotPlanning planning;
@@ -66,19 +66,12 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Planning'),
-        actions: [
-          IconButton(
-            onPressed: _actualiser,
-            tooltip: 'Actualiser',
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Planning')),
       body: RefreshIndicator(
         onRefresh: () async => _actualiser(),
         child: ListView(
+          // Tirer vers le bas marche aussi quand la journée tient à l'écran.
+          physics: const AlwaysScrollableScrollPhysics(),
           // Mêmes marges que ListeCharte (ui/composants.dart).
           padding: const EdgeInsets.fromLTRB(
             Espaces.s4,
@@ -178,11 +171,7 @@ class _VueJour extends StatelessWidget {
     final rdv = donnees.rendezVousDu(coiffeur, jour);
     final plages = donnees.plagesDu(coiffeur, jour);
     final (debut, fin) = fenetreDuJour(donnees, [coiffeur], jour);
-    final resume = rdv.isEmpty
-        ? 'Aucun rendez-vous'
-        : rdv.length == 1
-        ? '1 rendez-vous'
-        : '${rdv.length} rendez-vous';
+    final resume = resumeJournee(rdv);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -196,7 +185,13 @@ class _VueJour extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AxeHeures(debut: debut, fin: fin),
+              AxeHeures(
+                debut: debut,
+                fin: fin,
+                maintenant: memeJour(maintenant, jour)
+                    ? maintenant.hour * 60 + maintenant.minute
+                    : null,
+              ),
               Expanded(
                 child: ColonneJour(
                   jour: jour,
@@ -212,8 +207,6 @@ class _VueJour extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: Espaces.s2),
-        Text('Zones grisées : hors de vos horaires.', style: textes.bodySmall),
       ],
     );
   }
