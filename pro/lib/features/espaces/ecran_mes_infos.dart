@@ -97,7 +97,7 @@ class _EcranMesInfosState extends State<EcranMesInfos> {
                 const SizedBox(height: Espaces.s1),
                 Text(widget.compte, style: textes.bodyLarge),
                 Text(
-                  'Identifiant de connexion, non modifiable ici.',
+                  'Identifiant de connexion, non modifiable.',
                   style: textes.bodySmall,
                 ),
               ],
