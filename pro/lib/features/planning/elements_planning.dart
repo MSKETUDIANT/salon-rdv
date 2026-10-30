@@ -223,6 +223,7 @@ class ColonneJour extends StatelessWidget {
     required this.rendezVous,
     required this.surRendezVous,
     required this.maintenant,
+    this.surCreneauVide,
   });
 
   final DateTime jour;
@@ -234,6 +235,10 @@ class ColonneJour extends StatelessWidget {
   final ValueChanged<RendezVous> surRendezVous;
   // Heure du salon : état de chaque rendez-vous, trait « maintenant ».
   final DateTime maintenant;
+  // Toucher d'un créneau vide (#104) : l'heure touchée, au quart d'heure
+  // inférieur, si elle tombe dans les horaires, hors absence, après
+  // maintenant. Ailleurs, le toucher ne fait rien.
+  final ValueChanged<DateTime>? surCreneauVide;
 
   double _y(int minutes) =>
       (minutes.clamp(debut, fin) - debut) * pixelsParMinute;
@@ -242,6 +247,20 @@ class ColonneJour extends StatelessWidget {
     if (d.isBefore(DateTime(jour.year, jour.month, jour.day))) return 0;
     if (!memeJour(d, jour)) return 24 * 60;
     return d.hour * 60 + d.minute;
+  }
+
+  // Heure touchée à la hauteur dy, ou null hors des créneaux réservables.
+  DateTime? _creneauTouche(double dy) {
+    final m = debut + (dy / pixelsParMinute).floor();
+    final touche = DateTime(jour.year, jour.month, jour.day, 0, m);
+    final dansHoraires = plages.any(
+      (p) => minutesDuJour(p.debut) <= m && m < minutesDuJour(p.fin),
+    );
+    final absent = absences.any(
+      (a) => !touche.isBefore(a.debut) && touche.isBefore(a.fin),
+    );
+    if (!dansHoraires || absent || !touche.isAfter(maintenant)) return null;
+    return DateTime(jour.year, jour.month, jour.day, 0, m - m % 15);
   }
 
   @override
@@ -270,6 +289,20 @@ class ColonneJour extends StatelessWidget {
               left: 0,
               right: 0,
               child: Container(height: 1, color: Couleurs.separateur),
+            ),
+          // Sous les absences et les rendez-vous, qui gardent leur toucher.
+          // Hors lecteur d'écran : le bouton « Nouveau rendez-vous » y mène.
+          if (surCreneauVide case final surVide?)
+            Positioned.fill(
+              child: ExcludeSemantics(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) {
+                    final heure = _creneauTouche(details.localPosition.dy);
+                    if (heure != null) surVide(heure);
+                  },
+                ),
+              ),
             ),
           for (final a in absences)
             Positioned(

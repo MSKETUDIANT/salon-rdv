@@ -207,12 +207,18 @@ class FauxPlanning implements DepotPlanning {
     ),
   ];
 
+  // Jours demandés à creneauxLibres (#104) : « 2030-1-9 c1 ».
+  final joursCreneaux = <String>[];
+
   @override
   Future<List<CreneauLibre>> creneauxLibres(
     String prestationId,
     DateTime jour, {
     String? coiffeurId,
-  }) async => creneaux;
+  }) async {
+    joursCreneaux.add('${_date(jour)} ${coiffeurId ?? 'peu importe'}');
+    return creneaux;
+  }
 
   // Erreur levée par la prochaine réservation pour un client, puis remise à
   // null.

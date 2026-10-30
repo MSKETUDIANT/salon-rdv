@@ -11,19 +11,25 @@ import '../../ui/format.dart';
 // Sparta) : nom, téléphone facultatif (retrouve la fiche s'il revient),
 // prestation, coiffeur (gérant : au choix ou « Peu importe » ; coiffeur :
 // lui-même), heure parmi les créneaux libres du jour, la première proposée.
-// Renvoie true si le rendez-vous est enregistré.
+// Depuis un créneau vide du planning (#104) : son jour, et l'heure libre la
+// plus proche de l'heure touchée. Renvoie true si le rendez-vous est
+// enregistré.
 class FormulaireClientPassage extends StatefulWidget {
   const FormulaireClientPassage({
     super.key,
     required this.planning,
     required this.gerant,
     this.coiffeurId,
+    this.heure,
   });
 
   final DepotPlanning planning;
   final bool gerant;
   // Gérant : coiffeur pré-choisi (onglet affiché du planning).
   final String? coiffeurId;
+  // Heure souhaitée (créneau vide touché, #104) ; sinon aujourd'hui, au
+  // premier créneau libre.
+  final DateTime? heure;
 
   @override
   State<FormulaireClientPassage> createState() =>
@@ -40,6 +46,8 @@ class _FormulaireClientPassageState extends State<FormulaireClientPassage> {
       : widget.planning.moi;
   CreneauLibre? _creneau;
   bool _enCours = false;
+  // Jour du formulaire = jour du salon (titre « Heure, aujourd'hui »).
+  bool _aujourdhui = true;
 
   @override
   void dispose() {
@@ -56,8 +64,11 @@ class _FormulaireClientPassageState extends State<FormulaireClientPassage> {
     ]);
     final prestations = resultats[1] as List<Prestation>;
     _prestation ??= prestations.isEmpty ? null : prestations.first.id;
+    _aujourdhui =
+        widget.heure == null ||
+        memeJour(widget.heure!, resultats[0] as DateTime);
     return (
-      DateUtils.dateOnly(resultats[0] as DateTime),
+      DateUtils.dateOnly(widget.heure ?? resultats[0] as DateTime),
       prestations,
       widget.gerant ? resultats[2] as List<Coiffeur> : const <Coiffeur>[],
     );
@@ -173,7 +184,11 @@ class _FormulaireClientPassageState extends State<FormulaireClientPassage> {
                     ),
                   ],
                   const SizedBox(height: Espaces.s6),
-                  _Titre('Heure, aujourd\'hui'),
+                  _Titre(
+                    _aujourdhui
+                        ? 'Heure, aujourd\'hui'
+                        : 'Heure, ${formatDate(jour).toLowerCase()}',
+                  ),
                   _Creneaux(
                     // Relu quand la prestation ou le coiffeur change.
                     key: ValueKey('$_prestation-$_coiffeur'),
@@ -182,6 +197,8 @@ class _FormulaireClientPassageState extends State<FormulaireClientPassage> {
                       jour,
                       coiffeurId: _coiffeur,
                     ),
+                    souhait: widget.heure,
+                    aujourdhui: _aujourdhui,
                     choisi: _creneau,
                     surChoix: (c) => setState(() => _creneau = c),
                   ),
@@ -219,17 +236,29 @@ class _Titre extends StatelessWidget {
   }
 }
 
-// Créneaux libres du jour en pastilles ; le premier est choisi d'office.
+// Créneaux libres du jour en pastilles ; choisi d'office : le plus proche de
+// l'heure souhaitée (le plus tôt à égalité), sinon le premier.
 class _Creneaux extends StatefulWidget {
   const _Creneaux({
     super.key,
     required this.lire,
+    required this.souhait,
+    required this.aujourdhui,
     required this.choisi,
     required this.surChoix,
   });
   final Future<List<CreneauLibre>> Function() lire;
+  final DateTime? souhait;
+  final bool aujourdhui;
   final CreneauLibre? choisi;
   final ValueChanged<CreneauLibre> surChoix;
+
+  CreneauLibre _parDefaut(List<CreneauLibre> creneaux) {
+    final s = souhait;
+    if (s == null) return creneaux.first;
+    Duration ecart(CreneauLibre c) => c.debut.difference(s).abs();
+    return creneaux.reduce((a, b) => ecart(b) < ecart(a) ? b : a);
+  }
 
   @override
   State<_Creneaux> createState() => _CreneauxState();
@@ -243,7 +272,7 @@ class _CreneauxState extends State<_Creneaux> {
         final creneaux = await widget.lire();
         if (creneaux.isNotEmpty && widget.choisi == null) {
           WidgetsBinding.instance.addPostFrameCallback(
-            (_) => widget.surChoix(creneaux.first),
+            (_) => widget.surChoix(widget._parDefaut(creneaux)),
           );
         }
         return creneaux;
@@ -251,7 +280,9 @@ class _CreneauxState extends State<_Creneaux> {
       afficher: (context, creneaux, _) {
         if (creneaux.isEmpty) {
           return Text(
-            'Plus de créneau libre aujourd\'hui pour ce choix.',
+            widget.aujourdhui
+                ? 'Plus de créneau libre aujourd\'hui pour ce choix.'
+                : 'Plus de créneau libre ce jour-là pour ce choix.',
             style: Theme.of(context).textTheme.bodyLarge,
           );
         }
