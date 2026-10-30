@@ -42,6 +42,18 @@ class FausseAuth implements ServiceAuth {
     compte = null;
     _flux.add(null);
   }
+
+  // Changement de mot de passe (#107) : vérifie l'actuel comme la base.
+  @override
+  Future<ErreurMotDePasse?> changerMotDePasse(
+    String actuel,
+    String nouveau,
+  ) async {
+    appels.add('mot de passe');
+    if (comptes[compte] != actuel) return ErreurMotDePasse.actuelIncorrect;
+    comptes[compte!] = nouveau;
+    return null;
+  }
 }
 
 class FauxRoles implements DepotRoles {
@@ -286,7 +298,8 @@ void main() {
     await ouvrirOnglet(tester, 'Profil');
     expect(find.bySemanticsLabel('Salon RDV'), findsNothing);
     expect(find.bySemanticsLabel('À propos, Version 0.2.0'), findsOneWidget);
-    expect(find.bySemanticsLabel('Mot de passe, Bientôt'), findsOneWidget);
+    // Mot de passe : ligne active depuis #107 (sans « Bientôt »).
+    expect(find.bySemanticsLabel('Mot de passe'), findsOneWidget);
     semantique.dispose();
   });
 

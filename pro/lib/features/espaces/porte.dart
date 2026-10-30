@@ -179,6 +179,7 @@ class _PorteState extends State<Porte> {
       autreEspace: autres.isEmpty ? null : autres.first,
       surBascule: (cible) => setState(() => _espace = cible),
       surDeconnexion: widget.auth.seDeconnecter,
+      changerMotDePasse: widget.auth.changerMotDePasse,
     );
   }
 }

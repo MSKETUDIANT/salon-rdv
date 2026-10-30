@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/planning.dart';
 import '../../data/roles.dart';
 import '../../data/salon.dart';
+import '../../data/session.dart';
 import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
@@ -10,6 +11,7 @@ import '../../ui/format.dart';
 import '../gerant/ecran_equipe.dart';
 import '../gerant/ecran_prestations.dart';
 import '../historique/ecran_historique.dart';
+import 'ecran_mot_de_passe.dart';
 
 // Onglets « Salon » et « Profil » de la barre du bas (#64, #73, #81).
 
@@ -395,6 +397,7 @@ class OngletProfil extends StatelessWidget {
     required this.espace,
     required this.planning,
     required this.surDeconnexion,
+    required this.changerMotDePasse,
     this.autreEspace,
     this.surBascule,
   });
@@ -405,6 +408,20 @@ class OngletProfil extends StatelessWidget {
   final Espace? autreEspace;
   final ValueChanged<Espace>? surBascule;
   final VoidCallback surDeconnexion;
+  final Future<ErreurMotDePasse?> Function(String actuel, String nouveau)
+  changerMotDePasse;
+
+  // Mot de passe (#107) : écran dédié, puis message au retour.
+  Future<void> _motDePasse(BuildContext context) async {
+    final change = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EcranMotDePasse(changer: changerMotDePasse),
+      ),
+    );
+    if (change == true && context.mounted) {
+      confirmer(context, 'Mot de passe modifié.');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -505,10 +522,10 @@ class OngletProfil extends StatelessWidget {
             titre: 'Modifier mes infos',
             aDroite: 'Bientôt',
           ),
-          const _Ligne(
+          _Ligne(
             icone: Icons.lock_outline,
             titre: 'Mot de passe',
-            aDroite: 'Bientôt',
+            surAppui: () => _motDePasse(context),
           ),
           const _Ligne(
             icone: Icons.info_outline,
@@ -542,7 +559,7 @@ class _Ligne extends StatelessWidget {
   const _Ligne({
     required this.icone,
     required this.titre,
-    required this.aDroite,
+    this.aDroite = '',
     this.surAppui,
     this.accent = false,
   });
@@ -560,7 +577,7 @@ class _Ligne extends StatelessWidget {
     return Semantics(
       container: true,
       button: surAppui != null,
-      label: '$titre, $aDroite',
+      label: aDroite.isEmpty ? titre : '$titre, $aDroite',
       onTap: surAppui,
       excludeSemantics: true,
       child: InkWell(
