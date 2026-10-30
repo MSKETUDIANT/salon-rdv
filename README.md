@@ -217,6 +217,7 @@ l'empreinte SHA-256 de l'APK dans les notes.
 | Document | Contenu |
 | --- | --- |
 | `docs/cahier-des-charges.md` | besoins fonctionnels (BF) et non fonctionnels (BNF) |
+| `docs/architecture.md` | architecture : couches, règles, points faibles |
 | `docs/demonstration-bf.md` | les 15 besoins fonctionnels, démontrés un par un |
 | `docs/resultats-bnf.md` | mesures et résultats des besoins non fonctionnels |
 | `docs/charte-graphique.md` | couleurs, typographie, composants |
