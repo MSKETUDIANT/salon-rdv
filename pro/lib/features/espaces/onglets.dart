@@ -11,6 +11,7 @@ import '../../ui/format.dart';
 import '../gerant/ecran_equipe.dart';
 import '../gerant/ecran_prestations.dart';
 import '../historique/ecran_historique.dart';
+import 'ecran_mes_infos.dart';
 import 'ecran_mot_de_passe.dart';
 
 // Onglets « Salon » et « Profil » de la barre du bas (#64, #73, #81).
@@ -390,7 +391,7 @@ class _LigneHoraire extends StatelessWidget {
 // choix de l'espace pour un gérant qui est aussi coiffeur ; entrées à venir
 // (#74) à leur place, désactivées ; « À propos » et la version ; déconnexion
 // en bas. Remplace l'onglet « Compte » (#64).
-class OngletProfil extends StatelessWidget {
+class OngletProfil extends StatefulWidget {
   const OngletProfil({
     super.key,
     required this.compte,
@@ -411,11 +412,43 @@ class OngletProfil extends StatelessWidget {
   final Future<ErreurMotDePasse?> Function(String actuel, String nouveau)
   changerMotDePasse;
 
+  @override
+  State<OngletProfil> createState() => _OngletProfilState();
+}
+
+class _OngletProfilState extends State<OngletProfil> {
+  // Nom du compte, relu après « Modifier mes infos » (#106).
+  late Future<String?> _nom = _lireNom();
+
+  Future<String?> _lireNom() =>
+      widget.planning.monNom().catchError((_) => null);
+
+  // Mes infos (#106) : écran dédié, puis nom relu et message au retour.
+  Future<void> _mesInfos(BuildContext context) async {
+    final nom = await _nom;
+    if (!context.mounted) return;
+    final enregistre = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EcranMesInfos(
+          planning: widget.planning,
+          compte: widget.compte,
+          nom: nom,
+        ),
+      ),
+    );
+    if (enregistre == true && context.mounted) {
+      setState(() {
+        _nom = _lireNom();
+      });
+      confirmer(context, 'Infos enregistrées.');
+    }
+  }
+
   // Mot de passe (#107) : écran dédié, puis message au retour.
   Future<void> _motDePasse(BuildContext context) async {
     final change = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => EcranMotDePasse(changer: changerMotDePasse),
+        builder: (_) => EcranMotDePasse(changer: widget.changerMotDePasse),
       ),
     );
     if (change == true && context.mounted) {
@@ -426,9 +459,9 @@ class OngletProfil extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
-    final autre = autreEspace;
+    final autre = widget.autreEspace;
     final roles = autre == null
-        ? (espace == Espace.gerant ? 'Gérant' : 'Coiffeur')
+        ? (widget.espace == Espace.gerant ? 'Gérant' : 'Coiffeur')
         : 'Gérant et coiffeur';
     return Scaffold(
       body: ListeCharte(
@@ -438,10 +471,10 @@ class OngletProfil extends StatelessWidget {
           // l'e-mail tient lieu de nom. Tout tient à 360 × 640 : bascule et
           // déconnexion visibles sans défiler (#41).
           FutureBuilder<String?>(
-            future: planning.monNom().catchError((_) => null),
+            future: _nom,
             builder: (context, lecture) {
               final nom = lecture.data?.trim();
-              final affiche = nom == null || nom.isEmpty ? compte : nom;
+              final affiche = nom == null || nom.isEmpty ? widget.compte : nom;
               return SizedBox(
                 width: double.infinity,
                 child: Column(
@@ -456,8 +489,8 @@ class OngletProfil extends StatelessWidget {
                         style: textes.headlineSmall!.copyWith(height: 1.3),
                       ),
                     ),
-                    if (affiche != compte)
-                      Text(compte, style: textes.bodySmall),
+                    if (affiche != widget.compte)
+                      Text(widget.compte, style: textes.bodySmall),
                     const SizedBox(height: Espaces.s1),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -492,7 +525,7 @@ class OngletProfil extends StatelessWidget {
                       label: Text('Coiffeur'),
                     ),
                   ],
-                  selected: {espace},
+                  selected: {widget.espace},
                   showSelectedIcon: false,
                   // Vert en petite touche (#83, option 2A) : choix en vert
                   // sur gris clair, l'autre en gris, bord très léger.
@@ -511,16 +544,17 @@ class OngletProfil extends StatelessWidget {
                       BorderSide(color: Couleurs.separateur),
                     ),
                   ),
-                  onSelectionChanged: (choix) => surBascule?.call(choix.first),
+                  onSelectionChanged: (choix) =>
+                      widget.surBascule?.call(choix.first),
                 ),
               ),
             ),
           ],
           const SizedBox(height: Espaces.s4),
-          const _Ligne(
+          _Ligne(
             icone: Icons.edit_outlined,
             titre: 'Modifier mes infos',
-            aDroite: 'Bientôt',
+            surAppui: () => _mesInfos(context),
           ),
           _Ligne(
             icone: Icons.lock_outline,
@@ -535,7 +569,7 @@ class OngletProfil extends StatelessWidget {
           const SizedBox(height: Espaces.s3),
           Center(
             child: TextButton.icon(
-              onPressed: surDeconnexion,
+              onPressed: widget.surDeconnexion,
               // Rouge, sans le soulignement vert des boutons texte (#83).
               style: TextButton.styleFrom(
                 foregroundColor: Couleurs.erreur,

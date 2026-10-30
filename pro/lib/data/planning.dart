@@ -207,6 +207,9 @@ abstract interface class DepotPlanning {
   String? get moi;
   // Nom du compte connecté (sa ligne utilisateurs), pour « Bonjour Amira ».
   Future<String?> monNom();
+  // Mes infos (#106, option A) : le nom seul (policy « modification de sa
+  // ligne », colonnes nom et telephone).
+  Future<void> modifierMonNom(String nom);
   Future<DateTime> maintenantAuSalon();
   Future<List<Coiffeur>> coiffeurs();
   // Du premier au dernier jour inclus ; coiffeurId null : tous ceux que le
@@ -329,6 +332,17 @@ class PlanningSupabase implements DepotPlanning {
         .maybeSingle();
     return ligne?['nom'] as String?;
   });
+
+  @override
+  Future<void> modifierMonNom(String nom) => _appel(
+    () => _uneLigne(
+      _client
+          .from('utilisateurs')
+          .update({'nom': nom})
+          .eq('id', moi ?? '')
+          .select('id'),
+    ),
+  );
 
   @override
   Future<DateTime> maintenantAuSalon() =>

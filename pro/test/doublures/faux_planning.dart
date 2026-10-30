@@ -14,6 +14,13 @@ class FauxPlanning implements DepotPlanning {
 
   @override
   Future<String?> monNom() async => nom;
+
+  @override
+  Future<void> modifierMonNom(String nouveau) async {
+    await _action('nom $nouveau');
+    nom = nouveau;
+  }
+
   List<Coiffeur> equipe = const [
     Coiffeur(id: 'c1', nom: 'Amira'),
     Coiffeur(id: 'c2', nom: 'Youssef'),
