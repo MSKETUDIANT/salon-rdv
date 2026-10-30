@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/planning.dart';
 import '../../data/roles.dart';
 import '../../data/salon.dart';
+import '../../data/session.dart';
 import '../../ui/charte.dart';
 import '../aujourdhui/ecran_aujourdhui.dart';
 import '../planning/ecran_mon_planning.dart';
@@ -23,6 +24,7 @@ class EcranEspace extends StatefulWidget {
     required this.compte,
     required this.surBascule,
     required this.surDeconnexion,
+    required this.changerMotDePasse,
     this.autreEspace,
   });
 
@@ -34,6 +36,9 @@ class EcranEspace extends StatefulWidget {
   final Espace? autreEspace;
   final ValueChanged<Espace> surBascule;
   final VoidCallback surDeconnexion;
+  // Changement de mot de passe, depuis le profil (#107).
+  final Future<ErreurMotDePasse?> Function(String actuel, String nouveau)
+  changerMotDePasse;
 
   @override
   State<EcranEspace> createState() => _EcranEspaceState();
@@ -67,6 +72,7 @@ class _EcranEspaceState extends State<EcranEspace> {
         autreEspace: widget.autreEspace,
         surBascule: widget.surBascule,
         surDeconnexion: widget.surDeconnexion,
+        changerMotDePasse: widget.changerMotDePasse,
       ),
     };
     return Scaffold(

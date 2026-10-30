@@ -12,6 +12,7 @@ import 'package:salon_pro/features/aujourdhui/ecran_aujourdhui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salon_pro/features/connexion/ecran_connexion.dart';
 import 'package:salon_pro/features/espaces/ecran_espace.dart';
+import 'package:salon_pro/features/espaces/ecran_mot_de_passe.dart';
 import 'package:salon_pro/features/espaces/onglets.dart';
 import 'package:salon_pro/features/gerant/ecran_coiffeur.dart';
 import 'package:salon_pro/features/gerant/ecran_equipe.dart';
@@ -60,6 +61,11 @@ class _AuthMuette implements ServiceAuth {
   Future<String?> seConnecter(String email, String motDePasse) async => null;
   @override
   Future<void> seDeconnecter() async {}
+  @override
+  Future<ErreurMotDePasse?> changerMotDePasse(
+    String actuel,
+    String nouveau,
+  ) async => null;
 }
 
 void main() {
@@ -81,6 +87,7 @@ void main() {
       autreEspace: Espace.coiffeur,
       surBascule: (_) {},
       surDeconnexion: () {},
+      changerMotDePasse: (_, _) async => null,
     ),
     'accueil du coiffeur': () => EcranEspace(
       espace: Espace.coiffeur,
@@ -89,6 +96,7 @@ void main() {
       compte: 'amira@salon.test',
       surBascule: (_) {},
       surDeconnexion: () {},
+      changerMotDePasse: (_, _) async => null,
     ),
     "aujourd'hui du gérant": () =>
         EcranAujourdhui(planning: FauxPlanning(), gerant: true),
@@ -103,7 +111,9 @@ void main() {
       autreEspace: Espace.coiffeur,
       surBascule: (_) {},
       surDeconnexion: () {},
+      changerMotDePasse: (_, _) async => null,
     ),
+    'mot de passe': () => EcranMotDePasse(changer: (_, _) async => null),
     'mon planning': () => EcranMonPlanning(planning: FauxPlanning()),
     "planning de l'équipe": () => EcranPlanningEquipe(planning: FauxPlanning()),
     'historique': () => EcranHistorique(planning: FauxPlanning()),
