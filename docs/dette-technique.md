@@ -29,13 +29,14 @@ client et la cohérence du salon. Depuis #6, elle est supprimée : la fonction
 
 - [ ] **Délai minimum d'annulation, réglable par le gérant.** Aujourd'hui, un
   client peut annuler jusqu'au début du rendez-vous : le cahier des charges
-  ne fixe aucun délai. La règle est écrite à deux endroits, qui doivent rester
-  identiques : `annuler_reservation()` (refus PT409 si
-  `debut <= now()`) et la colonne `annulable` de `mes_reservations()`
-  (migration `20261025010110_mes_reservations.sql`). Piste : une colonne
-  `salons.delai_annulation_minutes` (défaut 0), modifiable par le gérant dans
-  l'app pro (configuration du salon, BF-G1 à G3), utilisée par les deux
-  fonctions, avec un message clair sur le site quand le délai est dépassé.
+  ne fixe aucun délai. Depuis #110, la règle est écrite une seule fois, dans
+  `private.reservation_annulable()` (migration
+  `20261030222241_regle_annulable.sql`), appelée par `annuler_reservation()`
+  (refus PT409) et par la colonne `annulable` de `mes_reservations()`. Piste :
+  une colonne `salons.delai_annulation_minutes` (défaut 0), modifiable par le
+  gérant dans l'app pro (configuration du salon, BF-G1 à G3), lue par cette
+  seule fonction, avec un message clair sur le site quand le délai est
+  dépassé.
 
 ## Encaissement (BF-G4, #11) : corrections sans trace
 

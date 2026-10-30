@@ -4,7 +4,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(28);
+select plan(33);
 
 -- Jeu de données : salon 1 à Tunis (UTC+1), salon 2.
 --   A : coiffeur du salon 1, lundi 9h-12h, sait faire Coupe (30 min).
@@ -274,6 +274,43 @@ select results_eq(
       order by id $$,
   $$ values ('confirmee'), ('confirmee') $$,
   'Les réservations visées par la modification directe sont intactes');
+
+-- ============================================================
+-- Règle « annulable » écrite une seule fois (#110)
+-- ============================================================
+
+select ok(
+  private.reservation_annulable('confirmee', now() + interval '1 minute')
+  and not private.reservation_annulable('confirmee', now())
+  and not private.reservation_annulable('confirmee', now() - interval '1 minute'),
+  'Règle commune : confirmée et pas encore commencée');
+
+select ok(
+  not private.reservation_annulable('terminee', now() + interval '1 day')
+  and not private.reservation_annulable('absent', now() + interval '1 day')
+  and not private.reservation_annulable('annulee', now() + interval '1 day'),
+  'Règle commune : terminée, absent ou annulée ne sont pas annulables');
+
+select ok(
+  pg_get_functiondef('public.mes_reservations(uuid)'::regprocedure)
+    like '%private.reservation_annulable(%'
+  and pg_get_functiondef('public.annuler_reservation(uuid)'::regprocedure)
+    like '%private.reservation_annulable(%',
+  'mes_reservations et annuler_reservation appellent la règle commune');
+
+select ok(
+  pg_get_functiondef('public.mes_reservations(uuid)'::regprocedure)
+    not like '%now()%'
+  and pg_get_functiondef('public.annuler_reservation(uuid)'::regprocedure)
+    not like '%now()%',
+  'Aucune copie de la règle (now()) dans les deux fonctions');
+
+select ok(
+  not has_function_privilege('anon',
+    'private.reservation_annulable(public.statut_reservation, timestamptz)', 'execute')
+  and not has_function_privilege('authenticated',
+    'private.reservation_annulable(public.statut_reservation, timestamptz)', 'execute'),
+  'Règle commune : pas appelable directement par les clients');
 
 select * from finish();
 rollback;

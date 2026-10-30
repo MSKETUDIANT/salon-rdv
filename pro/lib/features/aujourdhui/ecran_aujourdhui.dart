@@ -5,10 +5,10 @@ import '../../data/planning.dart';
 import '../../data/salon.dart';
 import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
-import '../../ui/composants.dart';
 import '../../ui/format.dart';
 import '../planning/cloture_differee.dart';
 import '../planning/elements_planning.dart';
+import 'blocs_aujourdhui.dart';
 import 'carte_glissable.dart';
 
 // Onglet « Accueil » (#64, refait par #72, maquette A de #66) : photo du salon
@@ -250,7 +250,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     final prochain = rdv
         .where((r) => etats[r.id] == EtatRendezVous.aVenir)
         .firstOrNull;
-    final prenom = _prenom(j.nom);
+    final prenom = prenomDe(j.nom);
     final titre = switch (rdv.length) {
       0 => 'Journée calme aujourd\'hui',
       1 => '1 client aujourd\'hui',
@@ -269,7 +269,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _BandeauSalon(),
+        const BandeauSalon(),
         const SizedBox(height: Espaces.s4),
         Text(
           '${formatDate(jour)} · ${widget.gerant ? 'Espace gérant' : 'Espace coiffeur'}',
@@ -288,7 +288,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
         ),
         if (aCloturer > 0 || aEncaisser > 0) ...[
           const SizedBox(height: Espaces.s3),
-          _Rappel(
+          Rappel(
             texte: [
               if (aCloturer > 0) '$aCloturer à clôturer',
               if (aEncaisser > 0) '$aEncaisser à encaisser',
@@ -309,7 +309,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
         ],
         const SizedBox(height: Espaces.s6),
         for (final r in enCours) ...[
-          _BandeauEnCours(
+          BandeauEnCours(
             rendezVous: r,
             coiffeur: j.coiffeurs[r.coiffeurId],
             surAppui: () => _ouvrir(r, j),
@@ -317,13 +317,13 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
           const SizedBox(height: Espaces.s3),
         ],
         if (rdv.isEmpty)
-          const _MessageJour(
+          const MessageJour(
             icone: Icons.local_cafe_outlined,
             texte: 'Aucun rendez-vous prévu pour l\'instant.',
           )
         else ...[
           if (prochain != null)
-            _Prochain(
+            Prochain(
               rendezVous: prochain,
               maintenant: j.maintenant,
               coiffeur: j.coiffeurs[prochain.coiffeurId],
@@ -331,12 +331,12 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
               surAppui: () => _ouvrir(prochain, j),
             )
           else
-            const _MessageJour(
+            const MessageJour(
               icone: Icons.done_all,
               texte: 'Plus de rendez-vous à venir aujourd\'hui.',
             ),
           const SizedBox(height: Espaces.s6),
-          _Chiffres(
+          Chiffres(
             restants: restants,
             termines: termines,
             absents: absents,
@@ -350,7 +350,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
         ],
         if (widget.gerant && rdv.isNotEmpty && j.coiffeurs.isNotEmpty) ...[
           const SizedBox(height: Espaces.s6),
-          _Equipe(coiffeurs: j.coiffeurs, rendezVous: rdv),
+          Equipe(coiffeurs: j.coiffeurs, rendezVous: rdv),
         ],
         if (rdv.isNotEmpty) ...[
           const SizedBox(height: Espaces.s6),
@@ -382,437 +382,6 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
           ],
         ],
       ],
-    );
-  }
-}
-
-// Premier mot du nom : « Amira Ben Salah » → « Amira ». Sans nom : null.
-String? _prenom(String? nom) {
-  final premier = nom?.trim().split(RegExp(r'\s+')).first;
-  return premier == null || premier.isEmpty ? null : premier;
-}
-
-String _dans(Duration d) {
-  final minutes = d.inMinutes;
-  if (minutes < 1) return 'maintenant';
-  if (minutes < 60) return 'dans $minutes min';
-  final h = minutes ~/ 60;
-  final m = minutes % 60;
-  return m == 0 ? 'dans $h h' : 'dans $h h ${m.toString().padLeft(2, '0')}';
-}
-
-class _BandeauEnCours extends StatelessWidget {
-  const _BandeauEnCours({
-    required this.rendezVous,
-    required this.surAppui,
-    this.coiffeur,
-  });
-  final RendezVous rendezVous;
-  final String? coiffeur;
-  final VoidCallback surAppui;
-
-  @override
-  Widget build(BuildContext context) {
-    final textes = Theme.of(context).textTheme;
-    final r = rendezVous;
-    final heures =
-        '${formatHeure(TimeOfDay.fromDateTime(r.debut))} – ${formatHeure(TimeOfDay.fromDateTime(r.fin))}';
-    final texte = [
-      heures,
-      '${r.clientNom}, ${r.prestation}',
-      ?coiffeur,
-    ].join(' · ');
-    return Semantics(
-      container: true,
-      button: true,
-      label: 'En cours : $texte',
-      onTap: surAppui,
-      excludeSemantics: true,
-      child: Material(
-        color: Couleurs.fond,
-        child: InkWell(
-          onTap: surAppui,
-          borderRadius: BorderRadius.circular(rayon),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: hauteurBouton),
-            child: Row(
-              children: [
-                const ExcludeSemantics(
-                  child: Icon(Icons.schedule, color: Couleurs.accent),
-                ),
-                const SizedBox(width: Espaces.s2),
-                Text(
-                  'En cours',
-                  style: textes.labelLarge!.copyWith(color: Couleurs.accent),
-                ),
-                const SizedBox(width: Espaces.s3),
-                Expanded(child: Text(texte, style: textes.bodyMedium)),
-                const ExcludeSemantics(
-                  child: Icon(
-                    Icons.chevron_right,
-                    color: Couleurs.texteSecondaire,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Photo du salon en bandeau, sans texte dessus (comme sur le site, charte
-// §6). Image par défaut tant que le salon ne peut pas envoyer la sienne (#74).
-class _BandeauSalon extends StatelessWidget {
-  const _BandeauSalon();
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(rayon),
-      child: Image.asset(
-        'assets/images/salon-defaut.webp',
-        height: 104,
-        fit: BoxFit.cover,
-        alignment: const Alignment(0, -0.2),
-        semanticLabel: 'Photo du salon',
-      ),
-    );
-  }
-}
-
-// Rappel en tête, une seule ligne (« 1 à clôturer · 1 à encaisser ») : fond
-// ambre pâle, comme l'état « À clôturer ». S'il y a des rendez-vous à
-// clôturer, un appui fait défiler jusqu'au premier dans la liste (#72).
-class _Rappel extends StatelessWidget {
-  const _Rappel({required this.texte, this.surAppui});
-  final String texte;
-  final VoidCallback? surAppui;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: surAppui != null,
-      child: Material(
-        color: CouleursStatut.aCloturerFond,
-        borderRadius: BorderRadius.circular(rayon),
-        child: InkWell(
-          onTap: surAppui,
-          borderRadius: BorderRadius.circular(rayon),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: Espaces.s3,
-              vertical: Espaces.s2,
-            ),
-            child: Row(
-              children: [
-                ExcludeSemantics(
-                  child: Icon(
-                    Icons.pending_actions_outlined,
-                    color: CouleursStatut.aCloturerTexte,
-                  ),
-                ),
-                const SizedBox(width: Espaces.s2),
-                Expanded(
-                  child: Text(
-                    texte,
-                    style: Theme.of(context).textTheme.labelLarge!.copyWith(
-                      color: CouleursStatut.aCloturerTexte,
-                    ),
-                  ),
-                ),
-                if (surAppui != null)
-                  const ExcludeSemantics(
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: CouleursStatut.aCloturerTexte,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Message du jour, icône dans un rond : journée sans rendez-vous (pas de
-// rangée de zéros), ou plus rien à venir (#72).
-class _MessageJour extends StatelessWidget {
-  const _MessageJour({required this.icone, required this.texte});
-  final IconData icone;
-  final String texte;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        ExcludeSemantics(
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              color: Couleurs.separateur,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icone, color: Couleurs.texteSecondaire),
-          ),
-        ),
-        const SizedBox(width: Espaces.s4),
-        Expanded(
-          child: Text(texte, style: Theme.of(context).textTheme.bodySmall),
-        ),
-      ],
-    );
-  }
-}
-
-// Prochain rendez-vous, sans cadre : client (avatar), prestation et coiffeur,
-// heure en grand et compte à rebours sur une seule ligne, bouton principal.
-class _Prochain extends StatelessWidget {
-  const _Prochain({
-    required this.rendezVous,
-    required this.maintenant,
-    required this.gerant,
-    required this.surAppui,
-    this.coiffeur,
-  });
-  final RendezVous rendezVous;
-  final DateTime maintenant;
-  final bool gerant;
-  final String? coiffeur;
-  final VoidCallback surAppui;
-
-  @override
-  Widget build(BuildContext context) {
-    final textes = Theme.of(context).textTheme;
-    final r = rendezVous;
-    final details = [r.prestation, ?coiffeur];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          gerant ? 'Prochain rendez-vous du salon' : 'Prochain rendez-vous',
-          style: textes.bodySmall,
-        ),
-        const SizedBox(height: Espaces.s2),
-        Row(
-          children: [
-            Avatar(nom: r.clientNom, taille: 40),
-            const SizedBox(width: Espaces.s2),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(r.clientNom, style: textes.titleSmall),
-                  Text(
-                    details.join(' · '),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textes.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: Espaces.s2),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formatHeure(TimeOfDay.fromDateTime(r.debut)),
-                  style: textes.displaySmall!.copyWith(
-                    height: 1.1,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-                Text(
-                  _dans(r.debut.difference(maintenant)),
-                  maxLines: 1,
-                  softWrap: false,
-                  style: textes.labelLarge!.copyWith(color: Couleurs.accent),
-                ),
-              ],
-            ),
-          ],
-        ),
-        const SizedBox(height: Espaces.s3),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Bouton(libelle: 'Ouvrir la fiche', surAppui: surAppui),
-        ),
-      ],
-    );
-  }
-}
-
-// Chiffres du jour, sans cadre, entre deux filets : restants, terminé, absent,
-// puis encaissé (gérant).
-class _Chiffres extends StatelessWidget {
-  const _Chiffres({
-    required this.restants,
-    required this.termines,
-    required this.absents,
-    this.encaisse,
-  });
-  final int restants;
-  final int termines;
-  final int absents;
-  final double? encaisse;
-
-  @override
-  Widget build(BuildContext context) {
-    String accord(int n, String mot) => n > 1 ? '${mot}s' : mot;
-    final total = encaisse;
-    return Semantics(
-      container: true,
-      label: 'Chiffres du jour',
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: Espaces.s3),
-        decoration: const BoxDecoration(
-          border: Border.symmetric(
-            horizontal: BorderSide(color: Couleurs.separateur),
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _Chiffre(
-                icone: Icons.schedule,
-                valeur: '$restants',
-                libelle: accord(restants, 'restant'),
-              ),
-            ),
-            Expanded(
-              child: _Chiffre(
-                icone: Icons.check,
-                valeur: '$termines',
-                libelle: accord(termines, 'terminé'),
-              ),
-            ),
-            Expanded(
-              child: _Chiffre(
-                icone: Icons.person_off_outlined,
-                valeur: '$absents',
-                libelle: accord(absents, 'absent'),
-              ),
-            ),
-            if (total != null)
-              Expanded(
-                child: _Chiffre(
-                  icone: Icons.payments_outlined,
-                  valeur: formatPrix(total),
-                  libelle: 'encaissé',
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Chiffre extends StatelessWidget {
-  const _Chiffre({
-    required this.icone,
-    required this.valeur,
-    required this.libelle,
-  });
-  final IconData icone;
-  final String valeur;
-  final String libelle;
-
-  @override
-  Widget build(BuildContext context) {
-    final textes = Theme.of(context).textTheme;
-    return Semantics(
-      container: true,
-      label: '$valeur $libelle',
-      excludeSemantics: true,
-      child: Column(
-        children: [
-          Icon(icone, color: Couleurs.texteSecondaire),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              valeur,
-              style: textes.headlineSmall!.copyWith(
-                height: 1.3,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          Text(libelle, style: textes.bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-// Équipe du jour (gérant) : une ligne d'avatars ronds, prénom et nombre de
-// rendez-vous du jour ; défile si l'équipe ne tient pas sur la largeur.
-class _Equipe extends StatelessWidget {
-  const _Equipe({required this.coiffeurs, required this.rendezVous});
-  final Map<String, String> coiffeurs;
-  final List<RendezVous> rendezVous;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Semantics(
-          header: true,
-          child: Text(
-            'L\'équipe aujourd\'hui',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-        ),
-        const SizedBox(height: Espaces.s2),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final MapEntry(key: id, value: nom) in coiffeurs.entries)
-                Padding(
-                  padding: const EdgeInsets.only(right: Espaces.s4),
-                  child: _MembreEquipe(
-                    nom: nom,
-                    nombre: rendezVous.where((r) => r.coiffeurId == id).length,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MembreEquipe extends StatelessWidget {
-  const _MembreEquipe({required this.nom, required this.nombre});
-  final String nom;
-  final int nombre;
-
-  @override
-  Widget build(BuildContext context) {
-    final prenom = _prenom(nom) ?? nom;
-    return Semantics(
-      container: true,
-      label: '$prenom, $nombre rendez-vous',
-      excludeSemantics: true,
-      child: Column(
-        children: [
-          Avatar(nom: nom, taille: 44),
-          const SizedBox(height: Espaces.s1),
-          Text(
-            '$prenom · $nombre',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ],
-      ),
     );
   }
 }
