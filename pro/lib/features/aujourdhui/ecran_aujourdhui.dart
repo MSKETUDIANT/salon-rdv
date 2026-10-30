@@ -111,6 +111,9 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
   void didUpdateWidget(EcranAujourdhui ancien) {
     super.didUpdateWidget(ancien);
     if (ancien.actif && !widget.actif) _cloture.enregistrer();
+    // Retour sur l'onglet : relu sans repasser par le chargement (le nom a pu
+    // changer dans le profil, #106).
+    if (!ancien.actif && widget.actif && _jour != null) _relire();
   }
 
   @override

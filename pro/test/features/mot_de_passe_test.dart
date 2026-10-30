@@ -126,7 +126,8 @@ void main() {
         changerMotDePasse: changer,
       ),
     );
-    expect(find.text('Bientôt'), findsOneWidget); // « Modifier mes infos »
+    // Plus aucune entrée « Bientôt » depuis #106 et #107.
+    expect(find.text('Bientôt'), findsNothing);
     await appuyer(tester, find.bySemanticsLabel('Mot de passe'));
     expect(find.text('Mot de passe actuel'), findsOneWidget);
 
