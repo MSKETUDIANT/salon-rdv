@@ -88,14 +88,17 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
     _actualiser();
   }
 
-  // Client de passage (#103) : formulaire, puis message et relecture.
-  Future<void> _nouveauRendezVous() async {
+  // Client de passage (#103), depuis le bouton ou un créneau vide touché
+  // (#104 : son coiffeur et son heure) : formulaire, puis message et
+  // relecture.
+  Future<void> _nouveauRendezVous({String? coiffeur, DateTime? heure}) async {
     final enregistre = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => FormulaireClientPassage(
           planning: widget.planning,
           gerant: true,
-          coiffeurId: _coiffeur,
+          coiffeurId: coiffeur ?? _coiffeur,
+          heure: heure,
         ),
       ),
     );
@@ -128,7 +131,7 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _nouveauRendezVous,
+        onPressed: () => _nouveauRendezVous(),
         icon: const Icon(Icons.add),
         label: const Text('Nouveau rendez-vous'),
       ),
@@ -269,6 +272,10 @@ class _EcranPlanningEquipeState extends State<EcranPlanningEquipe> {
                                   ),
                                   maintenant: _maintenant!,
                                   surRendezVous: (r) => _ouvrir(r, choisi.nom),
+                                  surCreneauVide: (heure) => _nouveauRendezVous(
+                                    coiffeur: choisi.id,
+                                    heure: heure,
+                                  ),
                                 ),
                               ),
                             ],

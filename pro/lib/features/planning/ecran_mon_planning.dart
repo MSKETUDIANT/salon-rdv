@@ -66,12 +66,16 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
     _actualiser();
   }
 
-  // Client de passage (#103) : formulaire, puis message et relecture.
-  Future<void> _nouveauRendezVous() async {
+  // Client de passage (#103), depuis le bouton ou un créneau vide touché
+  // (#104, heure) : formulaire, puis message et relecture.
+  Future<void> _nouveauRendezVous([DateTime? heure]) async {
     final enregistre = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) =>
-            FormulaireClientPassage(planning: widget.planning, gerant: false),
+        builder: (_) => FormulaireClientPassage(
+          planning: widget.planning,
+          gerant: false,
+          heure: heure,
+        ),
       ),
     );
     if (enregistre != true || !mounted) return;
@@ -99,7 +103,7 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _nouveauRendezVous,
+        onPressed: () => _nouveauRendezVous(),
         icon: const Icon(Icons.add),
         label: const Text('Nouveau rendez-vous'),
       ),
@@ -151,6 +155,7 @@ class _EcranMonPlanningState extends State<EcranMonPlanning> {
                       maintenant: _maintenant!,
                       liste: _liste,
                       surRendezVous: _ouvrir,
+                      surCreneauVide: _nouveauRendezVous,
                     ),
                   ],
                 );
@@ -171,6 +176,7 @@ class _VueJour extends StatelessWidget {
     required this.maintenant,
     required this.liste,
     required this.surRendezVous,
+    required this.surCreneauVide,
   });
   final DateTime jour;
   final DonneesPlanning donnees;
@@ -178,6 +184,7 @@ class _VueJour extends StatelessWidget {
   final DateTime maintenant;
   final bool liste;
   final ValueChanged<RendezVous> surRendezVous;
+  final ValueChanged<DateTime> surCreneauVide;
 
   @override
   Widget build(BuildContext context) {
@@ -228,6 +235,7 @@ class _VueJour extends StatelessWidget {
                     absences: donnees.absencesDu(coiffeur, jour),
                     rendezVous: rdv,
                     surRendezVous: surRendezVous,
+                    surCreneauVide: surCreneauVide,
                     maintenant: maintenant,
                   ),
                 ),
