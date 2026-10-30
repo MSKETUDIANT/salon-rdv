@@ -201,6 +201,8 @@ class Prochain extends StatelessWidget {
     required this.maintenant,
     required this.gerant,
     required this.surAppui,
+    required this.surArrivee,
+    this.arriveeEnCours = false,
     this.coiffeur,
   });
   final RendezVous rendezVous;
@@ -208,6 +210,10 @@ class Prochain extends StatelessWidget {
   final bool gerant;
   final String? coiffeur;
   final VoidCallback surAppui;
+  // Client arrivé (#102, option 2a) : en un geste, là où l'on regarde quand
+  // le client entre. Une fois arrivé : l'heure, et l'annulation dans la fiche.
+  final VoidCallback surArrivee;
+  final bool arriveeEnCours;
 
   @override
   Widget build(BuildContext context) {
@@ -262,9 +268,43 @@ class Prochain extends StatelessWidget {
           ],
         ),
         const SizedBox(height: Espaces.s3),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Bouton(libelle: 'Ouvrir la fiche', surAppui: surAppui),
+        if (r.arriveLe case final a?) ...[
+          Row(
+            children: [
+              const ExcludeSemantics(
+                child: Icon(
+                  Icons.how_to_reg_outlined,
+                  size: 20,
+                  color: Couleurs.accent,
+                ),
+              ),
+              const SizedBox(width: Espaces.s1),
+              Text(
+                'Arrivé à ${formatHeure(TimeOfDay.fromDateTime(a))}',
+                style: textes.labelLarge!.copyWith(color: Couleurs.accent),
+              ),
+            ],
+          ),
+          const SizedBox(height: Espaces.s3),
+        ],
+        // Retour à la ligne si la police du téléphone est grande (#83).
+        Wrap(
+          spacing: Espaces.s2,
+          runSpacing: Espaces.s2,
+          children: [
+            if (r.arriveLe == null)
+              Bouton(
+                libelle: 'Client arrivé',
+                libelleChargement: 'Enregistrement…',
+                chargement: arriveeEnCours,
+                surAppui: surArrivee,
+              ),
+            Bouton(
+              libelle: 'Ouvrir la fiche',
+              secondaire: r.arriveLe == null,
+              surAppui: surAppui,
+            ),
+          ],
         ),
       ],
     );

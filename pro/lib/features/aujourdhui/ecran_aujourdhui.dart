@@ -174,6 +174,24 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     });
   }
 
+  // Rendez-vous dont l'arrivée s'enregistre (bouton en attente).
+  String? _arriveeEnCours;
+
+  // Client arrivé depuis la carte du prochain rendez-vous (#102).
+  Future<void> _arrivee(RendezVous r) async {
+    setState(() => _arriveeEnCours = r.id);
+    try {
+      await widget.planning.marquerArrivee(r.id);
+      if (!mounted) return;
+      confirmer(context, 'Arrivée de ${r.clientNom} notée.');
+      await _relire();
+    } on ErreurSalon catch (erreur) {
+      if (mounted) confirmer(context, erreur.message);
+    } finally {
+      if (mounted) setState(() => _arriveeEnCours = null);
+    }
+  }
+
   Future<void> _ouvrir(RendezVous r, _Jour j) async {
     await _cloture.enregistrer();
     if (!mounted) return;
@@ -229,10 +247,13 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     int compte(EtatRendezVous e) => etats.values.where((x) => x == e).length;
     final termines = compte(EtatRendezVous.termine);
     final absents = compte(EtatRendezVous.absent);
-    // Restants (#72) : à venir et en cours seulement ; les rendez-vous passés
-    // à clôturer sont dans le rappel, pas dans ce chiffre.
+    // Restants (#72) : à venir (arrivés compris, #102) et en cours seulement ;
+    // les rendez-vous passés à clôturer sont dans le rappel, pas dans ce
+    // chiffre.
     final restants =
-        compte(EtatRendezVous.aVenir) + compte(EtatRendezVous.enCours);
+        compte(EtatRendezVous.aVenir) +
+        compte(EtatRendezVous.arrive) +
+        compte(EtatRendezVous.enCours);
     final aCloturer = compte(EtatRendezVous.aCloturer);
     final aEncaisser = widget.gerant
         ? rdv
@@ -248,7 +269,11 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
         if (etats[r.id] == EtatRendezVous.enCours) r,
     ];
     final prochain = rdv
-        .where((r) => etats[r.id] == EtatRendezVous.aVenir)
+        .where(
+          (r) =>
+              etats[r.id] == EtatRendezVous.aVenir ||
+              etats[r.id] == EtatRendezVous.arrive,
+        )
         .firstOrNull;
     final prenom = prenomDe(j.nom);
     final titre = switch (rdv.length) {
@@ -329,6 +354,8 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
               coiffeur: j.coiffeurs[prochain.coiffeurId],
               gerant: widget.gerant,
               surAppui: () => _ouvrir(prochain, j),
+              surArrivee: () => _arrivee(prochain),
+              arriveeEnCours: _arriveeEnCours == prochain.id,
             )
           else
             const MessageJour(

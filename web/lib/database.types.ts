@@ -224,6 +224,7 @@ export type Database = {
       }
       reservations: {
         Row: {
+          arrive_le: string | null
           client_id: string
           coiffeur_id: string
           created_at: string
@@ -235,6 +236,7 @@ export type Database = {
           statut: Database["public"]["Enums"]["statut_reservation"]
         }
         Insert: {
+          arrive_le?: string | null
           client_id: string
           coiffeur_id: string
           created_at?: string
@@ -246,6 +248,7 @@ export type Database = {
           statut?: Database["public"]["Enums"]["statut_reservation"]
         }
         Update: {
+          arrive_le?: string | null
           client_id?: string
           coiffeur_id?: string
           created_at?: string
@@ -432,6 +435,13 @@ export type Database = {
           statut: Database["public"]["Enums"]["statut_reservation"]
         }[]
       }
+      marquer_arrivee: {
+        Args: { p_arrive?: boolean; p_reservation: string }
+        Returns: {
+          arrive_le: string
+          id: string
+        }[]
+      }
       mes_reservations: {
         Args: { p_salon: string }
         Returns: {
@@ -454,6 +464,7 @@ export type Database = {
           p_salon: string
         }
         Returns: {
+          arrive_le: string
           client_nom: string
           client_telephone: string
           coiffeur_id: string

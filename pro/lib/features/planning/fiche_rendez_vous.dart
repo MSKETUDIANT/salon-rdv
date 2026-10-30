@@ -10,7 +10,8 @@ import 'formulaire_encaissement.dart';
 
 // Détail d'un rendez-vous (BF-K2) : client (nom, téléphone), prestation,
 // durée, date, heure, statut ; actions de clôture (BF-K3, BF-K4) et, pour le
-// gérant, d'encaissement (BF-G4). maintenant : heure du salon, pour savoir si
+// gérant, d'encaissement (BF-G4) ; client arrivé, le jour du rendez-vous
+// (#102), sans confirmation car l'arrivée s'annule. maintenant : heure du salon, pour savoir si
 // le rendez-vous a commencé (la base le vérifie aussi). Renvoie le message à
 // afficher après une action réussie, null si rien n'a changé.
 Future<String?> afficherRendezVous(
@@ -61,6 +62,7 @@ class _FicheRendezVous extends StatefulWidget {
 class _FicheRendezVousState extends State<_FicheRendezVous> {
   String? _erreur;
   StatutRendezVous? _enCours;
+  bool _arriveeEnCours = false;
 
   RendezVous get _r => widget.rendezVous;
 
@@ -115,6 +117,29 @@ class _FicheRendezVousState extends State<_FicheRendezVous> {
     }
   }
 
+  // Marque (arrive) ou annule l'arrivée du client (#102).
+  Future<void> _arrivee({required bool arrive}) async {
+    setState(() {
+      _erreur = null;
+      _arriveeEnCours = true;
+    });
+    try {
+      await widget.planning.marquerArrivee(_r.id, arrive: arrive);
+      if (mounted) {
+        Navigator.of(context).pop(
+          arrive ? 'Arrivée de ${_r.clientNom} notée.' : 'Arrivée annulée.',
+        );
+      }
+    } on ErreurSalon catch (erreur) {
+      if (mounted) {
+        setState(() {
+          _arriveeEnCours = false;
+          _erreur = erreur.message;
+        });
+      }
+    }
+  }
+
   Future<void> _encaisser() async {
     final correction = _r.montantEncaisse != null;
     final enregistre = await Navigator.of(context).push<bool>(
@@ -159,10 +184,25 @@ class _FicheRendezVousState extends State<_FicheRendezVous> {
       if (widget.coiffeur != null) ('Coiffeur', widget.coiffeur!),
       // Même vocabulaire que la liste et la frise (#64).
       ('Statut', r.etat(widget.maintenant).libelle),
+      if (r.arriveLe case final a?)
+        ('Arrivée', formatHeure(TimeOfDay.fromDateTime(a))),
       if (widget.gerant && r.statut == StatutRendezVous.terminee)
         ('Encaissé', montant == null ? 'Pas encore' : formatPrix(montant)),
     ];
     final cloturable = r.cloturable(widget.maintenant);
+    final arrive = r.arriveLe != null;
+    // « Client arrivé » : bouton principal avant le début, secondaire après
+    // (« Terminé » passe devant).
+    final boutonArrivee = r.arriveePossible(widget.maintenant) && !arrive
+        ? Bouton(
+            libelle: 'Client arrivé',
+            libelleChargement: 'Enregistrement…',
+            chargement: _arriveeEnCours,
+            secondaire: cloturable,
+            pleineLargeur: true,
+            surAppui: () => _arrivee(arrive: true),
+          )
+        : null;
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
@@ -199,6 +239,10 @@ class _FicheRendezVousState extends State<_FicheRendezVous> {
               MessageErreur(_erreur!),
               const SizedBox(height: Espaces.s3),
             ],
+            if (boutonArrivee != null && !cloturable) ...[
+              boutonArrivee,
+              const SizedBox(height: Espaces.s2),
+            ],
             if (cloturable) ...[
               Bouton(
                 libelle: 'Terminé',
@@ -208,21 +252,37 @@ class _FicheRendezVousState extends State<_FicheRendezVous> {
                 surAppui: () => _cloturer(StatutRendezVous.terminee),
               ),
               const SizedBox(height: Espaces.s2),
-              Bouton(
-                libelle: 'Client absent',
-                libelleChargement: 'Enregistrement…',
-                chargement: _enCours == StatutRendezVous.absent,
-                secondaire: true,
-                pleineLargeur: true,
-                surAppui: () => _cloturer(StatutRendezVous.absent),
-              ),
-              const SizedBox(height: Espaces.s2),
+              if (boutonArrivee != null) ...[
+                boutonArrivee,
+                const SizedBox(height: Espaces.s2),
+              ],
+              // Client arrivé : pas « absent » (la base le refuse aussi).
+              if (!arrive) ...[
+                Bouton(
+                  libelle: 'Client absent',
+                  libelleChargement: 'Enregistrement…',
+                  chargement: _enCours == StatutRendezVous.absent,
+                  secondaire: true,
+                  pleineLargeur: true,
+                  surAppui: () => _cloturer(StatutRendezVous.absent),
+                ),
+                const SizedBox(height: Espaces.s2),
+              ],
             ] else if (r.statut == StatutRendezVous.confirmee) ...[
               Text(
                 'Clôture possible à partir du ${formatDateHeure(r.debut).toLowerCase()}.',
                 style: textes.bodySmall,
               ),
               const SizedBox(height: Espaces.s3),
+            ],
+            if (arrive && r.statut == StatutRendezVous.confirmee) ...[
+              TextButton(
+                onPressed: _arriveeEnCours
+                    ? null
+                    : () => _arrivee(arrive: false),
+                child: const Text("Annuler l'arrivée"),
+              ),
+              const SizedBox(height: Espaces.s2),
             ],
             if (widget.gerant && r.statut == StatutRendezVous.terminee) ...[
               montant == null

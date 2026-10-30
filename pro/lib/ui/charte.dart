@@ -29,6 +29,9 @@ abstract final class Couleurs {
 // absent »), texte blanc.
 abstract final class CouleursStatut {
   static const termineFond = Color(0xFFEFEDE8);
+  // Client arrivé (#102) : vert très léger (accent à 20 % sur blanc), plus
+  // marqué que la teinte du bloc « à venir » de la frise (8 %).
+  static const arriveFond = Color(0xFFD3DEDB);
   static const absentFond = Color(0xFFFBEAE8);
   static const absentTexte = Color(0xFF8F1D13);
   static const aCloturerFond = Color(0xFFFCEFD6);

@@ -245,6 +245,32 @@ class FauxPlanning implements DepotPlanning {
   Future<void> cloturer(String rendezVousId, StatutRendezVous statut) =>
       _action('$rendezVousId ${statut.name}');
 
+  // « r1 arrivé » ou « r1 arrivée annulée » (#102) ; l'heure d'arrivée est
+  // celle de maintenant, comme en base.
+  @override
+  Future<void> marquerArrivee(String rendezVousId, {bool arrive = true}) async {
+    await _action('$rendezVousId ${arrive ? 'arrivé' : 'arrivée annulée'}');
+    rendezVous = [
+      for (final r in rendezVous)
+        r.id == rendezVousId
+            ? RendezVous(
+                id: r.id,
+                coiffeurId: r.coiffeurId,
+                debut: r.debut,
+                fin: r.fin,
+                statut: r.statut,
+                prestation: r.prestation,
+                dureeMinutes: r.dureeMinutes,
+                clientNom: r.clientNom,
+                clientTelephone: r.clientTelephone,
+                prix: r.prix,
+                montantEncaisse: r.montantEncaisse,
+                arriveLe: arrive ? maintenant : null,
+              )
+            : r,
+    ];
+  }
+
   @override
   Future<void> encaisser(String rendezVousId, double montant) =>
       _action('$rendezVousId encaisse $montant');

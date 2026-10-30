@@ -248,6 +248,7 @@ au site :
   | État | Fond | Libellé |
   | --- | --- | --- |
   | À venir | `surface`, bordure `accent` | `accent` |
+  | Arrivé (client arrivé avant l'heure, #102) | `#D3DEDB`, bordure `accent` | `accent` |
   | En cours | `accent` | blanc |
   | À clôturer (fini, pas encore clôturé) | `#FCEFD6`, bordure `#A35A00` (4,6:1) | `#8A4B00` (6:1) |
   | Terminé | `#EFEDE8` | `texte-secondaire` (5,7:1) |
