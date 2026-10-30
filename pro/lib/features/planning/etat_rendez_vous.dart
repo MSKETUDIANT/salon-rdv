@@ -30,6 +30,15 @@ class StyleEtat {
       libelle: Couleurs.accent,
       icone: Icons.radio_button_unchecked,
     ),
+    // Client arrivé (#102) : fond vert très léger, icône d'une personne
+    // cochée.
+    EtatRendezVous.arrive => const StyleEtat(
+      fond: CouleursStatut.arriveFond,
+      bordure: Couleurs.accent,
+      texte: Couleurs.texte,
+      libelle: Couleurs.accent,
+      icone: Icons.how_to_reg_outlined,
+    ),
     EtatRendezVous.enCours => const StyleEtat(
       fond: Couleurs.accent,
       bordure: Couleurs.accent,

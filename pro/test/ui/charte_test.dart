@@ -200,7 +200,7 @@ void main() {
   );
 
   test(
-    "états d'un rendez-vous : cinq fonds différents, libellés écrits (#64)",
+    "états d'un rendez-vous : un fond différent par état, libellés écrits (#64, #102)",
     () {
       final styles = [for (final e in EtatRendezVous.values) StyleEtat.de(e)];
       expect(
@@ -216,7 +216,7 @@ void main() {
       }
       expect(
         {for (final e in EtatRendezVous.values) e.libelle},
-        {'À venir', 'En cours', 'À clôturer', 'Terminé', 'Absent'},
+        {'À venir', 'Arrivé', 'En cours', 'À clôturer', 'Terminé', 'Absent'},
       );
       for (final e in EtatRendezVous.values) {
         final s = StyleEtat.de(e);

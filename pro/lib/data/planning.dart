@@ -12,6 +12,9 @@ import 'salon.dart';
 // Clôture, encaissement, historique (#11, BF-K3, BF-K4, BF-G4) : règles
 // vérifiées par la base (migration 20261025153145_cloture_encaissement.sql),
 // l'app ne fait qu'afficher les refus.
+//
+// Client arrivé (#102, option 1A) : heure d'arrivée sur le rendez-vous,
+// marquée par marquer_arrivee() (migration 20261030224554_client_arrive.sql).
 
 enum StatutRendezVous {
   confirmee('Confirmé'),
@@ -38,6 +41,7 @@ class RendezVous {
     this.clientTelephone,
     required this.prix,
     this.montantEncaisse,
+    this.arriveLe,
   });
 
   final String id;
@@ -53,16 +57,24 @@ class RendezVous {
   final double prix;
   // Montant encaissé : renseigné pour le gérant seulement, null sinon.
   final double? montantEncaisse;
+  // Heure d'arrivée du client au salon (#102) ; null : pas encore arrivé.
+  final DateTime? arriveLe;
 
   // « Terminé » et « Client absent » : rendez-vous confirmé et commencé.
   bool cloturable(DateTime maintenant) =>
       statut == StatutRendezVous.confirmee && !debut.isAfter(maintenant);
 
+  // « Client arrivé » : confirmé, du jour, pas encore clôturé (la base le
+  // vérifie aussi).
+  bool arriveePossible(DateTime maintenant) =>
+      statut == StatutRendezVous.confirmee && memeJour(debut, maintenant);
+
   EtatRendezVous etat(DateTime maintenant) => switch (statut) {
     StatutRendezVous.terminee => EtatRendezVous.termine,
     StatutRendezVous.absent => EtatRendezVous.absent,
+    // Client arrivé avant l'heure (#102) ; à l'heure, « En cours ».
     StatutRendezVous.confirmee when debut.isAfter(maintenant) =>
-      EtatRendezVous.aVenir,
+      arriveLe == null ? EtatRendezVous.aVenir : EtatRendezVous.arrive,
     StatutRendezVous.confirmee when fin.isAfter(maintenant) =>
       EtatRendezVous.enCours,
     StatutRendezVous.confirmee => EtatRendezVous.aCloturer,
@@ -70,9 +82,11 @@ class RendezVous {
 }
 
 // État affiché d'un rendez-vous (#64) : son statut en base, et l'heure pour
-// un rendez-vous confirmé (à venir, en cours, ou fini mais pas clôturé).
+// un rendez-vous confirmé (à venir, arrivé, en cours, ou fini mais pas
+// clôturé).
 enum EtatRendezVous {
   aVenir('À venir'),
+  arrive('Arrivé'),
   enCours('En cours'),
   aCloturer('À clôturer'),
   termine('Terminé'),
@@ -205,6 +219,8 @@ abstract interface class DepotPlanning {
 
   // statut : terminee ou absent.
   Future<void> cloturer(String rendezVousId, StatutRendezVous statut);
+  // Client arrivé (#102) : marque (arrive) ou annule son arrivée.
+  Future<void> marquerArrivee(String rendezVousId, {bool arrive = true});
 
   // Client de passage (#103) : prestations proposées, créneaux libres d'un
   // jour (comme le site), rendez-vous créé par l'équipe.
@@ -241,9 +257,20 @@ String messageErreurPlanning(String? code, String message) {
           ? 'Historique réservé au gérant du salon.'
           : 'Planning réservé à l\'équipe du salon.';
     case 'PT409':
+      if (message.startsWith('Client arrivé')) {
+        return 'Client arrivé : annulez d\'abord son arrivée.';
+      }
+      if (message.startsWith('Arrivée possible')) {
+        return 'Arrivée possible seulement le jour du rendez-vous.';
+      }
+      if (message.startsWith('Rendez-vous déjà')) {
+        return 'Ce rendez-vous est déjà clôturé.';
+      }
       return message.startsWith('Seul')
           ? 'Seul un rendez-vous terminé peut être encaissé.'
           : 'Ce rendez-vous n\'a pas encore commencé : clôture impossible.';
+    case 'PT404':
+      return 'Ce rendez-vous n\'est plus disponible pour ce compte.';
     case 'PT400':
       return 'Période de 1 à 31 jours.';
     case '23505':
@@ -380,6 +407,10 @@ class PlanningSupabase implements DepotPlanning {
             clientTelephone: l['client_telephone'] as String?,
             prix: (l['prix'] as num).toDouble(),
             montantEncaisse: (l['montant_encaisse'] as num?)?.toDouble(),
+            arriveLe: switch (l['arrive_le'] as String?) {
+              final a? => depuisUtc(DateTime.parse(a), fuseau),
+              null => null,
+            },
           ),
       ],
       absences: [
@@ -424,6 +455,15 @@ class PlanningSupabase implements DepotPlanning {
           .select('id'),
     ),
   );
+
+  @override
+  Future<void> marquerArrivee(String rendezVousId, {bool arrive = true}) =>
+      _appel(
+        () => _client.rpc(
+          'marquer_arrivee',
+          params: {'p_reservation': rendezVousId, 'p_arrive': arrive},
+        ),
+      );
 
   @override
   Future<List<Prestation>> prestationsActives() => _appel(() async {
