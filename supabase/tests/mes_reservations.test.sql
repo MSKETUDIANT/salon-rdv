@@ -307,9 +307,9 @@ select ok(
 
 select ok(
   not has_function_privilege('anon',
-    'private.reservation_annulable(public.statut_reservation, timestamptz)', 'execute')
+    'private.reservation_annulable(public.statut_reservation, timestamptz, integer)', 'execute')
   and not has_function_privilege('authenticated',
-    'private.reservation_annulable(public.statut_reservation, timestamptz)', 'execute'),
+    'private.reservation_annulable(public.statut_reservation, timestamptz, integer)', 'execute'),
   'Règle commune : pas appelable directement par les clients');
 
 select * from finish();
