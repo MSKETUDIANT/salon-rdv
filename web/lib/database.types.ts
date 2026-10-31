@@ -333,6 +333,7 @@ export type Database = {
           nom: string
           pas_creneau_minutes: number
           photo: string | null
+          telephone: string | null
         }
         Insert: {
           adresse?: string | null
@@ -343,6 +344,7 @@ export type Database = {
           nom: string
           pas_creneau_minutes?: number
           photo?: string | null
+          telephone?: string | null
         }
         Update: {
           adresse?: string | null
@@ -353,6 +355,7 @@ export type Database = {
           nom?: string
           pas_creneau_minutes?: number
           photo?: string | null
+          telephone?: string | null
         }
         Relationships: []
       }
@@ -432,6 +435,12 @@ export type Database = {
           ancienne_photo: string
         }[]
       }
+      definir_telephone_salon: {
+        Args: { p_salon: string; p_telephone: string }
+        Returns: {
+          telephone: string
+        }[]
+      }
       historique: {
         Args: {
           p_au: string
@@ -451,6 +460,14 @@ export type Database = {
           prestation: string
           prix: number
           statut: Database["public"]["Enums"]["statut_reservation"]
+        }[]
+      }
+      horaires_du_salon: {
+        Args: { p_salon: string }
+        Returns: {
+          fermeture: string
+          jour_semaine: number
+          ouverture: string
         }[]
       }
       marquer_arrivee: {

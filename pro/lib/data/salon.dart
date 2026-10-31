@@ -61,21 +61,27 @@ class Absence {
   final String? motif;
 }
 
-// Identité du salon (#81) : nom, adresse, adresse publique de la photo (#105,
-// null : image par défaut), délai minimum d'annulation en minutes (#118, 0 :
-// jusqu'au début du rendez-vous).
+// Identité du salon (#81) : nom, adresse, téléphone (#129, null : pas de
+// numéro), adresse publique de la photo (#105, null : image par défaut), délai
+// minimum d'annulation en minutes (#118, 0 : jusqu'au début du rendez-vous).
 class IdentiteSalon {
   const IdentiteSalon({
     required this.nom,
     this.adresse,
+    this.telephone,
     this.photo,
     this.delaiAnnulationMinutes = 0,
   });
   final String nom;
   final String? adresse;
+  final String? telephone;
   final String? photo;
   final int delaiAnnulationMinutes;
 }
+
+// Refus du numéro par la base (#129, PT400), affiché sous le champ.
+const messageTelephoneInvalide =
+    'Numéro invalide : de 8 à 15 chiffres, avec espaces, points ou tirets.';
 
 // Erreur à afficher telle quelle au gérant.
 class ErreurSalon implements Exception {
@@ -87,6 +93,12 @@ class ErreurSalon implements Exception {
 
 abstract interface class DepotSalon {
   Future<IdentiteSalon> identite();
+  // Horaires d'ouverture (#129, horaires_du_salon()) : pour chaque jour ouvert
+  // (1 = lundi), de la première arrivée au dernier départ des coiffeurs.
+  Future<Map<int, (TimeOfDay, TimeOfDay)>> horairesOuverture();
+  // Téléphone du salon (#129, gérant) ; vide : le retire. Numéro refusé :
+  // ErreurSalon(messageTelephoneInvalide).
+  Future<void> definirTelephone(String telephone);
   // Délai minimum d'annulation (#118, gérant) : 0 à 10 080 minutes.
   Future<void> definirDelaiAnnulation(int minutes);
   // Photo du salon (#105, gérant) : envoi dans l'espace « salons », puis
@@ -230,15 +242,47 @@ class SalonSupabase implements DepotSalon {
   Future<IdentiteSalon> identite() => _appel(() async {
     final ligne = await _client
         .from('salons')
-        .select('nom, adresse, photo, delai_annulation_minutes')
+        .select('nom, adresse, telephone, photo, delai_annulation_minutes')
         .eq('id', _salonId)
         .single();
     return IdentiteSalon(
       nom: ligne['nom'] as String,
       adresse: ligne['adresse'] as String?,
+      telephone: ligne['telephone'] as String?,
       photo: adressePhoto(_client, ligne['photo'] as String?),
       delaiAnnulationMinutes: (ligne['delai_annulation_minutes'] as int?) ?? 0,
     );
+  });
+
+  @override
+  Future<Map<int, (TimeOfDay, TimeOfDay)>> horairesOuverture() =>
+      _appel(() async {
+        final lignes = await _client.rpc(
+          'horaires_du_salon',
+          params: {'p_salon': _salonId},
+        );
+        return {
+          for (final l in lignes as List)
+            l['jour_semaine'] as int: (
+              heureDepuisSql(l['ouverture'] as String),
+              heureDepuisSql(l['fermeture'] as String),
+            ),
+        };
+      });
+
+  @override
+  Future<void> definirTelephone(String telephone) => _appel(() async {
+    try {
+      await _client.rpc(
+        'definir_telephone_salon',
+        params: {'p_salon': _salonId, 'p_telephone': telephone},
+      );
+    } on PostgrestException catch (erreur) {
+      if (erreur.code == 'PT400') {
+        throw const ErreurSalon(messageTelephoneInvalide);
+      }
+      rethrow;
+    }
   });
 
   @override

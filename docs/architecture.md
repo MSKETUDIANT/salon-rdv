@@ -53,7 +53,10 @@ la base le refuserait de toute façon.
 
 Une règle s'écrit **une seule fois** en SQL. Si deux fonctions en ont besoin,
 elle va dans une fonction commune du schéma `private` (exemple :
-`private.reservation_annulable()`, #110).
+`private.reservation_annulable()`, #110). Si le site et l'app pro en ont
+besoin, elle va dans une fonction publique que les deux appellent (exemple :
+`horaires_du_salon()`, #129, horaires d'ouverture lus par l'accueil du site et
+l'onglet Salon de l'app pro).
 
 ### 2. Deux chemins d'écriture, tous deux contrôlés par la base
 

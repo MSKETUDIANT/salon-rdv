@@ -24,6 +24,7 @@ export default async function MesReservations() {
         salonId={env.salonId}
         fuseau={fuseau}
         delaiAnnulation={salon?.delaiAnnulation ?? 0}
+        telephone={salon?.telephone ?? null}
       />
     </main>
   );

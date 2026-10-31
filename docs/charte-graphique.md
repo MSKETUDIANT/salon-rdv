@@ -166,8 +166,16 @@ aussi ce que le client cherche avant de réserver, sous le titre :
 - après les boutons, la section « Prestations » : les mêmes cartes que
   l'écran 1 (§7), un toucher mène aux créneaux de la prestation ; rien si
   aucune prestation n'est active.
-Le bouton principal reste unique. Horaires d'ouverture et téléphone : PR 2
-de #129.
+- le téléphone du salon (réglé par le gérant dans l'app pro), en lien
+  secondaire avec une icône de combiné : un toucher lance l'appel (`tel:`) ;
+  rien sans numéro. Le même lien « Appeler le salon » suit le message de
+  « Mes réservations » quand le délai d'annulation est passé ;
+- en bas, la section « Horaires » : les sept jours du lundi au dimanche, comme
+  Google Maps, jour à gauche et heures à droite (chiffres tabulaires), filet
+  entre les lignes, « Fermé » en texte secondaire ; rien si aucun coiffeur
+  n'a d'horaires. Règle : `horaires_du_salon()`, la même que l'onglet Salon de
+  l'app pro (de la première arrivée au dernier départ des coiffeurs).
+Le bouton principal reste unique.
 
 ## 7. Cartes de prestations
 

@@ -19,6 +19,14 @@ describe("EnTeteSalon (issue 129)", () => {
     render(<EnTeteSalon nom="Salon de démo" adresse={null} />);
     expect(screen.queryByText(/Adresse/)).toBeNull();
     expect(screen.queryByRole("link", { name: /Itinéraire/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Appeler/ })).toBeNull();
     expect(screen.getByRole("link", { name: "Réserver" })).toBeTruthy();
+  });
+
+  it("affiche le téléphone, à toucher pour appeler", () => {
+    render(<EnTeteSalon nom="Salon de démo" adresse={null} telephone="+216 71 234 567" />);
+    const lien = screen.getByRole("link", { name: "Appeler le salon au +216 71 234 567" });
+    expect(lien.getAttribute("href")).toBe("tel:+21671234567");
+    expect(lien.textContent).toBe("+216 71 234 567");
   });
 });

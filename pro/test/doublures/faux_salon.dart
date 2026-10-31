@@ -56,10 +56,50 @@ class FauxSalon implements DepotSalon {
   // Délai minimum d'annulation en minutes (#118).
   int delaiAnnulation = 0;
 
+  // Téléphone du salon (#129) ; null : pas de numéro.
+  String? telephone;
+  // « téléphone 71 234 567 », « téléphone retiré » (#129).
+  final actionsTelephone = <String>[];
+
+  // Horaires d'ouverture (#129) ; par défaut, du mardi au samedi.
+  Map<int, (TimeOfDay, TimeOfDay)> ouverture = {
+    for (var j = 2; j <= 6; j++)
+      j: (
+        const TimeOfDay(hour: 9, minute: 0),
+        const TimeOfDay(hour: 19, minute: 0),
+      ),
+  };
+
+  @override
+  Future<Map<int, (TimeOfDay, TimeOfDay)>> horairesOuverture() async =>
+      ouverture;
+
+  // Même règle que la base : 8 à 15 chiffres, espaces, points, tirets, « + »
+  // au début ; vide : retiré.
+  @override
+  Future<void> definirTelephone(String telephone) async {
+    _echecEventuel();
+    final propre = telephone.trim().replaceAll(RegExp(r'\s+'), ' ');
+    if (propre.isEmpty) {
+      actionsTelephone.add('téléphone retiré');
+      this.telephone = null;
+      return;
+    }
+    final chiffres = propre.replaceAll(RegExp(r'\D'), '').length;
+    if (!RegExp(r'^\+?[0-9][0-9 .-]*[0-9]$').hasMatch(propre) ||
+        chiffres < 8 ||
+        chiffres > 15) {
+      throw const ErreurSalon(messageTelephoneInvalide);
+    }
+    actionsTelephone.add('téléphone $propre');
+    this.telephone = propre;
+  }
+
   @override
   Future<IdentiteSalon> identite() async => IdentiteSalon(
     nom: 'Salon de démo',
     adresse: '1 rue de la Coupe',
+    telephone: telephone,
     photo: photo,
     delaiAnnulationMinutes: delaiAnnulation,
   );

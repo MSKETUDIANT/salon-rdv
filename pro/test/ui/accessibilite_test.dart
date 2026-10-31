@@ -20,6 +20,7 @@ import 'package:salon_pro/features/gerant/ecran_delai_annulation.dart';
 import 'package:salon_pro/features/gerant/ecran_equipe.dart';
 import 'package:salon_pro/features/gerant/ecran_photo_salon.dart';
 import 'package:salon_pro/features/gerant/ecran_prestations.dart';
+import 'package:salon_pro/features/gerant/ecran_telephone_salon.dart';
 import 'package:salon_pro/features/historique/ecran_historique.dart';
 import 'package:salon_pro/features/planning/ecran_mon_planning.dart';
 import 'package:salon_pro/features/planning/ecran_planning_equipe.dart';
@@ -140,6 +141,8 @@ void main() {
     'équipe': () => EcranEquipe(salon: FauxSalon()),
     'photo du salon': () => EcranPhotoSalon(salon: FauxSalon()),
     "délai d'annulation": () => EcranDelaiAnnulation(salon: FauxSalon()),
+    'téléphone du salon': () =>
+        EcranTelephoneSalon(salon: FauxSalon(), telephone: '+216 71 234 567'),
     'fiche coiffeur': () => EcranCoiffeur(salon: FauxSalon(), coiffeur: amira),
     'nouvelle absence': () =>
         FormulaireAbsence(salon: FauxSalon(), coiffeur: amira),
