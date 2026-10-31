@@ -203,6 +203,12 @@ installé dans le projet).
 3. Chaque merge sur `main` déploie la production ; chaque PR a sa preview.
    Le build lit la base distante : une PR dont le site dépend d'une migration
    pas encore poussée a une preview en échec jusqu'au `db push`.
+4. Contrôle de chaque PR en attendant GitHub Actions (#19, bloquée) :
+   `web/vercel.json` fait lancer `npm run lint` et `npm test` avant le build.
+   Un lint ou un test unitaire en échec fait échouer le build : la PR passe au
+   rouge sur GitHub (check « Vercel ») et la production n'est pas déployée.
+   Les tests SQL, les tests de bout en bout et l'app pro restent lancés en
+   local avant chaque merge.
 
 ### Déployer l'app pro
 
