@@ -105,7 +105,7 @@ void main() {
     expect(
       find.text(
         "Si un compte existe pour cette adresse, un e-mail vient d'être "
-        'envoyé avec un code à 6 chiffres.',
+        'envoyé avec un code à 6 chiffres.',
       ),
       findsOneWidget,
     );

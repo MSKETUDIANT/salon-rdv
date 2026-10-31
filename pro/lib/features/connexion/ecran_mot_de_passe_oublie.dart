@@ -136,8 +136,9 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
           enfants: [
             if (!_codeEnvoye) ...[
               Text(
-                'Saisissez l\'adresse e-mail de votre compte : vous recevrez '
-                'un code à 6 chiffres.',
+                // Espaces insécables : « à 6 chiffres » ne se coupe pas.
+                'Saisissez l\'e-mail de votre compte : vous recevrez un code '
+                'à 6 chiffres.',
                 style: textes.bodyLarge,
               ),
               const SizedBox(height: Espaces.s6),
@@ -158,7 +159,7 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
                   // « cette adresse » plutôt que l'adresse elle-même, qui
                   // se couperait au milieu (au tiret, par exemple).
                   'Si un compte existe pour cette adresse, un e-mail vient '
-                  'd\'être envoyé avec un code à 6 chiffres.',
+                  'd\'être envoyé avec un code à 6 chiffres.',
                   style: textes.bodyLarge,
                 ),
               ),
