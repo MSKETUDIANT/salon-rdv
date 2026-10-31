@@ -124,6 +124,25 @@ describe("EcranMesReservations", () => {
     expect(screen.getByRole("alert").textContent).toBe("Cette réservation ne peut plus être annulée.");
   });
 
+  it("délai d'annulation passé (issue 118) : message à la place de « Annuler »", async () => {
+    lignes = [ligne("r1", "2030-01-08T09:00:00Z", "confirmee", false)];
+    render(<EcranMesReservations salonId="s1" fuseau="Africa/Tunis" delaiAnnulation={120} />);
+    const aVenir = await screen.findByRole("region", { name: "À venir" });
+    expect(
+      within(aVenir).getByText(
+        "Annulation possible jusqu'à 2 h avant le rendez-vous. Contactez le salon.",
+      ),
+    ).toBeTruthy();
+    expect(within(aVenir).queryByRole("button", { name: "Annuler la réservation" })).toBeNull();
+  });
+
+  it("annulable malgré un délai réglé : bouton, pas de message", async () => {
+    render(<EcranMesReservations salonId="s1" fuseau="Africa/Tunis" delaiAnnulation={120} />);
+    const aVenir = await screen.findByRole("region", { name: "À venir" });
+    expect(within(aVenir).getByRole("button", { name: "Annuler la réservation" })).toBeTruthy();
+    expect(within(aVenir).queryByText(/Contactez le salon/)).toBeNull();
+  });
+
   it("aucune réservation : invitation à réserver", async () => {
     lignes = [];
     render(<EcranMesReservations salonId="s1" fuseau="Africa/Tunis" />);

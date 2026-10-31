@@ -61,6 +61,22 @@ class Absence {
   final String? motif;
 }
 
+// Identité du salon (#81) : nom, adresse, adresse publique de la photo (#105,
+// null : image par défaut), délai minimum d'annulation en minutes (#118, 0 :
+// jusqu'au début du rendez-vous).
+class IdentiteSalon {
+  const IdentiteSalon({
+    required this.nom,
+    this.adresse,
+    this.photo,
+    this.delaiAnnulationMinutes = 0,
+  });
+  final String nom;
+  final String? adresse;
+  final String? photo;
+  final int delaiAnnulationMinutes;
+}
+
 // Erreur à afficher telle quelle au gérant.
 class ErreurSalon implements Exception {
   const ErreurSalon(this.message);
@@ -70,9 +86,9 @@ class ErreurSalon implements Exception {
 }
 
 abstract interface class DepotSalon {
-  // Nom et adresse du salon (#81), adresse publique de sa photo (#105, null :
-  // image par défaut).
-  Future<({String nom, String? adresse, String? photo})> identite();
+  Future<IdentiteSalon> identite();
+  // Délai minimum d'annulation (#118, gérant) : 0 à 10 080 minutes.
+  Future<void> definirDelaiAnnulation(int minutes);
   // Photo du salon (#105, gérant) : envoi dans l'espace « salons », puis
   // definir_photo_salon() ; l'ancien fichier est supprimé. type : type MIME.
   Future<void> changerPhoto(Uint8List octets, String type);
@@ -211,19 +227,27 @@ class SalonSupabase implements DepotSalon {
       _appel(() async => depuisUtc(DateTime.now(), await _fuseauDuSalon()));
 
   @override
-  Future<({String nom, String? adresse, String? photo})> identite() =>
-      _appel(() async {
-        final ligne = await _client
-            .from('salons')
-            .select('nom, adresse, photo')
-            .eq('id', _salonId)
-            .single();
-        return (
-          nom: ligne['nom'] as String,
-          adresse: ligne['adresse'] as String?,
-          photo: adressePhoto(_client, ligne['photo'] as String?),
-        );
-      });
+  Future<IdentiteSalon> identite() => _appel(() async {
+    final ligne = await _client
+        .from('salons')
+        .select('nom, adresse, photo, delai_annulation_minutes')
+        .eq('id', _salonId)
+        .single();
+    return IdentiteSalon(
+      nom: ligne['nom'] as String,
+      adresse: ligne['adresse'] as String?,
+      photo: adressePhoto(_client, ligne['photo'] as String?),
+      delaiAnnulationMinutes: (ligne['delai_annulation_minutes'] as int?) ?? 0,
+    );
+  });
+
+  @override
+  Future<void> definirDelaiAnnulation(int minutes) => _appel(
+    () => _client.rpc(
+      'definir_delai_annulation',
+      params: {'p_salon': _salonId, 'p_minutes': minutes},
+    ),
+  );
 
   // Nom nouveau à chaque envoi : l'ancienne image en cache n'est jamais
   // resservie. Si l'enregistrement échoue, le fichier envoyé est retiré.

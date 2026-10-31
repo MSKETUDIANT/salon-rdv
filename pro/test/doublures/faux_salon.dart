@@ -53,9 +53,26 @@ class FauxSalon implements DepotSalon {
   // Adresse de la photo du salon (#105) ; null : image par défaut.
   String? photo;
 
+  // Délai minimum d'annulation en minutes (#118).
+  int delaiAnnulation = 0;
+
   @override
-  Future<({String nom, String? adresse, String? photo})> identite() async =>
-      (nom: 'Salon de démo', adresse: '1 rue de la Coupe', photo: photo);
+  Future<IdentiteSalon> identite() async => IdentiteSalon(
+    nom: 'Salon de démo',
+    adresse: '1 rue de la Coupe',
+    photo: photo,
+    delaiAnnulationMinutes: delaiAnnulation,
+  );
+
+  // « délai 120 » (#118).
+  final actionsDelai = <String>[];
+
+  @override
+  Future<void> definirDelaiAnnulation(int minutes) async {
+    _echecEventuel();
+    actionsDelai.add('délai $minutes');
+    delaiAnnulation = minutes;
+  }
 
   // « photo image/jpeg 3 octets », « photo retirée » (#105).
   final actionsPhoto = <String>[];

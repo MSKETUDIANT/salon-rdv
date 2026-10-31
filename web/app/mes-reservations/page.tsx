@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { EcranMesReservations } from "@/components/mes-reservations/ecran-mes-reservations";
 import { env } from "@/lib/env";
 import { lireCatalogue } from "@/lib/lire-catalogue";
+import { lireSalon } from "@/lib/salon";
 
 // « Mes réservations » (BF-C6). Les réservations sont lues côté navigateur,
 // avec la session du client : la page reste statique.
@@ -12,11 +13,18 @@ export const metadata: Metadata = {
 };
 
 export default async function MesReservations() {
-  const { fuseau } = await lireCatalogue(env.salonId);
+  const [{ fuseau }, salon] = await Promise.all([
+    lireCatalogue(env.salonId),
+    lireSalon(env.salonId),
+  ]);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8 sm:px-8">
-      <EcranMesReservations salonId={env.salonId} fuseau={fuseau} />
+      <EcranMesReservations
+        salonId={env.salonId}
+        fuseau={fuseau}
+        delaiAnnulation={salon?.delaiAnnulation ?? 0}
+      />
     </main>
   );
 }

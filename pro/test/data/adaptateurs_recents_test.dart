@@ -186,6 +186,28 @@ void main() {
     });
 
     test(
+      "délai d'annulation : lu avec l'identité, réglé par la fonction",
+      () async {
+        api.repondre('GET', 'salons', {
+          'nom': 'Salon de démo',
+          'adresse': null,
+          'photo': null,
+          'delai_annulation_minutes': 120,
+        });
+        expect((await salon.identite()).delaiAnnulationMinutes, 120);
+
+        api.repondre('POST', 'rpc/definir_delai_annulation', [
+          {'delai_annulation_minutes': 1440},
+        ]);
+        await salon.definirDelaiAnnulation(1440);
+        expect(corps('rpc/definir_delai_annulation'), {
+          'p_salon': salonId,
+          'p_minutes': 1440,
+        });
+      },
+    );
+
+    test(
       'changer la photo : envoi, enregistrement, ancien fichier supprimé',
       () async {
         api.repondreStockage('POST', 'object/salons/s1/*', {'Key': 'ok'});
@@ -200,7 +222,7 @@ void main() {
         expect(envoi.method, 'POST');
         expect(envoi.url.path, endsWith('.png'));
         // Envoi en multipart : le type du fichier est dans le corps.
-      expect(latin1.decode(envoi.bodyBytes), contains('image/png'));
+        expect(latin1.decode(envoi.bodyBytes), contains('image/png'));
         final chemin = envoi.url.path.split('/object/salons/').last;
         expect(corps('rpc/definir_photo_salon'), {
           'p_salon': salonId,
