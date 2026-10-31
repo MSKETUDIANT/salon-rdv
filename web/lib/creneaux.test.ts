@@ -3,6 +3,7 @@ import {
   ajouterJours,
   grouperParJour,
   jourLocal,
+  grouperParMoment,
   lienConfirmation,
   lireCreneaux,
   moisDeLaBande,
@@ -149,5 +150,23 @@ describe("mois de la bande de jours (#55)", () => {
     expect(reperes.filter(Boolean)).toEqual(["2026-11-01 nov."]);
     const debutDeMois = bande("2026-11-01");
     expect(repereMois(debutDeMois, 0)).toBeNull();
+  });
+});
+
+describe("grouperParMoment (issue 130)", () => {
+  const h = (libelle: string) => ({ debut: libelle, libelle });
+
+  it("matin avant 12:00, après-midi jusqu'à 17:59, soir à partir de 18:00", () => {
+    const groupes = grouperParMoment([h("09:00"), h("11:45"), h("12:00"), h("17:45"), h("18:00"), h("19:30")]);
+    expect(groupes.map((g) => [g.moment, g.heures.map((x) => x.libelle)])).toEqual([
+      ["Matin", ["09:00", "11:45"]],
+      ["Après-midi", ["12:00", "17:45"]],
+      ["Soir", ["18:00", "19:30"]],
+    ]);
+  });
+
+  it("un moment sans créneau n'apparaît pas", () => {
+    expect(grouperParMoment([h("14:00"), h("14:15")]).map((g) => g.moment)).toEqual(["Après-midi"]);
+    expect(grouperParMoment([])).toEqual([]);
   });
 });

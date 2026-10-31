@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { EcranCreneaux, type CreneauxInitiaux } from "@/components/reservation/ecran-creneaux";
 import { coiffeursCompetents, type Catalogue } from "@/lib/catalogue";
@@ -43,6 +44,9 @@ async function CreneauxDeLaVisite({
   searchParams: PageProps<"/reserver/creneaux">["searchParams"];
 }) {
   const params = await searchParams;
+  // Heure de la visite (new Date() plus bas) : lue à la requête, jamais figée
+  // au prérendu (issue 130, doc Next.js « connection »).
+  await connection();
   const texte = (valeur: string | string[] | undefined) =>
     typeof valeur === "string" ? valeur : "";
   const prestationId = texte(params.prestation);
