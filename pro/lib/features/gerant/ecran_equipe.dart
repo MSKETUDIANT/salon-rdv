@@ -5,12 +5,60 @@ import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import 'ecran_coiffeur.dart';
+import 'ecran_inviter_coiffeur.dart';
 
-// Coiffeurs du salon (rôle coiffeur, attribué via #2) : chacun ouvre sa fiche
-// horaires, absences et compétences.
-class EcranEquipe extends StatelessWidget {
+// Coiffeurs du salon : chacun ouvre sa fiche horaires, absences et
+// compétences. Le gérant ajoute un coiffeur par invitation (#145, option A
+// de Sparta) ; les invitations en attente suivent la liste, avec « Annuler ».
+class EcranEquipe extends StatefulWidget {
   const EcranEquipe({super.key, required this.salon});
   final DepotSalon salon;
+
+  @override
+  State<EcranEquipe> createState() => _EcranEquipeState();
+}
+
+class _EcranEquipeState extends State<EcranEquipe> {
+  int _version = 0;
+  // Invitation en cours d'annulation.
+  String? _annulation;
+
+  Future<(List<Coiffeur>, List<Invitation>)> _lire() async {
+    final resultats = await Future.wait<dynamic>([
+      widget.salon.coiffeurs(),
+      widget.salon.invitations(),
+    ]);
+    return (resultats[0] as List<Coiffeur>, resultats[1] as List<Invitation>);
+  }
+
+  Future<void> _ajouter() async {
+    final message = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => EcranInviterCoiffeur(salon: widget.salon),
+      ),
+    );
+    if (!mounted || message == null) return;
+    setState(() => _version++);
+    confirmer(context, message);
+  }
+
+  // Annuler se refait d'une nouvelle invitation : pas de confirmation.
+  Future<void> _annuler(Invitation invitation) async {
+    setState(() => _annulation = invitation.id);
+    try {
+      await widget.salon.annulerInvitation(invitation.id);
+      if (!mounted) return;
+      setState(() {
+        _annulation = null;
+        _version++;
+      });
+      confirmer(context, 'Invitation de ${invitation.nom} annulée.');
+    } on ErreurSalon catch (erreur) {
+      if (!mounted) return;
+      setState(() => _annulation = null);
+      confirmer(context, erreur.message);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,28 +67,53 @@ class EcranEquipe extends StatelessWidget {
       appBar: AppBar(title: const Text('Équipe')),
       body: ListeCharte(
         enfants: [
-          Chargement<List<Coiffeur>>(
-            lire: salon.coiffeurs,
-            afficher: (context, coiffeurs, _) {
-              if (coiffeurs.isEmpty) {
-                return Text(
-                  'Aucun coiffeur dans ce salon. Le rôle de coiffeur s\'attribue à un compte existant.',
-                  style: textes.bodyLarge,
-                );
-              }
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Bouton(libelle: 'Ajouter un coiffeur', surAppui: _ajouter),
+          ),
+          const SizedBox(height: Espaces.s6),
+          Chargement<(List<Coiffeur>, List<Invitation>)>(
+            key: ValueKey(_version),
+            lire: _lire,
+            afficher: (context, donnees, _) {
+              final (coiffeurs, invitations) = donnees;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (final c in coiffeurs) ...[
+                  if (coiffeurs.isEmpty)
+                    Text(
+                      "Aucun coiffeur pour l'instant. Invitez votre "
+                      'équipe avec « Ajouter un coiffeur ».',
+                      style: textes.bodyLarge,
+                    ),
+                  for (final c in coiffeurs)
                     _LigneCoiffeur(
                       nom: c.nom,
                       surAppui: () => Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) =>
-                              EcranCoiffeur(salon: salon, coiffeur: c),
+                              EcranCoiffeur(salon: widget.salon, coiffeur: c),
                         ),
                       ),
                     ),
+                  if (invitations.isNotEmpty) ...[
+                    const SizedBox(height: Espaces.s6),
+                    Semantics(
+                      header: true,
+                      child: Text(
+                        'Invitations en attente',
+                        style: textes.labelSmall,
+                      ),
+                    ),
+                    const SizedBox(height: Espaces.s2),
+                    for (final i in invitations)
+                      _LigneInvitation(
+                        invitation: i,
+                        enCours: _annulation == i.id,
+                        surAnnuler: _annulation == null
+                            ? () => _annuler(i)
+                            : null,
+                      ),
                   ],
                 ],
               );
@@ -85,6 +158,73 @@ class _LigneCoiffeur extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Invitation en attente (#145) : même ligne que les coiffeurs, icône
+// d'enveloppe à la place de l'avatar, nom et adresse, « Annuler » à droite.
+class _LigneInvitation extends StatelessWidget {
+  const _LigneInvitation({
+    required this.invitation,
+    required this.enCours,
+    required this.surAnnuler,
+  });
+  final Invitation invitation;
+  final bool enCours;
+  final VoidCallback? surAnnuler;
+
+  @override
+  Widget build(BuildContext context) {
+    final textes = Theme.of(context).textTheme;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.symmetric(vertical: Espaces.s2),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Couleurs.separateur)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 40,
+            child: ExcludeSemantics(
+              child: Icon(Icons.mail_outline, color: Couleurs.texteSecondaire),
+            ),
+          ),
+          const SizedBox(width: Espaces.s3),
+          Expanded(
+            child: Semantics(
+              container: true,
+              label:
+                  '${invitation.nom}, invitation en attente, '
+                  '${invitation.email}',
+              excludeSemantics: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(invitation.nom, style: textes.titleSmall),
+                  Text(invitation.email, style: textes.bodySmall),
+                ],
+              ),
+            ),
+          ),
+          if (enCours)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            TextButton(
+              onPressed: surAnnuler,
+              child: Semantics(
+                label: "Annuler l'invitation de ${invitation.nom}",
+                excludeSemantics: true,
+                child: const Text('Annuler'),
+              ),
+            ),
+        ],
       ),
     );
   }

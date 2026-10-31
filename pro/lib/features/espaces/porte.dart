@@ -122,8 +122,11 @@ class _PorteState extends State<Porte> {
           ),
           const SizedBox(height: Espaces.s4),
           Text(
-            'Le compte $_compte n\'a pas de rôle de coiffeur ou de gérant dans ce salon. '
-            'Pour réserver un rendez-vous, utilisez le site du salon.',
+            // Coiffeur pas encore invité (#145) : la marche à suivre.
+            "Le compte $_compte n'a pas de rôle de coiffeur ou de gérant dans "
+            "ce salon. Vous faites partie de l'équipe ? Demandez à votre "
+            "gérant de vous inviter avec cette adresse. Pour réserver un "
+            "rendez-vous, utilisez le site du salon.",
             style: textes.bodyLarge,
           ),
           const SizedBox(height: Espaces.s6),

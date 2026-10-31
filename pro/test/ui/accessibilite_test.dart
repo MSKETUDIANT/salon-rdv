@@ -12,12 +12,14 @@ import 'package:salon_pro/features/aujourdhui/ecran_aujourdhui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:salon_pro/features/connexion/ecran_connexion.dart';
 import 'package:salon_pro/features/connexion/ecran_mot_de_passe_oublie.dart';
+import 'package:salon_pro/features/connexion/ecran_premiere_connexion.dart';
 import 'package:salon_pro/features/espaces/ecran_espace.dart';
 import 'package:salon_pro/features/espaces/ecran_mot_de_passe.dart';
 import 'package:salon_pro/features/espaces/onglets.dart';
 import 'package:salon_pro/features/gerant/ecran_coiffeur.dart';
 import 'package:salon_pro/features/gerant/ecran_delai_annulation.dart';
 import 'package:salon_pro/features/gerant/ecran_equipe.dart';
+import 'package:salon_pro/features/gerant/ecran_inviter_coiffeur.dart';
 import 'package:salon_pro/features/gerant/ecran_photo_salon.dart';
 import 'package:salon_pro/features/gerant/ecran_prestations.dart';
 import 'package:salon_pro/features/gerant/ecran_telephone_salon.dart';
@@ -78,6 +80,14 @@ class _AuthMuette implements ServiceAuth {
     String code,
     String nouveau,
   ) async => null;
+  @override
+  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email) async => null;
+  @override
+  Future<ErreurOubli?> creerAcces(
+    String email,
+    String code,
+    String motDePasse,
+  ) async => null;
 }
 
 void main() {
@@ -92,6 +102,8 @@ void main() {
   final ecrans = <String, Widget Function()>{
     'connexion': () => EcranConnexion(auth: _AuthMuette()),
     'mot de passe oublié': () => EcranMotDePasseOublie(auth: _AuthMuette()),
+    'première connexion': () => EcranPremiereConnexion(auth: _AuthMuette()),
+    'ajouter un coiffeur': () => EcranInviterCoiffeur(salon: FauxSalon()),
     'accueil du gérant qui est aussi coiffeur': () => EcranEspace(
       espace: Espace.gerant,
       salon: FauxSalon(),

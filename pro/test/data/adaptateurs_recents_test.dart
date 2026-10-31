@@ -208,6 +208,78 @@ void main() {
       },
     );
 
+    test("invitations (#145) : en attente seulement, du salon", () async {
+      api.repondre('GET', 'invitations', [
+        {'id': 'i1', 'nom': 'Nour Ben', 'email': 'nour@salon.test'},
+      ]);
+      final invitations = await salon.invitations();
+      expect(invitations.single.nom, 'Nour Ben');
+      expect(invitations.single.email, 'nour@salon.test');
+      final url = api.requetes.last.url.queryParameters;
+      expect(url['salon_id'], 'eq.$salonId');
+      expect(url['acceptee_le'], 'is.null');
+    });
+
+    test("inviter (#145) : invité ou ajouté selon la base", () async {
+      api.repondre('POST', 'rpc/inviter_coiffeur', [
+        {'resultat': 'invite'},
+      ]);
+      expect(
+        await salon.inviterCoiffeur(nom: 'Nour', email: 'nour@salon.test'),
+        isFalse,
+      );
+      expect(corps('rpc/inviter_coiffeur'), {
+        'p_salon': salonId,
+        'p_email': 'nour@salon.test',
+        'p_nom': 'Nour',
+      });
+
+      api.repondre('POST', 'rpc/inviter_coiffeur', [
+        {'resultat': 'ajoute'},
+      ]);
+      expect(
+        await salon.inviterCoiffeur(nom: 'Salma', email: 'salma@salon.test'),
+        isTrue,
+      );
+    });
+
+    test("inviter (#145) : refus de la base, message affichable", () async {
+      api.refuser(
+        'POST',
+        'rpc/inviter_coiffeur',
+        'PT400',
+        message: 'Adresse e-mail invalide',
+      );
+      await expectLater(
+        salon.inviterCoiffeur(nom: 'X', email: 'x'),
+        throwsA(
+          isA<ErreurSalon>().having(
+            (e) => e.message,
+            'message',
+            'Adresse e-mail invalide.',
+          ),
+        ),
+      );
+
+      api.refuser('POST', 'rpc/inviter_coiffeur', 'PT409');
+      await expectLater(
+        salon.inviterCoiffeur(nom: 'Amira', email: 'amira@salon.test'),
+        throwsA(
+          isA<ErreurSalon>().having(
+            (e) => e.message,
+            'message',
+            "Déjà dans l'équipe.",
+          ),
+        ),
+      );
+    });
+
+    test("annuler une invitation (#145) : par la fonction", () async {
+      api.repondre('POST', 'rpc/annuler_invitation', null);
+      await salon.annulerInvitation('i1');
+      expect(corps('rpc/annuler_invitation'), {'p_invitation': 'i1'});
+    });
+
     test(
       "téléphone (#129) : lu avec l'identité, réglé par la fonction",
       () async {
@@ -470,5 +542,60 @@ void main() {
       );
       expect(api.requetes.where((r) => r.url.path == '/auth/v1/user'), isEmpty);
     });
+
+    test(
+      "première connexion (#145) : code demandé, compte créé si besoin",
+      () async {
+        api.repondreAuth('POST', 'otp', <String, Object?>{});
+        expect(
+          await auth.envoyerCodePremiereConnexion('nour@salon.test'),
+          isNull,
+        );
+        final envoi = jsonDecode(api.requetes.last.body);
+        expect(envoi['email'], 'nour@salon.test');
+        expect(envoi['create_user'], isTrue);
+
+        // Neutre, sauf la limite d'envoi.
+        api.repondreAuth(
+          'POST',
+          'otp',
+          refusAuth('over_email_send_rate_limit', 429),
+          statut: 429,
+        );
+        expect(
+          await auth.envoyerCodePremiereConnexion('nour@salon.test'),
+          ErreurOubli.tropDeDemandes,
+        );
+      },
+    );
+
+    test(
+      "première connexion (#145) : code vérifié (email), mot de passe choisi",
+      () async {
+        api.repondreAuth('POST', 'verify', FausseApi.session());
+        api.repondreAuth('PUT', 'user', FausseApi.session()['user']);
+        expect(
+          await auth.creerAcces('nour@salon.test', '123456', 'mon-mdp-nour'),
+          isNull,
+        );
+        final verification = api.requetes.firstWhere(
+          (r) => r.url.path == '/auth/v1/verify',
+        );
+        expect(jsonDecode(verification.body), containsPair('type', 'email'));
+        expect(jsonDecode(verification.body), containsPair('token', '123456'));
+        expect(jsonDecode(api.requetes.last.body)['password'], 'mon-mdp-nour');
+
+        api.repondreAuth(
+          'POST',
+          'verify',
+          refusAuth('otp_expired', 403),
+          statut: 403,
+        );
+        expect(
+          await auth.creerAcces('nour@salon.test', '000000', 'mon-mdp-nour'),
+          ErreurOubli.codeInvalide,
+        );
+      },
+    );
   });
 }

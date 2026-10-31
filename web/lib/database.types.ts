@@ -187,6 +187,51 @@ export type Database = {
           },
         ]
       }
+      invitations: {
+        Row: {
+          acceptee_le: string | null
+          created_at: string
+          email: string
+          id: string
+          invite_par: string | null
+          nom: string
+          salon_id: string
+        }
+        Insert: {
+          acceptee_le?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          invite_par?: string | null
+          nom: string
+          salon_id: string
+        }
+        Update: {
+          acceptee_le?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invite_par?: string | null
+          nom?: string
+          salon_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitations_invite_par_fkey"
+            columns: ["invite_par"]
+            isOneToOne: false
+            referencedRelation: "utilisateurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitations_salon_id_fkey"
+            columns: ["salon_id"]
+            isOneToOne: false
+            referencedRelation: "salons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prestations: {
         Row: {
           active: boolean
@@ -388,6 +433,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      annuler_invitation: { Args: { p_invitation: string }; Returns: undefined }
       annuler_reservation: {
         Args: { p_reservation: string }
         Returns: {
@@ -468,6 +514,12 @@ export type Database = {
           fermeture: string
           jour_semaine: number
           ouverture: string
+        }[]
+      }
+      inviter_coiffeur: {
+        Args: { p_email: string; p_nom: string; p_salon: string }
+        Returns: {
+          resultat: string
         }[]
       }
       marquer_arrivee: {

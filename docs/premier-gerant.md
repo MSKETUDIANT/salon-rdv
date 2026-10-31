@@ -82,5 +82,13 @@ schéma reste soumise à la règle de CLAUDE.md : migration via la CLI uniquemen
 
 ## Ensuite
 
-Le gérant attribue les autres rôles depuis l'application, via
-`public.attribuer_role(utilisateur, salon, role)`.
+Le gérant ajoute ensuite ses coiffeurs depuis l'app pro (#145) : Salon →
+Équipe → « Ajouter un coiffeur » (nom et e-mail). Si un compte existe déjà
+avec cette adresse, il devient coiffeur tout de suite ; sinon, la personne
+choisit « Première connexion » dans l'app avec cette adresse, reçoit un code
+et crée son mot de passe, et la base lui donne le rôle coiffeur.
+
+Un compte gérant créé sur le site (connexion par code) n'a pas de mot de
+passe : il le crée avec « Mot de passe oublié ? » dans l'app pro, ce qui
+demande le modèle d'e-mail Reset Password réglé dans le dashboard
+(`docs/connexion-code-email.md`).

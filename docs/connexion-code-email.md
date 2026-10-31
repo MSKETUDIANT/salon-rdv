@@ -66,6 +66,12 @@ Pour **chacun** des deux modèles :
 - **Body** : le contenu de `supabase/templates/code-connexion.html`, tel quel
   (il affiche `{{ .Token }}`, le code).
 
+Depuis #145, ces deux modèles servent aussi à la **première connexion d'un
+coiffeur invité** dans l'app pro : leur texte dit « sur le site du salon ou
+dans l'app pro » (et non plus « pour confirmer votre réservation »). Après une
+modification de `code-connexion.html`, recoller le Body dans les deux modèles
+du dashboard (fait par Sparta).
+
 Mot de passe oublié de l'app pro (#39, à faire avec l'accord de Sparta) :
 modèle **Reset Password** :
 
@@ -86,6 +92,9 @@ modèle **Reset Password** :
    l'équipe : l'e-mail a pour objet « Votre code pour changer de mot de
    passe », contient 6 chiffres et aucun lien ; le code permet de choisir un
    nouveau mot de passe.
+6. Dans l'app pro, « Première connexion » avec l'adresse d'un coiffeur invité
+   (#145) : l'e-mail « Votre code de connexion » contient 6 chiffres ; le code
+   permet de choisir un mot de passe, et l'espace coiffeur s'ouvre.
 
 ## Limite d'envoi
 

@@ -53,7 +53,7 @@ void main() {
   testWidgets('salon sans coiffeur : message, pas de liste', (tester) async {
     await ouvrir(tester, FauxSalon(coiffeurs: const []));
     expect(
-      find.textContaining('Aucun coiffeur dans ce salon.'),
+      find.textContaining("Aucun coiffeur pour l'instant."),
       findsOneWidget,
     );
     expect(find.bySemanticsLabel(RegExp('horaires, absences')), findsNothing);

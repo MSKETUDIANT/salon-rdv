@@ -78,6 +78,28 @@ class FausseAuth implements ServiceAuth {
     _flux.add(email);
     return null;
   }
+
+  // Première connexion (#145) : le code « 123456 » est le bon ; le compte est
+  // créé s'il n'existe pas, avec le mot de passe choisi, puis connecté.
+  @override
+  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email) async {
+    appels.add('code première connexion $email');
+    return null;
+  }
+
+  @override
+  Future<ErreurOubli?> creerAcces(
+    String email,
+    String code,
+    String motDePasse,
+  ) async {
+    appels.add('accès $email');
+    if (code != '123456') return ErreurOubli.codeInvalide;
+    comptes[email] = motDePasse;
+    compte = email;
+    _flux.add(email);
+    return null;
+  }
 }
 
 class FauxRoles implements DepotRoles {
@@ -108,6 +130,9 @@ Future<void> lancer(WidgetTester tester) async {
     'amira@salon.test': ['coiffeur'],
     'client@salon.test': ['client'],
     'patron@salon.test': ['gerant', 'coiffeur'],
+    // Invitée par le gérant (#145) : la base lui donne le rôle coiffeur à la
+    // création de son compte.
+    'nour@salon.test': ['coiffeur'],
   });
   await tester.pumpWidget(
     AppPro(
@@ -395,6 +420,63 @@ void main() {
         findsOneWidget,
       );
       expect(auth.comptes['amira@salon.test'], 'nouveau-mdp');
+    },
+  );
+
+  // Première connexion (#145) : coiffeur invité, de la connexion à l'espace.
+  testWidgets(
+    "première connexion d'une invitée : code, mot de passe, espace coiffeur",
+    (tester) async {
+      await lancer(tester);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'nour@salon.test');
+      await tester.ensureVisible(find.text('Première connexion'));
+      await tester.tap(find.text('Première connexion'));
+      await tester.pumpAndSettle();
+      // E-mail repris de l'écran de connexion.
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'nour@salon.test',
+      );
+      await tester.tap(find.text('Recevoir un code'));
+      await tester.pumpAndSettle();
+      expect(auth.appels, contains('code première connexion nour@salon.test'));
+
+      await tester.enterText(find.byType(TextField).at(0), '123456');
+      await tester.enterText(find.byType(TextField).at(1), 'mon-mdp-nour');
+      await tester.enterText(find.byType(TextField).at(2), 'mon-mdp-nour');
+      await tester.tap(find.text('Créer mon accès'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Espace coiffeur'), findsOneWidget);
+      expect(find.text('Accès créé. Vous êtes connecté.'), findsOneWidget);
+      // Le mot de passe choisi sert ensuite à se connecter.
+      expect(auth.comptes['nour@salon.test'], 'mon-mdp-nour');
+    },
+  );
+
+  testWidgets(
+    "première connexion sans invitation : accès refusé, marche à suivre",
+    (tester) async {
+      await lancer(tester);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Première connexion'));
+      await tester.tap(find.text('Première connexion'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'inconnu@salon.test');
+      await tester.tap(find.text('Recevoir un code'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), '123456');
+      await tester.enterText(find.byType(TextField).at(1), 'mot-de-passe');
+      await tester.enterText(find.byType(TextField).at(2), 'mot-de-passe');
+      await tester.tap(find.text('Créer mon accès'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Accès réservé à l'équipe"), findsOneWidget);
+      expect(
+        find.textContaining('Demandez à votre gérant de vous inviter'),
+        findsOneWidget,
+      );
     },
   );
 }

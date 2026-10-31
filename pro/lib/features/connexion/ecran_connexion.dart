@@ -6,6 +6,7 @@ import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/marque.dart';
 import 'ecran_mot_de_passe_oublie.dart';
+import 'ecran_premiere_connexion.dart';
 
 // Connexion de l'équipe : e-mail et mot de passe (comptes créés via #2).
 // « Se connecter » n'est jamais désactivé : au clic, ce qui manque est indiqué
@@ -85,6 +86,27 @@ class _EcranConnexionState extends State<EcranConnexion> {
     }
   }
 
+  // Première connexion d'un coiffeur invité (#145) : même retour que le mot
+  // de passe oublié, la porte remplace cet écran.
+  Future<void> _premiereConnexion() async {
+    final messages = ScaffoldMessenger.of(context);
+    final cree = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EcranPremiereConnexion(
+          auth: widget.auth,
+          email: _email.text.trim(),
+        ),
+      ),
+    );
+    if (cree == true) {
+      messages
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Accès créé. Vous êtes connecté.')),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
@@ -157,6 +179,19 @@ class _EcranConnexionState extends State<EcranConnexion> {
           libelleChargement: 'Connexion…',
           chargement: _enCours,
           surAppui: _seConnecter,
+        ),
+        // Coiffeur invité par le gérant (#145) : sous le bouton principal,
+        // comme « Pas encore de compte ? » dans les grandes applications.
+        // Texte et lien alignés à gauche, l'un sous l'autre, comme « Mot de
+        // passe oublié ? » (sur une ligne, ils ne tiennent pas à 360 px).
+        const SizedBox(height: Espaces.s6),
+        Text("Nouveau dans l'équipe ?", style: textes.bodyLarge),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: _premiereConnexion,
+            child: const Text('Première connexion'),
+          ),
         ),
       ],
     );
