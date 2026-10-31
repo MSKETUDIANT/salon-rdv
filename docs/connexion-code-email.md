@@ -66,18 +66,22 @@ Pour **chacun** des deux modèles :
 - **Body** : le contenu de `supabase/templates/code-connexion.html`, tel quel
   (il affiche `{{ .Token }}`, le code).
 
-Depuis #145, ces deux modèles servent aussi à la **première connexion d'un
-coiffeur invité** dans l'app pro : leur texte dit « sur le site du salon ou
-dans l'app pro » (et non plus « pour confirmer votre réservation »). Après une
-modification de `code-connexion.html`, recoller le Body dans les deux modèles
-du dashboard (fait par Sparta).
+Ces deux modèles servent aussi à l'app pro (#148) : « Pas encore de mot de
+passe, ou oublié ? » envoie ce même code au coiffeur invité (premier mot de
+passe) comme au compte qui a oublié le sien. Leur texte dit « sur le site du
+salon ou dans l'app pro ». Après une modification de `code-connexion.html`,
+recoller le Body dans les deux modèles du dashboard (fait par Sparta).
 
-Mot de passe oublié de l'app pro (#39, à faire avec l'accord de Sparta) :
-modèle **Reset Password** :
+Invitation d'un coiffeur (#148, fait par Sparta avant la mise en ligne) :
+modèle **Invite user** :
 
-- **Subject** : `Votre code pour changer de mot de passe` ;
-- **Body** : le contenu de `supabase/templates/code-reinitialisation.html`,
-  tel quel (code `{{ .Token }}`, aucun lien).
+- **Subject** : `Invitation à rejoindre l'équipe du salon` ;
+- **Body** : le contenu de `supabase/templates/invitation-coiffeur.html`, tel
+  quel (lien de l'app pro, marche à suivre ; aucun lien de connexion ni code :
+  le code est demandé dans l'app).
+
+Le modèle **Reset Password** (#39) n'est plus utilisé par l'app depuis #148 ;
+il peut rester tel quel.
 
 ### 5. Vérifier
 
@@ -88,13 +92,14 @@ modèle **Reset Password** :
 3. Saisir le code : « Connecté avec … » s'affiche.
 4. Refaire le test avec une adresse **jamais utilisée** (navigation privée) :
    c'est le modèle « Confirm signup » qui part, il doit aussi contenir le code.
-5. Dans l'app pro, « Mot de passe oublié ? » avec l'adresse d'un compte de
-   l'équipe : l'e-mail a pour objet « Votre code pour changer de mot de
-   passe », contient 6 chiffres et aucun lien ; le code permet de choisir un
-   nouveau mot de passe.
-6. Dans l'app pro, « Première connexion » avec l'adresse d'un coiffeur invité
-   (#145) : l'e-mail « Votre code de connexion » contient 6 chiffres ; le code
-   permet de choisir un mot de passe, et l'espace coiffeur s'ouvre.
+5. Dans l'app pro, « Pas encore de mot de passe, ou oublié ? » avec l'adresse
+   d'un compte de l'équipe : l'e-mail « Votre code de connexion » contient
+   6 chiffres ; le code permet de choisir un nouveau mot de passe.
+6. Dans l'app pro, le gérant invite une adresse de test (Salon → Équipe →
+   « Ajouter un coiffeur ») : l'e-mail « Invitation à rejoindre l'équipe du
+   salon » arrive, avec le lien de l'app ; puis, avec cette adresse,
+   « Pas encore de mot de passe, ou oublié ? » : le code permet de choisir un
+   mot de passe, et l'espace coiffeur s'ouvre.
 
 ## Limite d'envoi
 

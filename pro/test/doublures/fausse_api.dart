@@ -90,6 +90,10 @@ class FausseApi {
     int statut = 200,
   }) => reponses['$methode /auth/v1/$chemin'] = (r) => _json(corps, statut, r);
 
+  // Réponse d'une fonction Edge (/functions/v1/<nom>, #148).
+  void repondreFonction(String nom, Object? corps, {int statut = 200}) =>
+      reponses['POST /functions/v1/$nom'] = (r) => _json(corps, statut, r);
+
   // Réponse de l'API Storage (/storage/v1/<chemin>, « * » final : préfixe).
   void repondreStockage(
     String methode,

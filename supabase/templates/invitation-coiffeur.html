@@ -1,0 +1,13 @@
+<!-- Issue #148 : e-mail d'invitation d'un coiffeur, envoyé par la fonction
+     inviter-coiffeur (modèle « Invite user »). Pas de lien de connexion ni
+     de code ici : le code est demandé dans l'app, au moment voulu (il expire
+     au bout d'une heure). Data.nom et Data.salon : saisis par le gérant. -->
+<h2>Bienvenue dans l'équipe{{ if .Data.salon }} de {{ .Data.salon }}{{ end }}</h2>
+<p>Bonjour {{ .Data.nom }},</p>
+<p>Votre gérant vous invite à utiliser l'app pro du salon : votre planning et vos rendez-vous, sur votre téléphone.</p>
+<ol>
+  <li>Installez l'app (Android) : <a href="https://github.com/MSKETUDIANT/salon-rdv/releases/latest">télécharger l'app pro</a>.</li>
+  <li>Ouvrez-la et touchez « Pas encore de mot de passe, ou oublié ? ».</li>
+  <li>Saisissez cette adresse e-mail : vous recevrez un code à 6 chiffres pour choisir votre mot de passe.</li>
+</ol>
+<p>Si vous ne connaissez pas ce salon, ignorez cet e-mail.</p>

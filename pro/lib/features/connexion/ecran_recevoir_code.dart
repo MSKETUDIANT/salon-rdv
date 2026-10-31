@@ -5,28 +5,30 @@ import '../../data/session.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 
-// Mot de passe oublié (#39, code à 6 chiffres décidé par Sparta), depuis le
-// lien de l'écran de connexion. Étape 1 : l'e-mail, puis « Recevoir un code ».
-// Étape 2 : message neutre (jamais « compte inconnu »), le code, le nouveau
-// mot de passe deux fois ; « Renvoyer le code » si besoin. Réussite : le
-// compte est connecté, la porte affiche son espace ; renvoie true.
-// Comme à la connexion, les boutons ne sont jamais désactivés : ce qui manque
-// est indiqué près du champ concerné.
-class EcranMotDePasseOublie extends StatefulWidget {
-  const EcranMotDePasseOublie({super.key, required this.auth, this.email = ''});
+// « Pas encore de mot de passe, ou oublié ? » (#148) : un seul parcours pour
+// le coiffeur invité qui n'a jamais eu de mot de passe et pour le compte qui
+// l'a oublié (avant : « Mot de passe oublié » #39 et « Première connexion »
+// #145, deux liens que le coiffeur ne trouvait pas). Étape 1 : l'e-mail, puis
+// « Recevoir un code ». Étape 2 : message neutre (jamais « compte inconnu »),
+// le code, le mot de passe choisi deux fois ; « Renvoyer le code » si besoin.
+// Réussite : le compte est connecté, la porte affiche son espace ; renvoie
+// true. Comme à la connexion, les boutons ne sont jamais désactivés : ce qui
+// manque est indiqué près du champ concerné.
+class EcranRecevoirCode extends StatefulWidget {
+  const EcranRecevoirCode({super.key, required this.auth, this.email = ''});
 
   final ServiceAuth auth;
   // E-mail déjà saisi sur l'écran de connexion.
   final String email;
 
   @override
-  State<EcranMotDePasseOublie> createState() => _EcranMotDePasseOublieState();
+  State<EcranRecevoirCode> createState() => _EcranRecevoirCodeState();
 }
 
 // Même règle que le changement de mot de passe (#107).
 const _longueurMinimale = 8;
 
-class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
+class _EcranRecevoirCodeState extends State<EcranRecevoirCode> {
   late final _email = TextEditingController(text: widget.email);
   final _code = TextEditingController();
   final _nouveau = TextEditingController();
@@ -66,7 +68,7 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
     if (_erreurEmail != null) return;
 
     setState(() => _enCours = true);
-    final erreur = await widget.auth.envoyerCodeOubli(email);
+    final erreur = await widget.auth.envoyerCode(email);
     if (!mounted) return;
     setState(() {
       _enCours = false;
@@ -102,7 +104,7 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
     }
 
     setState(() => _enCours = true);
-    final erreur = await widget.auth.reinitialiserMotDePasse(
+    final erreur = await widget.auth.connecterAvecCode(
       _email.text.trim(),
       code,
       nouveau,
@@ -130,15 +132,17 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Mot de passe oublié')),
+      appBar: AppBar(title: const Text('Mot de passe')),
       body: AutofillGroup(
         child: ListeCharte(
           enfants: [
             if (!_codeEnvoye) ...[
               Text(
                 // Espaces insécables : « à 6 chiffres » ne se coupe pas.
-                'Saisissez l\'e-mail de votre compte : vous recevrez un code '
-                'à 6 chiffres.',
+                // Le coiffeur invité y retrouve les mots de son e-mail.
+                'Saisissez votre adresse e-mail (celle de votre invitation, '
+                "si vous rejoignez l'équipe) : vous recevrez un code "
+                'à 6 chiffres pour choisir votre mot de passe.',
                 style: textes.bodyLarge,
               ),
               const SizedBox(height: Espaces.s6),
@@ -175,7 +179,7 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
               ),
               const SizedBox(height: Espaces.s4),
               Champ(
-                libelle: 'Nouveau mot de passe',
+                libelle: 'Choisissez un mot de passe',
                 controleur: _nouveau,
                 focus: _focusNouveau,
                 erreur: _erreurNouveau,
@@ -212,10 +216,8 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
             ],
             Bouton(
               pleineLargeur: true,
-              libelle: _codeEnvoye
-                  ? 'Changer le mot de passe'
-                  : 'Recevoir un code',
-              libelleChargement: _codeEnvoye ? 'Enregistrement…' : 'Envoi…',
+              libelle: _codeEnvoye ? 'Se connecter' : 'Recevoir un code',
+              libelleChargement: _codeEnvoye ? 'Connexion…' : 'Envoi…',
               chargement: _enCours,
               surAppui: _codeEnvoye ? _changer : _envoyer,
             ),

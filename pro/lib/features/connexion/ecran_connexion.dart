@@ -5,13 +5,14 @@ import '../../data/session.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/marque.dart';
-import 'ecran_mot_de_passe_oublie.dart';
-import 'ecran_premiere_connexion.dart';
+import 'ecran_recevoir_code.dart';
 
 // Connexion de l'équipe : e-mail et mot de passe (comptes créés via #2).
 // « Se connecter » n'est jamais désactivé : au clic, ce qui manque est indiqué
 // près du champ concerné. Entrée passe de l'e-mail au mot de passe, puis
-// valide. En cas d'échec, le message ne dit pas lequel des deux est faux.
+// valide. En cas d'échec, le message ne dit pas lequel des deux est faux, et
+// propose de recevoir un code (#148). Un seul lien de secours, sous le mot de
+// passe, pour le coiffeur invité (jamais de mot de passe) comme pour l'oubli.
 class EcranConnexion extends StatefulWidget {
   const EcranConnexion({super.key, required this.auth});
 
@@ -63,46 +64,25 @@ class _EcranConnexionState extends State<EcranConnexion> {
     });
   }
 
-  // Code reçu par e-mail, puis nouveau mot de passe (#39). Réussite : le
+  // Code reçu par e-mail, puis mot de passe choisi (#148). Réussite : le
   // compte est connecté et la porte remplace cet écran par son espace.
   // Le message passe par le gestionnaire de messages de l'app, pris avant :
   // cet écran n'existe plus au retour (la porte l'a remplacé).
-  Future<void> _motDePasseOublie() async {
+  Future<void> _recevoirCode() async {
     final messages = ScaffoldMessenger.of(context);
-    final change = await Navigator.of(context).push<bool>(
+    final connecte = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) =>
-            EcranMotDePasseOublie(auth: widget.auth, email: _email.text.trim()),
+            EcranRecevoirCode(auth: widget.auth, email: _email.text.trim()),
       ),
     );
-    if (change == true) {
+    if (connecte == true) {
       messages
         ..hideCurrentSnackBar()
         ..showSnackBar(
           const SnackBar(
-            content: Text('Mot de passe changé. Vous êtes connecté.'),
+            content: Text('Mot de passe enregistré. Vous êtes connecté.'),
           ),
-        );
-    }
-  }
-
-  // Première connexion d'un coiffeur invité (#145) : même retour que le mot
-  // de passe oublié, la porte remplace cet écran.
-  Future<void> _premiereConnexion() async {
-    final messages = ScaffoldMessenger.of(context);
-    final cree = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EcranPremiereConnexion(
-          auth: widget.auth,
-          email: _email.text.trim(),
-        ),
-      ),
-    );
-    if (cree == true) {
-      messages
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Accès créé. Vous êtes connecté.')),
         );
     }
   }
@@ -153,13 +133,13 @@ class _EcranConnexionState extends State<EcranConnexion> {
             ],
           ),
         ),
-        // Mot de passe oublié (#39) : lien souligné de la charte, sous le
-        // champ concerné.
+        // Lien de secours (#148) : lien souligné de la charte, sous le champ
+        // concerné. Les mots de l'e-mail d'invitation.
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton(
-            onPressed: _motDePasseOublie,
-            child: const Text('Mot de passe oublié ?'),
+            onPressed: _recevoirCode,
+            child: const Text('Pas encore de mot de passe, ou oublié ?'),
           ),
         ),
         const SizedBox(height: Espaces.s6),
@@ -171,6 +151,16 @@ class _EcranConnexionState extends State<EcranConnexion> {
               style: textes.bodyLarge!.copyWith(color: Couleurs.erreur),
             ),
           ),
+          // Échec : le chemin de secours est proposé là où le regard est
+          // (coiffeur invité qui tente un mot de passe, oubli).
+          if (_erreur == messageErreurConnexion('invalid_credentials'))
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: _recevoirCode,
+                child: const Text('Recevoir un code pour vous connecter'),
+              ),
+            ),
           const SizedBox(height: Espaces.s3),
         ],
         Bouton(
@@ -179,19 +169,6 @@ class _EcranConnexionState extends State<EcranConnexion> {
           libelleChargement: 'Connexion…',
           chargement: _enCours,
           surAppui: _seConnecter,
-        ),
-        // Coiffeur invité par le gérant (#145) : sous le bouton principal,
-        // comme « Pas encore de compte ? » dans les grandes applications.
-        // Texte et lien alignés à gauche, l'un sous l'autre, comme « Mot de
-        // passe oublié ? » (sur une ligne, ils ne tiennent pas à 360 px).
-        const SizedBox(height: Espaces.s6),
-        Text("Nouveau dans l'équipe ?", style: textes.bodyLarge),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: _premiereConnexion,
-            child: const Text('Première connexion'),
-          ),
         ),
       ],
     );

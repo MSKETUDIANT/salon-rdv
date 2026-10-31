@@ -13,11 +13,12 @@ insert into public.salons (id, nom) values
   ('0000000a-0000-0000-0000-000000000145', 'Salon A'),
   ('0000000b-0000-0000-0000-000000000145', 'Salon B');
 
-insert into auth.users (id, email, raw_user_meta_data) values
-  ('00000a01-0000-0000-0000-000000000145', 'ga@invit.test', '{"nom":"Gérant A"}'),
-  ('00000c01-0000-0000-0000-000000000145', 'c1@invit.test', '{"nom":"Coiffeur 1"}'),
-  ('00000b01-0000-0000-0000-000000000145', 'gb@invit.test', '{"nom":"Gérant B"}'),
-  ('00000c1a-0000-0000-0000-000000000145', 'client@invit.test', '{"nom":"Salma"}');
+-- Comptes confirmés (#148 : un compte non confirmé reste une invitation).
+insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values
+  ('00000a01-0000-0000-0000-000000000145', 'ga@invit.test', '{"nom":"Gérant A"}', now()),
+  ('00000c01-0000-0000-0000-000000000145', 'c1@invit.test', '{"nom":"Coiffeur 1"}', now()),
+  ('00000b01-0000-0000-0000-000000000145', 'gb@invit.test', '{"nom":"Gérant B"}', now()),
+  ('00000c1a-0000-0000-0000-000000000145', 'client@invit.test', '{"nom":"Salma"}', now());
 
 delete from public.roles_utilisateur where utilisateur_id::text like '%-000000000145';
 insert into public.roles_utilisateur (utilisateur_id, salon_id, role) values
@@ -140,8 +141,9 @@ select is_empty(
 
 -- E-mail en majuscules à l'inscription, sans nom : la casse ne compte pas,
 -- le nom saisi par le gérant sert.
-insert into auth.users (id, email, raw_user_meta_data) values
-  ('00000e01-0000-0000-0000-000000000145', 'Nour.Ben@invit.test', '{}');
+-- Compte créé déjà confirmé (#148 : sinon l'invitation attend la confirmation).
+insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values
+  ('00000e01-0000-0000-0000-000000000145', 'Nour.Ben@invit.test', '{}', now());
 
 -- Plusieurs salons dans la base de test : pas de rôle client automatique.
 select is(pg_temp.roles('Nour.Ben@invit.test'), array['coiffeur@Salon A'],
@@ -154,8 +156,8 @@ select isnt(
   null, 'Invitation marquée acceptée');
 
 -- Un compte sans invitation ne devient pas coiffeur.
-insert into auth.users (id, email, raw_user_meta_data) values
-  ('00000e02-0000-0000-0000-000000000145', 'inconnu@invit.test', '{"nom":"Inconnu"}');
+insert into auth.users (id, email, raw_user_meta_data, email_confirmed_at) values
+  ('00000e02-0000-0000-0000-000000000145', 'inconnu@invit.test', '{"nom":"Inconnu"}', now());
 select is(pg_temp.roles('inconnu@invit.test'), '{}'::text[],
   'Inscription sans invitation : aucun rôle coiffeur');
 

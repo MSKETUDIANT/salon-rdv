@@ -193,13 +193,16 @@ class FauxSalon implements DepotSalon {
   final invitationsEnAttente = <Invitation>[];
   final comptesExistants = <String, String>{};
   final actionsInvitation = <String>[];
+  // E-mail d'invitation refusé (#148, limite d'envoi).
+  bool emailRefuse = false;
 
   @override
   Future<List<Invitation>> invitations() async => invitationsEnAttente;
 
   // Mêmes refus que la base : adresse invalide, déjà dans l'équipe.
+  // Réinviter une adresse en attente renvoie l'e-mail (#148).
   @override
-  Future<bool> inviterCoiffeur({
+  Future<ResultatInvitation> inviterCoiffeur({
     required String nom,
     required String email,
   }) async {
@@ -215,13 +218,16 @@ class FauxSalon implements DepotSalon {
       }
       _coiffeurs.add(Coiffeur(id: compte, nom: nom));
       actionsInvitation.add('ajouté $adresse');
-      return true;
+      return ResultatInvitation.ajoute;
     }
+    final renvoi = invitationsEnAttente.any((i) => i.email == adresse);
     invitationsEnAttente
       ..removeWhere((i) => i.email == adresse)
       ..add(Invitation(id: 'inv-$adresse', nom: nom, email: adresse));
-    actionsInvitation.add('invité $adresse');
-    return false;
+    actionsInvitation.add('${renvoi ? 'renvoyé' : 'invité'} $adresse');
+    return emailRefuse
+        ? ResultatInvitation.nonEnvoyee
+        : ResultatInvitation.envoyee;
   }
 
   @override
