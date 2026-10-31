@@ -9,7 +9,7 @@ import {
 
 describe("titreAccueil", () => {
   it("affiche le nom du salon", () => {
-    expect(titreAccueil({ nom: "Salon de démo" })).toBe("Salon de démo");
+    expect(titreAccueil({ nom: "Salon de démo" })).toBe("Salon cassé exprès");
   });
 
   it("retire les espaces autour du nom", () => {
