@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salon_pro/data/session.dart';
-import 'package:salon_pro/features/connexion/ecran_mot_de_passe_oublie.dart';
+import 'package:salon_pro/features/connexion/ecran_recevoir_code.dart';
 import 'package:salon_pro/ui/charte.dart';
 
-// Mot de passe oublié (#39, code à 6 chiffres) : message neutre, contrôles
-// avant l'envoi, refus de Supabase Auth sur le bon champ. Parcours complet
-// jusqu'à l'espace : porte_test.dart.
+// « Pas encore de mot de passe, ou oublié ? » (#148, après #39 et #145) :
+// message neutre, contrôles avant l'envoi, refus de Supabase Auth sur le bon
+// champ. Parcours complets jusqu'à l'espace : porte_test.dart.
 
 class FausseAuthOubli implements ServiceAuth {
   final appels = <String>[];
@@ -29,35 +29,18 @@ class FausseAuthOubli implements ServiceAuth {
   ) async => null;
 
   @override
-  Future<ErreurOubli?> envoyerCodeOubli(String email) async {
+  Future<ErreurOubli?> envoyerCode(String email) async {
     appels.add('code $email');
     return refusEnvoi;
   }
 
   @override
-  Future<ErreurOubli?> reinitialiserMotDePasse(
-    String email,
-    String code,
-    String nouveau,
-  ) async {
-    appels.add('réinitialisation $email $code $nouveau');
-    return refusCode;
-  }
-
-  // Première connexion (#145) : mêmes refus que le mot de passe oublié.
-  @override
-  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email) async {
-    appels.add('code première connexion $email');
-    return refusEnvoi;
-  }
-
-  @override
-  Future<ErreurOubli?> creerAcces(
+  Future<ErreurOubli?> connecterAvecCode(
     String email,
     String code,
     String motDePasse,
   ) async {
-    appels.add('accès $email $code $motDePasse');
+    appels.add('connexion $email $code $motDePasse');
     return refusCode;
   }
 }
@@ -74,7 +57,7 @@ Future<void> monter(WidgetTester tester, {String email = ''}) async {
       locale: const Locale('fr'),
       supportedLocales: const [Locale('fr')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: EcranMotDePasseOublie(auth: auth, email: email),
+      home: EcranRecevoirCode(auth: auth, email: email),
     ),
   );
   await tester.pumpAndSettle();
@@ -99,7 +82,7 @@ Future<void> saisirEtValider(
   await tester.enterText(champs.at(0), code);
   await tester.enterText(champs.at(1), nouveau);
   await tester.enterText(champs.at(2), confirmation);
-  await appuyer(tester, 'Changer le mot de passe');
+  await appuyer(tester, 'Se connecter');
 }
 
 void main() {
@@ -113,6 +96,18 @@ void main() {
     await appuyer(tester, 'Recevoir un code');
     expect(find.text('Indiquez une adresse e-mail valide.'), findsOneWidget);
     expect(auth.appels, isEmpty);
+  });
+
+  testWidgets('écran : titre et texte valables pour une invitation', (
+    tester,
+  ) async {
+    await monter(tester);
+    expect(find.text('Mot de passe'), findsOneWidget);
+    expect(find.textContaining('celle de votre invitation'), findsOneWidget);
+    expect(
+      find.textContaining('pour choisir votre mot de passe'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('code demandé : message neutre, trois champs', (tester) async {
@@ -163,10 +158,7 @@ void main() {
     await monter(tester, email: 'amira@salon.test');
     await appuyer(tester, 'Recevoir un code');
     await saisirEtValider(tester, '000000', 'nouveau-mdp', 'nouveau-mdp');
-    expect(
-      auth.appels.last,
-      'réinitialisation amira@salon.test 000000 nouveau-mdp',
-    );
+    expect(auth.appels.last, 'connexion amira@salon.test 000000 nouveau-mdp');
     expect(
       find.text(
         'Code incorrect ou expiré. Vérifiez-le, ou demandez un nouveau code.',

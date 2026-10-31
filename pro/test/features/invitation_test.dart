@@ -8,10 +8,12 @@ import 'package:salon_pro/ui/charte.dart';
 
 import '../doublures/faux_salon.dart';
 
-// Inviter un coiffeur (#145, option A) : bouton « Ajouter un coiffeur » de
-// l'écran Équipe, formulaire, invitations en attente et « Annuler ». Droits,
-// format et inscription de l'invité : invitation_coiffeur.test.sql ;
-// première connexion jusqu'à l'espace : porte_test.dart.
+// Inviter un coiffeur (#145, #148) : bouton « Ajouter un coiffeur » de
+// l'écran Équipe, formulaire, e-mail envoyé, invitations en attente avec le
+// menu « Renvoyer » / « Annuler ». Droits, format et confirmation de
+// l'invité : invitation_coiffeur.test.sql et invitation_par_email.test.sql ;
+// envoi de l'e-mail : supabase/functions/inviter-coiffeur ; code reçu
+// jusqu'à l'espace : porte_test.dart.
 
 late FauxSalon salon;
 
@@ -47,7 +49,12 @@ Future<void> remplir(WidgetTester tester, String nom, String email) async {
 void main() {
   setUp(() => salon = FauxSalon());
 
-  testWidgets('nouvelle adresse : invitation en attente, puis « Annuler »', (
+  Future<void> menu(WidgetTester tester, String nom, String action) async {
+    await appuyer(tester, find.byTooltip("Actions sur l'invitation de $nom"));
+    await appuyer(tester, find.text(action));
+  }
+
+  testWidgets('nouvelle adresse : e-mail envoyé, en attente, puis annulée', (
     tester,
   ) async {
     final semantique = tester.ensureSemantics();
@@ -60,21 +67,63 @@ void main() {
 
     expect(salon.actionsInvitation, ['invité nour@salon.test']);
     expect(find.byType(EcranInviterCoiffeur), findsNothing);
-    expect(find.text('Invitation enregistrée pour Nour Ben.'), findsOneWidget);
+    expect(find.text('Invitation envoyée à Nour Ben.'), findsOneWidget);
     expect(find.text('Invitations en attente'), findsOneWidget);
     expect(
       find.bySemanticsLabel('Nour Ben, invitation en attente, nour@salon.test'),
       findsOneWidget,
     );
 
-    await appuyer(
-      tester,
-      find.bySemanticsLabel("Annuler l'invitation de Nour Ben"),
-    );
+    await menu(tester, 'Nour Ben', "Annuler l'invitation");
     expect(salon.actionsInvitation.last, 'annulé inv-nour@salon.test');
     expect(find.text('Invitations en attente'), findsNothing);
     expect(find.text("Invitation de Nour Ben annulée."), findsOneWidget);
     semantique.dispose();
+  });
+
+  testWidgets(
+    "« Renvoyer l'invitation » : nouvel e-mail, toujours en attente",
+    (tester) async {
+      salon.invitationsEnAttente.add(
+        const Invitation(id: 'inv-1', nom: 'Nour', email: 'nour@salon.test'),
+      );
+      await monter(tester, EcranEquipe(salon: salon));
+      await menu(tester, 'Nour', "Renvoyer l'invitation");
+      expect(salon.actionsInvitation, ['renvoyé nour@salon.test']);
+      expect(find.text('Invitation envoyée à Nour.'), findsOneWidget);
+      expect(find.text('Invitations en attente'), findsOneWidget);
+    },
+  );
+
+  testWidgets("e-mail refusé (limite d'envoi) : invitation gardée, le dire", (
+    tester,
+  ) async {
+    salon.emailRefuse = true;
+    await monter(tester, EcranEquipe(salon: salon));
+    await appuyer(tester, find.text('Ajouter un coiffeur'));
+    await remplir(tester, 'Nour', 'nour@salon.test');
+    expect(
+      find.text(
+        "Invitation enregistrée pour Nour, mais l'e-mail n'est pas parti. "
+        'Renvoyez-le dans quelques minutes.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Invitations en attente'), findsOneWidget);
+  });
+
+  testWidgets("formulaire : dit qu'un e-mail part, avec le lien de l'app", (
+    tester,
+  ) async {
+    await monter(tester, EcranInviterCoiffeur(salon: salon));
+    expect(
+      find.text(
+        "Un e-mail d'invitation est envoyé à cette adresse, avec le lien de "
+        "l'app et la marche à suivre.",
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Première connexion'), findsNothing);
   });
 
   testWidgets(

@@ -15,23 +15,20 @@ abstract interface class ServiceAuth {
   Future<void> seDeconnecter();
   // Changement de mot de passe du compte connecté (#107) : null si réussi.
   Future<ErreurMotDePasse?> changerMotDePasse(String actuel, String nouveau);
-  // Mot de passe oublié (#39, code à 6 chiffres) : envoi du code, puis code
-  // et nouveau mot de passe (le compte est alors connecté). null si réussi.
-  Future<ErreurOubli?> envoyerCodeOubli(String email);
-  Future<ErreurOubli?> reinitialiserMotDePasse(
+  // « Pas encore de mot de passe, ou oublié ? » (#148, qui réunit le mot de
+  // passe oublié de #39 et la première connexion de #145) : code à 6 chiffres
+  // envoyé à l'adresse d'un compte existant (coiffeur invité compris : son
+  // compte est créé par l'e-mail d'invitation), puis code et mot de passe
+  // choisi ; le compte est alors connecté. null si réussi.
+  Future<ErreurOubli?> envoyerCode(String email);
+  Future<ErreurOubli?> connecterAvecCode(
     String email,
     String code,
-    String nouveau,
+    String motDePasse,
   );
-  // Première connexion d'un coiffeur invité (#145) : code à 6 chiffres envoyé
-  // à l'adresse (le compte est créé s'il n'existe pas ; la base lui donne le
-  // rôle coiffeur si une invitation l'attend), puis code et mot de passe
-  // choisi (le compte est alors connecté). null si réussi.
-  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email);
-  Future<ErreurOubli?> creerAcces(String email, String code, String motDePasse);
 }
 
-// Refus du parcours « mot de passe oublié ». Jamais de message qui dirait si
+// Refus du parcours « Recevoir un code ». Jamais de message qui dirait si
 // l'adresse a un compte.
 enum ErreurOubli {
   codeInvalide(
@@ -46,7 +43,7 @@ enum ErreurOubli {
   final String message;
 }
 
-// Codes de Supabase Auth du parcours « mot de passe oublié ».
+// Codes de Supabase Auth du parcours « Recevoir un code ».
 ErreurOubli erreurOubli(String? code) => switch (code) {
   'otp_expired' || 'invalid_credentials' => ErreurOubli.codeInvalide,
   'weak_password' => ErreurOubli.tropFaible,
@@ -103,51 +100,12 @@ class AuthSupabase implements ServiceAuth {
   @override
   Future<void> seDeconnecter() => _client.auth.signOut();
 
-  // Supabase n'indique pas si l'adresse a un compte : l'écran affiche le même
-  // message dans tous les cas.
+  // Jamais de compte créé ici : une adresse inconnue reçoit le même message
+  // neutre (otp_disabled n'est pas dit), seule la limite d'envoi l'est.
   @override
-  Future<ErreurOubli?> envoyerCodeOubli(String email) async {
+  Future<ErreurOubli?> envoyerCode(String email) async {
     try {
-      await _client.auth.resetPasswordForEmail(email);
-      return null;
-    } on AuthException catch (erreur) {
-      final refus = erreurOubli(erreur.code);
-      // Seule la limite d'envoi est dite ; le reste reste neutre.
-      return refus == ErreurOubli.tropDeDemandes ? refus : null;
-    } catch (_) {
-      return ErreurOubli.reseau;
-    }
-  }
-
-  // Le code (type recovery) ouvre une session, puis le mot de passe est
-  // remplacé. La porte (porte.dart) affiche alors l'espace du compte.
-  @override
-  Future<ErreurOubli?> reinitialiserMotDePasse(
-    String email,
-    String code,
-    String nouveau,
-  ) async {
-    try {
-      await _client.auth.verifyOTP(
-        email: email,
-        token: code,
-        type: OtpType.recovery,
-      );
-      await _client.auth.updateUser(UserAttributes(password: nouveau));
-      return null;
-    } on AuthException catch (erreur) {
-      return erreurOubli(erreur.code);
-    } catch (_) {
-      return ErreurOubli.reseau;
-    }
-  }
-
-  // Même message neutre que le mot de passe oublié : rien ne dit si
-  // l'adresse a une invitation.
-  @override
-  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email) async {
-    try {
-      await _client.auth.signInWithOtp(email: email, shouldCreateUser: true);
+      await _client.auth.signInWithOtp(email: email, shouldCreateUser: false);
       return null;
     } on AuthException catch (erreur) {
       final refus = erreurOubli(erreur.code);
@@ -157,11 +115,11 @@ class AuthSupabase implements ServiceAuth {
     }
   }
 
-  // Le code (type email) ouvre la session du compte, puis le mot de passe
-  // choisi est enregistré. La porte affiche alors l'espace, ou « Accès
-  // réservé à l'équipe » sans invitation.
+  // Le code (type email) ouvre la session et confirme l'adresse : la base
+  // donne alors le rôle coiffeur d'une invitation en attente (#148), avant
+  // que la porte lise les rôles. Puis le mot de passe choisi est enregistré.
   @override
-  Future<ErreurOubli?> creerAcces(
+  Future<ErreurOubli?> connecterAvecCode(
     String email,
     String code,
     String motDePasse,
@@ -212,7 +170,7 @@ class AuthSupabase implements ServiceAuth {
 }
 
 // Codes de Supabase Auth au remplacement du mot de passe.
-// (Mot de passe oublié : erreurOubli, plus haut.)
+// (Recevoir un code : erreurOubli, plus haut.)
 ErreurMotDePasse erreurMotDePasse(String? code) => switch (code) {
   'weak_password' => ErreurMotDePasse.tropFaible,
   'same_password' => ErreurMotDePasse.identique,

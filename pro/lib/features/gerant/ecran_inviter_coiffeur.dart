@@ -5,11 +5,11 @@ import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 
-// Ajouter un coiffeur (#145, option A de Sparta), depuis l'écran Équipe : le
-// gérant saisit le nom et l'e-mail. Si un compte existe déjà avec cette
-// adresse, la personne rejoint l'équipe tout de suite ; sinon l'invitation
-// attend sa « Première connexion » dans l'app. La base vérifie le rôle, le
-// format de l'adresse et « déjà dans l'équipe » (inviter_coiffeur).
+// Ajouter un coiffeur (#145), depuis l'écran Équipe : le gérant saisit le nom
+// et l'e-mail. Un e-mail d'invitation part tout de suite (#148), avec le lien
+// de l'app ; l'invitation attend que la personne saisisse le code reçu dans
+// l'app. Compte confirmé existant : il rejoint l'équipe tout de suite. La base
+// vérifie le rôle, le format de l'adresse et « déjà dans l'équipe ».
 // Renvoie le message de confirmation à afficher, null si rien n'a changé.
 class EcranInviterCoiffeur extends StatefulWidget {
   const EcranInviterCoiffeur({super.key, required this.salon});
@@ -51,13 +51,12 @@ class _EcranInviterCoiffeurState extends State<EcranInviterCoiffeur> {
 
     setState(() => _enCours = true);
     try {
-      final ajoute = await widget.salon.inviterCoiffeur(nom: nom, email: email);
-      if (!mounted) return;
-      Navigator.of(context).pop(
-        ajoute
-            ? "$nom fait maintenant partie de l'équipe."
-            : 'Invitation enregistrée pour $nom.',
+      final resultat = await widget.salon.inviterCoiffeur(
+        nom: nom,
+        email: email,
       );
+      if (!mounted) return;
+      Navigator.of(context).pop(messageInvitation(resultat, nom));
     } on ErreurSalon catch (erreur) {
       if (!mounted) return;
       setState(() {
@@ -85,9 +84,8 @@ class _EcranInviterCoiffeurState extends State<EcranInviterCoiffeur> {
           enfants: [
             Text(
               // Sans genre : la personne invitée peut être une coiffeuse.
-              "Ensuite, dans l'app, « Première connexion » avec cette "
-              'adresse : un code est envoyé par e-mail pour créer le mot de '
-              'passe.',
+              "Un e-mail d'invitation est envoyé à cette adresse, avec le "
+              "lien de l'app et la marche à suivre.",
               style: textes.bodyLarge,
             ),
             const SizedBox(height: Espaces.s6),
@@ -130,3 +128,13 @@ class _EcranInviterCoiffeurState extends State<EcranInviterCoiffeur> {
     );
   }
 }
+
+// Message après une invitation, ou un renvoi depuis l'écran Équipe.
+String messageInvitation(ResultatInvitation resultat, String nom) =>
+    switch (resultat) {
+      ResultatInvitation.ajoute => "$nom fait maintenant partie de l'équipe.",
+      ResultatInvitation.envoyee => 'Invitation envoyée à $nom.',
+      ResultatInvitation.nonEnvoyee =>
+        "Invitation enregistrée pour $nom, mais l'e-mail n'est pas parti. "
+            'Renvoyez-le dans quelques minutes.',
+    };

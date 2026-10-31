@@ -83,14 +83,19 @@ class IdentiteSalon {
 const messageTelephoneInvalide =
     'Numéro invalide : de 8 à 15 chiffres, avec espaces, points ou tirets.';
 
-// Invitation d'un coiffeur en attente (#145) : il n'a pas encore créé son
-// accès (« Première connexion » dans l'app).
+// Invitation d'un coiffeur en attente (#145) : il n'a pas encore saisi le
+// code reçu dans l'app (#148 : « Pas encore de mot de passe, ou oublié ? »).
 class Invitation {
   const Invitation({required this.id, required this.nom, required this.email});
   final String id;
   final String nom;
   final String email;
 }
+
+// Résultat d'une invitation (#148) : compte confirmé existant, ajouté tout de
+// suite ; invitation enregistrée et e-mail envoyé ; invitation enregistrée
+// mais e-mail refusé (limite d'envoi), à renvoyer plus tard.
+enum ResultatInvitation { ajoute, envoyee, nonEnvoyee }
 
 // Erreur à afficher telle quelle au gérant.
 class ErreurSalon implements Exception {
@@ -115,12 +120,15 @@ abstract interface class DepotSalon {
   Future<void> changerPhoto(Uint8List octets, String type);
   // Retour à l'image par défaut ; le fichier est supprimé.
   Future<void> retirerPhoto();
-  // Équipe (#145, gérant) : invitations en attente ; inviter renvoie true si
-  // un compte existait déjà (coiffeur ajouté tout de suite), false si
-  // l'invitation attend. ErreurSalon : e-mail ou nom invalide, déjà dans
+  // Équipe (#145, gérant) : invitations en attente. Inviter (#148, fonction
+  // inviter-coiffeur) envoie l'e-mail d'invitation ; réinviter la même
+  // adresse le renvoie. ErreurSalon : e-mail ou nom invalide, déjà dans
   // l'équipe.
   Future<List<Invitation>> invitations();
-  Future<bool> inviterCoiffeur({required String nom, required String email});
+  Future<ResultatInvitation> inviterCoiffeur({
+    required String nom,
+    required String email,
+  });
   Future<void> annulerInvitation(String id);
   Future<List<Prestation>> prestations();
   Future<void> creerPrestation({
@@ -444,33 +452,41 @@ class SalonSupabase implements DepotSalon {
     ];
   });
 
-  // Messages de la base pour la saisie (PT400) et « déjà dans l'équipe »
-  // (PT409), affichés tels quels.
+  // Fonction inviter-coiffeur (#148) : elle appelle inviter_coiffeur() avec
+  // le jeton du gérant, puis envoie l'e-mail. Erreurs de la base (code et
+  // message de PostgREST) : saisie (PT400) et « déjà dans l'équipe » (PT409)
+  // affichées telles quelles, le reste comme les autres appels.
   @override
-  Future<bool> inviterCoiffeur({required String nom, required String email}) =>
-      _appel(() async {
-        try {
-          final lignes =
-              await _client.rpc(
-                    'inviter_coiffeur',
-                    params: {
-                      'p_salon': _salonId,
-                      'p_email': email,
-                      'p_nom': nom,
-                    },
-                  )
-                  as List;
-          return lignes.first['resultat'] == 'ajoute';
-        } on PostgrestException catch (erreur) {
-          switch (erreur.code) {
-            case 'PT400':
-              throw ErreurSalon('${erreur.message}.');
-            case 'PT409':
-              throw const ErreurSalon("Déjà dans l'équipe.");
-          }
-          rethrow;
-        }
-      });
+  Future<ResultatInvitation> inviterCoiffeur({
+    required String nom,
+    required String email,
+  }) => _appel(() async {
+    try {
+      final reponse = await _client.functions.invoke(
+        'inviter-coiffeur',
+        body: {'salon': _salonId, 'email': email, 'nom': nom},
+      );
+      final donnees = reponse.data as Map;
+      if (donnees['resultat'] == 'ajoute') return ResultatInvitation.ajoute;
+      return donnees['emailEnvoye'] == true
+          ? ResultatInvitation.envoyee
+          : ResultatInvitation.nonEnvoyee;
+    } on FunctionsFetchException catch (erreur) {
+      throw ErreurSalon(messageErreurInattendue(erreur.details ?? erreur));
+    } on FunctionException catch (erreur) {
+      final details = erreur.details;
+      final code = details is Map ? details['code'] as String? : null;
+      switch (code) {
+        case 'PT400':
+          throw ErreurSalon('${details['message']}.');
+        case 'PT409':
+          throw const ErreurSalon("Déjà dans l'équipe.");
+        case 'PT403':
+          throw ErreurSalon(messageErreurBase('42501'));
+      }
+      throw ErreurSalon(messageErreurBase(code));
+    }
+  });
 
   @override
   Future<void> annulerInvitation(String id) => _appel(

@@ -11,7 +11,7 @@ import '../doublures/fausse_api.dart';
 
 // Adaptateurs Supabase ajoutés après #47 (vérification BNF-6, #12) : client
 // de passage (#103), client arrivé (#102), photo du salon (#105), nom (#106),
-// mot de passe (#107), mot de passe oublié (#39). Même méthode que
+// mot de passe (#107), recevoir un code (#39, #148). Même méthode que
 // adaptateurs_test.dart : fausse API, paramètres envoyés, erreurs traduites.
 
 const salonId = 's1';
@@ -220,36 +220,59 @@ void main() {
       expect(url['acceptee_le'], 'is.null');
     });
 
-    test("inviter (#145) : invité ou ajouté selon la base", () async {
-      api.repondre('POST', 'rpc/inviter_coiffeur', [
-        {'resultat': 'invite'},
-      ]);
-      expect(
-        await salon.inviterCoiffeur(nom: 'Nour', email: 'nour@salon.test'),
-        isFalse,
-      );
-      expect(corps('rpc/inviter_coiffeur'), {
-        'p_salon': salonId,
-        'p_email': 'nour@salon.test',
-        'p_nom': 'Nour',
-      });
+    // Corps JSON de la dernière requête vers la fonction Edge.
+    Map<String, dynamic> corpsFonction() => jsonDecode(
+      api.requetes
+          .lastWhere((r) => r.url.path == '/functions/v1/inviter-coiffeur')
+          .body,
+    );
 
-      api.repondre('POST', 'rpc/inviter_coiffeur', [
-        {'resultat': 'ajoute'},
-      ]);
-      expect(
-        await salon.inviterCoiffeur(nom: 'Salma', email: 'salma@salon.test'),
-        isTrue,
-      );
-    });
+    test(
+      "inviter (#148) : par la fonction inviter-coiffeur, trois résultats",
+      () async {
+        api.repondreFonction('inviter-coiffeur', {
+          'resultat': 'invite',
+          'emailEnvoye': true,
+        });
+        expect(
+          await salon.inviterCoiffeur(nom: 'Nour', email: 'nour@salon.test'),
+          ResultatInvitation.envoyee,
+        );
+        expect(corpsFonction(), {
+          'salon': salonId,
+          'email': 'nour@salon.test',
+          'nom': 'Nour',
+        });
+        // Jeton du gérant transmis : la base vérifie son rôle.
+        expect(
+          api.requetes.last.headers['Authorization'] ??
+              api.requetes.last.headers['authorization'],
+          startsWith('Bearer '),
+        );
 
-    test("inviter (#145) : refus de la base, message affichable", () async {
-      api.refuser(
-        'POST',
-        'rpc/inviter_coiffeur',
-        'PT400',
-        message: 'Adresse e-mail invalide',
-      );
+        api.repondreFonction('inviter-coiffeur', {
+          'resultat': 'invite',
+          'emailEnvoye': false,
+          'raison': 'over_email_send_rate_limit',
+        });
+        expect(
+          await salon.inviterCoiffeur(nom: 'Nour', email: 'nour@salon.test'),
+          ResultatInvitation.nonEnvoyee,
+        );
+
+        api.repondreFonction('inviter-coiffeur', {'resultat': 'ajoute'});
+        expect(
+          await salon.inviterCoiffeur(nom: 'Salma', email: 'salma@salon.test'),
+          ResultatInvitation.ajoute,
+        );
+      },
+    );
+
+    test("inviter (#148) : refus de la base, message affichable", () async {
+      api.repondreFonction('inviter-coiffeur', {
+        'code': 'PT400',
+        'message': 'Adresse e-mail invalide',
+      }, statut: 400);
       await expectLater(
         salon.inviterCoiffeur(nom: 'X', email: 'x'),
         throwsA(
@@ -261,7 +284,10 @@ void main() {
         ),
       );
 
-      api.refuser('POST', 'rpc/inviter_coiffeur', 'PT409');
+      api.repondreFonction('inviter-coiffeur', {
+        'code': 'PT409',
+        'message': "Déjà dans l'équipe",
+      }, statut: 409);
       await expectLater(
         salon.inviterCoiffeur(nom: 'Amira', email: 'amira@salon.test'),
         throwsA(
@@ -269,6 +295,35 @@ void main() {
             (e) => e.message,
             'message',
             "Déjà dans l'équipe.",
+          ),
+        ),
+      );
+
+      api.repondreFonction('inviter-coiffeur', {
+        'code': 'PT403',
+        'message': 'Invitation réservée au gérant du salon',
+      }, statut: 403);
+      await expectLater(
+        salon.inviterCoiffeur(nom: 'Amira', email: 'amira@salon.test'),
+        throwsA(
+          isA<ErreurSalon>().having(
+            (e) => e.message,
+            'message',
+            'Action réservée au gérant du salon.',
+          ),
+        ),
+      );
+    });
+
+    test("inviter (#148) : hors réseau, message clair", () async {
+      api.horsReseau = true;
+      await expectLater(
+        salon.inviterCoiffeur(nom: 'Nour', email: 'nour@salon.test'),
+        throwsA(
+          isA<ErreurSalon>().having(
+            (e) => e.message,
+            'message',
+            'Pas de connexion internet. Vérifiez le réseau, puis réessayez.',
           ),
         ),
       );
@@ -474,58 +529,60 @@ void main() {
       expect(api.requetes, isEmpty);
     });
 
+    test('recevoir un code (#148) : jamais de compte créé, envoi neutre, seule '
+        'la limite est dite', () async {
+      api.repondreAuth('POST', 'otp', <String, Object?>{});
+      expect(await auth.envoyerCode('nour@salon.test'), isNull);
+      final envoi = jsonDecode(api.requetes.last.body);
+      expect(envoi['email'], 'nour@salon.test');
+      expect(envoi['create_user'], isFalse);
+
+      api.repondreAuth(
+        'POST',
+        'otp',
+        refusAuth('over_email_send_rate_limit', 429),
+        statut: 429,
+      );
+      expect(
+        await auth.envoyerCode('nour@salon.test'),
+        ErreurOubli.tropDeDemandes,
+      );
+
+      // Adresse inconnue (otp_disabled) : neutre, rien ne dit si le compte
+      // existe.
+      api.repondreAuth(
+        'POST',
+        'otp',
+        refusAuth('otp_disabled', 422),
+        statut: 422,
+      );
+      expect(await auth.envoyerCode('inconnu@salon.test'), isNull);
+    });
+
     test(
-      'mot de passe oublié : envoi neutre, seule la limite est dite',
-      () async {
-        api.repondreAuth('POST', 'recover', <String, Object?>{});
-        expect(await auth.envoyerCodeOubli('amira@salon.test'), isNull);
-        expect(jsonDecode(api.requetes.last.body)['email'], 'amira@salon.test');
-
-        api.repondreAuth(
-          'POST',
-          'recover',
-          refusAuth('over_email_send_rate_limit', 429),
-          statut: 429,
-        );
-        expect(
-          await auth.envoyerCodeOubli('amira@salon.test'),
-          ErreurOubli.tropDeDemandes,
-        );
-
-        // Toute autre erreur reste neutre : rien ne dit si le compte existe.
-        api.repondreAuth(
-          'POST',
-          'recover',
-          refusAuth('user_not_found', 400),
-          statut: 400,
-        );
-        expect(await auth.envoyerCodeOubli('inconnu@salon.test'), isNull);
-      },
-    );
-
-    test(
-      'mot de passe oublié : code vérifié (recovery), puis remplacé',
+      'recevoir un code (#148) : code vérifié (email), mot de passe choisi',
       () async {
         api.repondreAuth('POST', 'verify', FausseApi.session());
         api.repondreAuth('PUT', 'user', FausseApi.session()['user']);
         expect(
-          await auth.reinitialiserMotDePasse(
-            'amira@salon.test',
+          await auth.connecterAvecCode(
+            'nour@salon.test',
             '123456',
-            'nouveau-mdp',
+            'mon-mdp-nour',
           ),
           isNull,
         );
         final verification = api.requetes.firstWhere(
           (r) => r.url.path == '/auth/v1/verify',
         );
-        expect(jsonDecode(verification.body), containsPair('type', 'recovery'));
+        expect(jsonDecode(verification.body), containsPair('type', 'email'));
         expect(jsonDecode(verification.body), containsPair('token', '123456'));
         expect(api.requetes.last.url.path, '/auth/v1/user');
+        expect(jsonDecode(api.requetes.last.body)['password'], 'mon-mdp-nour');
       },
     );
 
-    test('mot de passe oublié : code incorrect ou expiré', () async {
+    test('recevoir un code : code incorrect ou expiré', () async {
       api.repondreAuth(
         'POST',
         'verify',
@@ -533,7 +590,7 @@ void main() {
         statut: 403,
       );
       expect(
-        await auth.reinitialiserMotDePasse(
+        await auth.connecterAvecCode(
           'amira@salon.test',
           '000000',
           'nouveau-mdp',
@@ -542,60 +599,5 @@ void main() {
       );
       expect(api.requetes.where((r) => r.url.path == '/auth/v1/user'), isEmpty);
     });
-
-    test(
-      "première connexion (#145) : code demandé, compte créé si besoin",
-      () async {
-        api.repondreAuth('POST', 'otp', <String, Object?>{});
-        expect(
-          await auth.envoyerCodePremiereConnexion('nour@salon.test'),
-          isNull,
-        );
-        final envoi = jsonDecode(api.requetes.last.body);
-        expect(envoi['email'], 'nour@salon.test');
-        expect(envoi['create_user'], isTrue);
-
-        // Neutre, sauf la limite d'envoi.
-        api.repondreAuth(
-          'POST',
-          'otp',
-          refusAuth('over_email_send_rate_limit', 429),
-          statut: 429,
-        );
-        expect(
-          await auth.envoyerCodePremiereConnexion('nour@salon.test'),
-          ErreurOubli.tropDeDemandes,
-        );
-      },
-    );
-
-    test(
-      "première connexion (#145) : code vérifié (email), mot de passe choisi",
-      () async {
-        api.repondreAuth('POST', 'verify', FausseApi.session());
-        api.repondreAuth('PUT', 'user', FausseApi.session()['user']);
-        expect(
-          await auth.creerAcces('nour@salon.test', '123456', 'mon-mdp-nour'),
-          isNull,
-        );
-        final verification = api.requetes.firstWhere(
-          (r) => r.url.path == '/auth/v1/verify',
-        );
-        expect(jsonDecode(verification.body), containsPair('type', 'email'));
-        expect(jsonDecode(verification.body), containsPair('token', '123456'));
-        expect(jsonDecode(api.requetes.last.body)['password'], 'mon-mdp-nour');
-
-        api.repondreAuth(
-          'POST',
-          'verify',
-          refusAuth('otp_expired', 403),
-          statut: 403,
-        );
-        expect(
-          await auth.creerAcces('nour@salon.test', '000000', 'mon-mdp-nour'),
-          ErreurOubli.codeInvalide,
-        );
-      },
-    );
   });
 }

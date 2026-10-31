@@ -55,46 +55,25 @@ class FausseAuth implements ServiceAuth {
     return null;
   }
 
-  // Mot de passe oublié (#39) : le code « 123456 » est le bon ; le compte est
-  // alors connecté avec son nouveau mot de passe.
+  // Recevoir un code (#148) : le code « 123456 » est le bon, pour un compte
+  // existant (invitée comprise : compte créé par l'e-mail d'invitation) ; le
+  // compte est alors connecté avec le mot de passe choisi.
   @override
-  Future<ErreurOubli?> envoyerCodeOubli(String email) async {
+  Future<ErreurOubli?> envoyerCode(String email) async {
     appels.add('code $email');
     return null;
   }
 
   @override
-  Future<ErreurOubli?> reinitialiserMotDePasse(
-    String email,
-    String code,
-    String nouveau,
-  ) async {
-    appels.add('réinitialisation $email');
-    if (code != '123456' || !comptes.containsKey(email)) {
-      return ErreurOubli.codeInvalide;
-    }
-    comptes[email] = nouveau;
-    compte = email;
-    _flux.add(email);
-    return null;
-  }
-
-  // Première connexion (#145) : le code « 123456 » est le bon ; le compte est
-  // créé s'il n'existe pas, avec le mot de passe choisi, puis connecté.
-  @override
-  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email) async {
-    appels.add('code première connexion $email');
-    return null;
-  }
-
-  @override
-  Future<ErreurOubli?> creerAcces(
+  Future<ErreurOubli?> connecterAvecCode(
     String email,
     String code,
     String motDePasse,
   ) async {
-    appels.add('accès $email');
-    if (code != '123456') return ErreurOubli.codeInvalide;
+    appels.add('connexion par code $email');
+    if (code != '123456' || !comptes.containsKey(email)) {
+      return ErreurOubli.codeInvalide;
+    }
     comptes[email] = motDePasse;
     compte = email;
     _flux.add(email);
@@ -124,14 +103,17 @@ Future<void> lancer(WidgetTester tester) async {
     'amira@salon.test': 'motdepasse',
     'client@salon.test': 'motdepasse',
     'patron@salon.test': 'motdepasse',
+    // Invitée (#148) : compte créé par l'e-mail d'invitation, sans mot de
+    // passe.
+    'nour@salon.test': '',
   });
   roles = FauxRoles(auth, {
     'gerant@salon.test': ['gerant', 'client'],
     'amira@salon.test': ['coiffeur'],
     'client@salon.test': ['client'],
     'patron@salon.test': ['gerant', 'coiffeur'],
-    // Invitée par le gérant (#145) : la base lui donne le rôle coiffeur à la
-    // création de son compte.
+    // Invitée par le gérant : la base lui donne le rôle coiffeur quand elle
+    // confirme son adresse par le code (#148).
     'nour@salon.test': ['coiffeur'],
   });
   await tester.pumpWidget(
@@ -390,14 +372,26 @@ void main() {
     },
   );
 
-  // Mot de passe oublié (#39) : parcours complet, de la connexion à l'espace.
+  Future<void> saisirCodeEtMotDePasse(
+    WidgetTester tester,
+    String motDePasse,
+  ) async {
+    await tester.enterText(find.byType(TextField).at(0), '123456');
+    await tester.enterText(find.byType(TextField).at(1), motDePasse);
+    await tester.enterText(find.byType(TextField).at(2), motDePasse);
+    await tester.tap(find.text('Se connecter'));
+    await tester.pumpAndSettle();
+  }
+
+  // Mot de passe oublié (#39, #148) : parcours complet, de la connexion à
+  // l'espace.
   testWidgets(
     'mot de passe oublié : code reçu, nouveau mot de passe, espace ouvert',
     (tester) async {
       await lancer(tester);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).at(0), 'amira@salon.test');
-      await tester.tap(find.text('Mot de passe oublié ?'));
+      await tester.tap(find.text('Pas encore de mot de passe, ou oublié ?'));
       await tester.pumpAndSettle();
       // E-mail repris de l'écran de connexion.
       expect(
@@ -408,30 +402,36 @@ void main() {
       await tester.pumpAndSettle();
       expect(auth.appels, contains('code amira@salon.test'));
 
-      await tester.enterText(find.byType(TextField).at(0), '123456');
-      await tester.enterText(find.byType(TextField).at(1), 'nouveau-mdp');
-      await tester.enterText(find.byType(TextField).at(2), 'nouveau-mdp');
-      await tester.tap(find.text('Changer le mot de passe'));
-      await tester.pumpAndSettle();
+      await saisirCodeEtMotDePasse(tester, 'nouveau-mdp');
 
       expect(find.textContaining('Espace coiffeur'), findsOneWidget);
       expect(
-        find.text('Mot de passe changé. Vous êtes connecté.'),
+        find.text('Mot de passe enregistré. Vous êtes connecté.'),
         findsOneWidget,
       );
       expect(auth.comptes['amira@salon.test'], 'nouveau-mdp');
     },
   );
 
-  // Première connexion (#145) : coiffeur invité, de la connexion à l'espace.
+  // Problème 2 de Sparta (#148) : l'invitée tente un mot de passe sur l'écran
+  // de connexion ; l'erreur lui propose le code, et elle arrive dans son
+  // espace.
   testWidgets(
-    "première connexion d'une invitée : code, mot de passe, espace coiffeur",
+    "invitée qui tente un mot de passe : l'erreur propose le code, espace "
+    'coiffeur',
     (tester) async {
       await lancer(tester);
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).at(0), 'nour@salon.test');
-      await tester.ensureVisible(find.text('Première connexion'));
-      await tester.tap(find.text('Première connexion'));
+      await tester.enterText(find.byType(TextField).at(1), 'un-essai');
+      await tester.tap(find.text('Se connecter'));
+      await tester.pumpAndSettle();
+      expect(find.text('E-mail ou mot de passe incorrect.'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.text('Recevoir un code pour vous connecter'),
+      );
+      await tester.tap(find.text('Recevoir un code pour vous connecter'));
       await tester.pumpAndSettle();
       // E-mail repris de l'écran de connexion.
       expect(
@@ -440,37 +440,42 @@ void main() {
       );
       await tester.tap(find.text('Recevoir un code'));
       await tester.pumpAndSettle();
-      expect(auth.appels, contains('code première connexion nour@salon.test'));
+      expect(auth.appels, contains('code nour@salon.test'));
 
-      await tester.enterText(find.byType(TextField).at(0), '123456');
-      await tester.enterText(find.byType(TextField).at(1), 'mon-mdp-nour');
-      await tester.enterText(find.byType(TextField).at(2), 'mon-mdp-nour');
-      await tester.tap(find.text('Créer mon accès'));
-      await tester.pumpAndSettle();
+      await saisirCodeEtMotDePasse(tester, 'mon-mdp-nour');
 
       expect(find.textContaining('Espace coiffeur'), findsOneWidget);
-      expect(find.text('Accès créé. Vous êtes connecté.'), findsOneWidget);
       // Le mot de passe choisi sert ensuite à se connecter.
       expect(auth.comptes['nour@salon.test'], 'mon-mdp-nour');
     },
   );
 
+  testWidgets("plus de lien « Première connexion » : un seul lien de secours", (
+    tester,
+  ) async {
+    await lancer(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('Première connexion'), findsNothing);
+    expect(find.text('Mot de passe oublié ?'), findsNothing);
+    expect(
+      find.text('Pas encore de mot de passe, ou oublié ?'),
+      findsOneWidget,
+    );
+    // Sans erreur, pas de second bouton.
+    expect(find.text('Recevoir un code pour vous connecter'), findsNothing);
+  });
+
   testWidgets(
-    "première connexion sans invitation : accès refusé, marche à suivre",
+    'compte client (site) qui reçoit un code : accès refusé, marche à suivre',
     (tester) async {
       await lancer(tester);
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Première connexion'));
-      await tester.tap(find.text('Première connexion'));
+      await tester.enterText(find.byType(TextField).at(0), 'client@salon.test');
+      await tester.tap(find.text('Pas encore de mot de passe, ou oublié ?'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'inconnu@salon.test');
       await tester.tap(find.text('Recevoir un code'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).at(0), '123456');
-      await tester.enterText(find.byType(TextField).at(1), 'mot-de-passe');
-      await tester.enterText(find.byType(TextField).at(2), 'mot-de-passe');
-      await tester.tap(find.text('Créer mon accès'));
-      await tester.pumpAndSettle();
+      await saisirCodeEtMotDePasse(tester, 'mot-de-passe');
 
       expect(find.text("Accès réservé à l'équipe"), findsOneWidget);
       expect(

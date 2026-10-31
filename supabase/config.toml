@@ -261,10 +261,11 @@ content_path = "./supabase/templates/code-connexion.html"
 subject = "Votre code pour changer de mot de passe"
 content_path = "./supabase/templates/code-reinitialisation.html"
 
-# Uncomment to customize email template
-# [auth.email.template.invite]
-# subject = "You have been invited"
-# content_path = "./supabase/templates/invite.html"
+# Issue #148 : e-mail d'invitation d'un coiffeur (fonction inviter-coiffeur).
+# En distant : à reporter dans le dashboard (docs/connexion-code-email.md).
+[auth.email.template.invite]
+subject = "Invitation à rejoindre l'équipe du salon"
+content_path = "./supabase/templates/invitation-coiffeur.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
@@ -402,6 +403,13 @@ deno_version = 2
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
+
+# Issue #148 : la fonction transmet le jeton de l'appelant à la base, qui le
+# vérifie (connexion, rôle de gérant) avant tout envoi. Contrôle de la
+# passerelle désactivé : il fait doublon, et la documentation de Supabase le
+# déconseille avec les nouvelles clés (sb_publishable_…) du projet distant.
+[functions.inviter-coiffeur]
+verify_jwt = false
 
 [analytics]
 enabled = false
