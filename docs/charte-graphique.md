@@ -41,6 +41,39 @@ Autres couples utilisés :
 | blanc #FFFFFF | `accent-survol` | 10,8:1 | bouton principal survolé |
 | `texte-secondaire` | `separateur` | 5,2:1 | créneau indisponible uniquement |
 
+### Mode sombre (#21, option A de Sparta)
+
+Le site suit le réglage clair ou sombre du téléphone (ou de l'ordinateur),
+sans bouton, comme la plupart des grands sites de réservation. Mêmes jetons,
+autres valeurs : un bloc `@media (prefers-color-scheme: dark)` dans
+`web/app/globals.css` les redéfinit ; `color-scheme: light dark` fait suivre
+les champs, listes déroulantes et barres de défilement natifs. Aucune page ne
+change : elles utilisent déjà les jetons.
+
+Fond presque noir légèrement chaud (comme le blanc cassé du mode clair),
+cartes à peine plus claires, texte crème. **L'accent vert s'éclaircit**
+(#7FC4AC) : le vert sapin #1F5C4A ne fait que 2,3:1 sur un fond sombre, illisible
+pour un lien ; le texte des boutons verts (`surface`) devient alors foncé,
+comme dans les modes sombres de Material et d'iOS.
+
+| Jeton | Valeur sombre | Contraste sur `fond` | sur `surface` | Seuil WCAG 2.2 AA |
+| --- | --- | --- | --- | --- |
+| `fond` | #141614 | — | — | — |
+| `surface` | #1D201E | — | — | — |
+| `texte` | #ECEDE8 | 15,5:1 | 14,0:1 | 4,5:1 |
+| `texte-secondaire` | #A8ADA7 | 8,0:1 | 7,2:1 | 4,5:1 |
+| `bordure` | #7E847E | 4,8:1 | 4,3:1 | 3:1 (composant) |
+| `separateur` | #2C302D | 1,4:1 | 1,2:1 | aucun (décoratif) |
+| `accent` | #7FC4AC | 9,0:1 | 8,1:1 | 4,5:1 |
+| `accent-survol` | #A3D6C3 | — | — | — |
+| `erreur` | #FF9585 | 8,6:1 | 7,7:1 | 4,5:1 |
+
+Autres couples : texte des boutons (`surface` sur `accent`) 8,1:1, survolé
+(`surface` sur `accent-survol`) 10,1:1, créneau indisponible
+(`texte-secondaire` sur `separateur`) 5,9:1. Tous vérifiés par
+`lib/charte.test.ts` ; l'audit axe-core des écrans (`bnf-10-11-ecrans.spec.ts`)
+tourne dans les deux modes (projet Playwright « sombre »).
+
 `separateur` ne délimite jamais un élément interactif : c'est le rôle de
 `bordure`, qui respecte 3:1. Le couple `texte-secondaire` sur `separateur` est
 réservé aux créneaux indisponibles ; il passe AA (5,2:1), et WCAG dispense de

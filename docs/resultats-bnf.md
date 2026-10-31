@@ -369,4 +369,8 @@ compris. L'écran `/reserver` reste ouvert par l'onglet « Réserver ».
 - **Résultat** : 0 contraste insuffisant. Les autres règles WCAG 2.2 A et AA
   d'axe-core sont aussi relevées, sans faire échouer le test : aucune en
   défaut.
+- **Mode sombre du site** (#21, 2026-10-31) : le même audit tourne aussi avec
+  le réglage sombre (projet Playwright « sombre ») sur tous les écrans et
+  états, et `charte.test.ts` vérifie les 13 couples dans les deux modes :
+  0 contraste insuffisant, aucune autre règle WCAG 2.2 A ou AA en défaut.
 - **App pro** : contrastes des jetons vérifiés par `pro/test/ui/charte_test.dart`.

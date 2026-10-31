@@ -4,7 +4,7 @@ import { Bouton } from "@/components/ui/bouton";
 import { BoutonLien } from "@/components/ui/bouton-lien";
 import { Carte } from "@/components/ui/carte";
 import { Champ } from "@/components/ui/champ";
-import { couleurs, couples, tailles, valeur } from "@/lib/charte";
+import { couleurs, couples, tailles, valeur, type Mode } from "@/lib/charte";
 import { contraste } from "@/lib/contraste";
 
 // Vitrine de la charte, pour validation visuelle sur les previews. Absente en
@@ -48,7 +48,10 @@ export default function Charte() {
               <span aria-hidden="true" className={`size-12 shrink-0 rounded-base border border-separateur ${c.classe}`} />
               <span className="flex flex-col">
                 <span className="text-base font-semibold text-texte">
-                  {c.jeton} <span className="font-normal tabular-nums text-texte-secondaire">{c.valeur}</span>
+                  {c.jeton}{" "}
+                  <span className="font-normal tabular-nums text-texte-secondaire">
+                    {c.valeur} · sombre {c.sombre}
+                  </span>
                 </span>
                 <span className="text-base text-texte-secondaire">{c.usage}</span>
               </span>
@@ -60,11 +63,14 @@ export default function Charte() {
       <Section titre="Contrastes (WCAG 2.2 AA)">
         <ul className="flex flex-col gap-2">
           {couples.map((c) => {
-            const ratio = contraste(valeur(c.avant), valeur(c.fond));
+            const ratio = (mode: Mode) =>
+              contraste(valeur(c.avant, mode), valeur(c.fond, mode)).toFixed(1).replace(".", ",");
             return (
               <li key={`${c.avant}-${c.fond}`} className="text-base text-texte">
                 <span className="font-semibold">{c.avant}</span> sur <span className="font-semibold">{c.fond}</span> :{" "}
-                <span className="tabular-nums">{ratio.toFixed(1).replace(".", ",")}:1</span>{" "}
+                <span className="tabular-nums">
+                  {ratio("clair")}:1 (clair), {ratio("sombre")}:1 (sombre)
+                </span>{" "}
                 <span className="text-texte-secondaire">
                   (seuil {String(c.seuil).replace(".", ",")}:1, {c.usage})
                 </span>

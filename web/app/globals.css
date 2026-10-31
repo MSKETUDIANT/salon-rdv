@@ -4,7 +4,9 @@
    tailles de texte, arrondis et polices. Les valeurs par défaut de Tailwind
    sont désactivées : `zinc-500`, `text-sm` ou `shadow-lg` ne produisent rien.
    scripts/verifier-charte.mjs (npm run lint) interdit les contournements.
-   Mode clair uniquement en v1 : pas de prefers-color-scheme. */
+   Mode sombre (issue 21, option A de Sparta) : le site suit le réglage clair
+   ou sombre du téléphone, sans bouton ; mêmes jetons, autres valeurs (bloc
+   prefers-color-scheme plus bas). */
 @theme {
   --color-*: initial;
   --text-*: initial;
@@ -46,6 +48,29 @@
   --font-titre: var(--font-newsreader), Georgia, serif;
   --font-texte: var(--font-figtree), system-ui, sans-serif;
   --default-font-family: var(--font-texte);
+}
+
+/* Mode sombre (issue 21) : mêmes jetons, valeurs sombres (contrastes :
+   docs/charte-graphique.md §2, vérifiés par lib/charte.test.ts). L'accent
+   s'éclaircit : le texte des boutons (`surface`) devient foncé dessus.
+   color-scheme : champs, listes déroulantes et barres de défilement natifs
+   suivent le mode. */
+:root {
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-fond: #141614;
+    --color-surface: #1D201E;
+    --color-texte: #ECEDE8;
+    --color-texte-secondaire: #A8ADA7;
+    --color-bordure: #7E847E;
+    --color-separateur: #2C302D;
+    --color-accent: #7FC4AC;
+    --color-accent-survol: #A3D6C3;
+    --color-erreur: #FF9585;
+  }
 }
 
 /* Défilement doux vers une ancre de la page (issue 129), sauf si

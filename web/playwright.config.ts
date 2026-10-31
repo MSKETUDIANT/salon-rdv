@@ -46,6 +46,12 @@ export default defineConfig({
     hasTouch: true,
     locale: "fr-FR",
   },
+  projects: [
+    { name: "clair" },
+    // Mode sombre (issue 21) : les écrans et leurs états repassent l'audit
+    // BNF-10/11 (axe-core, contrastes) avec le réglage sombre du téléphone.
+    { name: "sombre", testMatch: /bnf-10-11-ecrans\.spec\.ts/, use: { colorScheme: "dark" } },
+  ],
   webServer: {
     command: `npm run build && npx next start -p ${port}`,
     url: `http://localhost:${port}/reserver`,
