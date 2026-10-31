@@ -127,7 +127,12 @@ toute façon les éléments inactifs du seuil de contraste.
 1. **Prestation** : liste des prestations (§7), sur l'accueil (depuis #129)
    ou sur l'écran `/reserver` (onglet « Réserver »).
 2. **Créneau** : créneaux libres par jour. Le choix du coiffeur est un filtre
-   sur cet écran, « Peu importe » par défaut.
+   sur cet écran, « Peu importe » par défaut. Depuis #130 (option A de
+   Sparta), les heures du jour sont rangées sous « Matin » (avant 12:00),
+   « Après-midi » (12:00 à 17:59) et « Soir » (à partir de 18:00), intertitres
+   en texte secondaire gras ; tout reste visible (pas de « Voir plus
+   d'horaires » comme chez Doctolib, qui cache des heures) ; un moment sans
+   créneau n'apparaît pas. Survol d'une heure : bordure et chiffres `accent`.
 3. **Confirmation** : récapitulatif (prestation, coiffeur, date, heure, prix).
 
 - « Retour » ramène là d'où vient le client (#129, comme Planity ou

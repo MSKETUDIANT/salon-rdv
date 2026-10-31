@@ -76,6 +76,28 @@ describe("ListeCreneaux", () => {
     expect(within(region).getAllByRole("link").map((l) => l.textContent)).toEqual(["09:00", "09:15"]);
   });
 
+  it("heures rangées sous Matin, Après-midi, Soir ; moment vide absent (issue 130)", () => {
+    const samedi = {
+      cle: "2026-10-31",
+      libelle: "Samedi 31 octobre",
+      court: "sam.",
+      numero: "31",
+      heures: [
+        { debut: "2026-10-31T10:30:00.000Z", libelle: "11:30" },
+        { debut: "2026-10-31T13:00:00.000Z", libelle: "14:00" },
+        { debut: "2026-10-31T13:15:00.000Z", libelle: "14:15" },
+      ],
+    };
+    render(<ListeCreneaux jour={samedi} prestationId="p1" />);
+    expect(screen.getAllByRole("heading", { level: 3 }).map((t) => t.textContent)).toEqual([
+      "Matin",
+      "Après-midi",
+    ]);
+    const apresMidi = screen.getByRole("list", { name: "Après-midi" });
+    expect(within(apresMidi).getAllByRole("link").map((l) => l.textContent)).toEqual(["14:00", "14:15"]);
+    expect(screen.queryByRole("heading", { name: "Soir" })).toBeNull();
+  });
+
   it("chaque heure mène à la confirmation avec le coiffeur choisi", () => {
     render(<ListeCreneaux jour={mercredi} prestationId="p1" coiffeurId="c1" />);
     expect(screen.getByRole("link", { name: "10:00" }).getAttribute("href")).toBe(

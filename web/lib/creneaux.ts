@@ -150,3 +150,21 @@ export function repereMois(jours: Jour[], index: number): string | null {
     new Date(`${jours[index].cle}T12:00:00Z`),
   );
 }
+
+// Moments de la journée (issue 130, option A de Sparta) : « Matin » avant
+// 12:00, « Après-midi » de 12:00 à 17:59, « Soir » à partir de 18:00, à l'heure
+// du salon (libellé « HH:MM »). Groupes vides retirés, ordre de la journée.
+export function grouperParMoment<T extends { libelle: string }>(
+  heures: T[],
+): { moment: "Matin" | "Après-midi" | "Soir"; heures: T[] }[] {
+  const groupes = [
+    { moment: "Matin" as const, heures: [] as T[] },
+    { moment: "Après-midi" as const, heures: [] as T[] },
+    { moment: "Soir" as const, heures: [] as T[] },
+  ];
+  for (const heure of heures) {
+    const h = Number(heure.libelle.slice(0, 2));
+    groupes[h < 12 ? 0 : h < 18 ? 1 : 2].heures.push(heure);
+  }
+  return groupes.filter((g) => g.heures.length > 0);
+}
