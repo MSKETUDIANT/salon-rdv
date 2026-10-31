@@ -37,8 +37,10 @@ fictifs, quatre prestations) : `docs/donnees-demo.md`.
   dans la base : sécurité par RLS, fonctions SQL (`creneaux_disponibles`,
   `reserver`, `planning`, `historique`…), et **zéro double réservation**
   garanti par une contrainte d'exclusion. Les apps ne font qu'afficher.
-- **Site client** (`web/`) : Next.js, TypeScript, Tailwind. Connexion par code
-  à 6 chiffres reçu par e-mail, au moment de réserver.
+- **Site client** (`web/`) : Next.js, TypeScript, Tailwind. Accueil avec
+  l'adresse (itinéraire), le téléphone, les prestations et leurs prix, et les
+  horaires d'ouverture ; réservation en 3 écrans. Connexion par code à 6
+  chiffres reçu par e-mail, au moment de réserver.
 - **App pro** (`pro/`) : Flutter. Connexion par e-mail et mot de passe
   (mot de passe oublié : code à 6 chiffres par e-mail) ; profil (nom, mot de
   passe).
@@ -46,8 +48,8 @@ fictifs, quatre prestations) : `docs/donnees-demo.md`.
     liste), client arrivé, clôture des rendez-vous (terminé, absent), nouveau
     rendez-vous pour un client de passage (bouton ou créneau vide touché).
   - Espace gérant : tout cela pour toute l'équipe, plus la configuration du
-    salon (prestations, équipe, horaires, absences, compétences, photo du
-    salon), les encaissements et l'historique.
+    salon (prestations, équipe, horaires, absences, compétences, téléphone,
+    délai d'annulation, photo du salon), les encaissements et l'historique.
 - Choix d'architecture et règles : `docs/architecture.md`.
 
 | Dossier | Contenu |
