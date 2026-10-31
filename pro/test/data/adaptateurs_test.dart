@@ -307,21 +307,25 @@ void main() {
       await salon.changerActivation('p1', active: false);
       expect(corps('prestations', rang: 2), {'active': false});
 
-      await salon.ajouterPlage(
+      // Plusieurs jours d'un coup (#151) : definir_plages().
+      api.repondre('POST', 'rpc/definir_plages', null);
+      await salon.definirPlages(
         'c1',
-        jour: 2,
+        jours: [1, 2],
         debut: const TimeOfDay(hour: 9, minute: 0),
         fin: const TimeOfDay(hour: 12, minute: 30),
+        remplace: 'h0',
       );
-      expect(corps('horaires'), {
-        'salon_id': salonId,
-        'coiffeur_id': 'c1',
-        'jour_semaine': 2,
-        'heure_debut': '09:00',
-        'heure_fin': '12:30',
+      expect(corps('rpc/definir_plages'), {
+        'p_salon': salonId,
+        'p_coiffeur': 'c1',
+        'p_jours': [1, 2],
+        'p_debut': '09:00',
+        'p_fin': '12:30',
+        'p_remplace': 'h0',
       });
       await salon.supprimerPlage('h1');
-      expect(api.vers('horaires')[1].url.queryParameters['id'], 'eq.h1');
+      expect(api.vers('horaires').last.url.queryParameters['id'], 'eq.h1');
 
       await salon.ajouterCompetence('c1', 'p1');
       await salon.retirerCompetence('c1', 'p1');
@@ -414,13 +418,12 @@ void main() {
 
     test('erreurs de la base traduites en messages', () async {
       Future<String> message(String code) async {
-        api.refuser('POST', 'horaires', code);
+        api.refuser('POST', 'absences', code);
         try {
-          await salon.ajouterPlage(
+          await salon.ajouterAbsence(
             'c1',
-            jour: 1,
-            debut: const TimeOfDay(hour: 9, minute: 0),
-            fin: const TimeOfDay(hour: 10, minute: 0),
+            debut: DateTime(2030, 1, 7, 9),
+            fin: DateTime(2030, 1, 7, 10),
           );
         } on ErreurSalon catch (e) {
           return e.message;

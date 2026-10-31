@@ -5,8 +5,11 @@ import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/format.dart';
+import 'ecran_plage.dart';
 
 // Horaires hebdomadaires d'un coiffeur (BF-G1), fiche coiffeur du gérant.
+// Ajout et modification sur l'écran de la plage (#151) : plusieurs jours
+// d'un coup.
 
 class SectionHoraires extends StatefulWidget {
   const SectionHoraires({
@@ -23,29 +26,26 @@ class SectionHoraires extends StatefulWidget {
 
 class _SectionHorairesState extends State<SectionHoraires> {
   int _version = 0;
+  // Plages lues, passées à l'écran (chevauchement signalé avant l'envoi).
+  List<Plage> _plages = const [];
 
-  Future<void> _ajouter() async {
-    final plage = await showDialog<_NouvellePlage>(
-      context: context,
-      builder: (_) => const _DialoguePlage(),
+  // Nouvelle plage (jour coché d'avance si un jour a été touché) ou
+  // modification.
+  Future<void> _ouvrir({int? jour, Plage? plage}) async {
+    final message = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => EcranPlage(
+          salon: widget.salon,
+          coiffeur: widget.coiffeur,
+          plagesExistantes: _plages,
+          jour: jour,
+          plage: plage,
+        ),
+      ),
     );
-    if (plage == null || !mounted) return;
-    try {
-      await widget.salon.ajouterPlage(
-        widget.coiffeur.id,
-        jour: plage.jour,
-        debut: plage.debut,
-        fin: plage.fin,
-      );
-      if (!mounted) return;
-      confirmer(
-        context,
-        'Plage ajoutée : ${nomsJours[plage.jour - 1]} ${formatHeure(plage.debut)} – ${formatHeure(plage.fin)}.',
-      );
-      setState(() => _version++);
-    } on ErreurSalon catch (erreur) {
-      if (mounted) confirmer(context, erreur.message);
-    }
+    if (!mounted || message == null) return;
+    confirmer(context, message);
+    setState(() => _version++);
   }
 
   Future<void> _supprimer(Plage plage) async {
@@ -67,7 +67,8 @@ class _SectionHorairesState extends State<SectionHoraires> {
       children: [
         Chargement<List<Plage>>(
           key: ValueKey(_version),
-          lire: () => widget.salon.plages(widget.coiffeur.id),
+          lire: () async =>
+              _plages = await widget.salon.plages(widget.coiffeur.id),
           // Sans carte (#96) : un jour par ligne, filets fins.
           afficher: (context, plages, _) => Column(
             children: [
@@ -76,6 +77,8 @@ class _SectionHorairesState extends State<SectionHoraires> {
                   jour: jour,
                   plages: plages.where((p) => p.jour == jour).toList(),
                   surSupprimer: _supprimer,
+                  surNouvelle: () => _ouvrir(jour: jour),
+                  surModifier: (p) => _ouvrir(plage: p),
                 ),
                 const Divider(),
               ],
@@ -84,218 +87,113 @@ class _SectionHorairesState extends State<SectionHoraires> {
         ),
         const SizedBox(height: Espaces.s3),
         Text(
-          'Plusieurs plages par jour possibles, sans chevauchement.',
+          'Touchez un jour pour le modifier. Plusieurs plages par jour '
+          'possibles, sans chevauchement.',
           style: textes.bodySmall,
         ),
         const SizedBox(height: Espaces.s3),
         // Comme « Ajouter une prestation » : bouton vert à sa largeur.
         Align(
           alignment: Alignment.centerLeft,
-          child: Bouton(libelle: 'Ajouter une plage', surAppui: _ajouter),
+          child: Bouton(libelle: 'Ajouter une plage', surAppui: _ouvrir),
         ),
       ],
     );
   }
 }
 
+// Un jour (#151) : une ligne par plage, le nom du jour sur la première.
+// Toucher la ligne ouvre la plage à modifier ; un jour sans plage ouvre une
+// nouvelle plage, ce jour coché. La corbeille reste à part (TalkBack lit les
+// deux séparément).
 class _LigneJour extends StatelessWidget {
   const _LigneJour({
     required this.jour,
     required this.plages,
     required this.surSupprimer,
+    required this.surNouvelle,
+    required this.surModifier,
   });
   final int jour;
   final List<Plage> plages;
   final ValueChanged<Plage> surSupprimer;
+  final VoidCallback surNouvelle;
+  final ValueChanged<Plage> surModifier;
 
   @override
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
     final nom = nomsJours[jour - 1];
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: Espaces.s1),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 104,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: Espaces.s3),
-              child: Text(nom, style: textes.titleSmall),
-            ),
-          ),
-          Expanded(
-            child: plages.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: Espaces.s3),
-                    child: Text('Ne travaille pas', style: textes.bodySmall),
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final p in plages)
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${formatHeure(p.debut)} – ${formatHeure(p.fin)}',
-                                style: textes.bodyLarge!.copyWith(
-                                  fontFeatures: const [
-                                    FontFeature.tabularFigures(),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => surSupprimer(p),
-                              tooltip:
-                                  'Supprimer la plage du $nom ${formatHeure(p.debut)} – ${formatHeure(p.fin)}',
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Couleurs.texteSecondaire,
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-          ),
-        ],
-      ),
+    String heures(Plage p) => '${formatHeure(p.debut)} – ${formatHeure(p.fin)}';
+    final style = textes.bodyLarge!.copyWith(
+      fontFeatures: const [FontFeature.tabularFigures()],
     );
-  }
-}
 
-class _NouvellePlage {
-  const _NouvellePlage(this.jour, this.debut, this.fin);
-  final int jour;
-  final TimeOfDay debut;
-  final TimeOfDay fin;
-}
-
-// Jour, début et fin d'une nouvelle plage. « Ajouter » n'est jamais
-// désactivé : une fin avant le début est signalée.
-class _DialoguePlage extends StatefulWidget {
-  const _DialoguePlage();
-
-  @override
-  State<_DialoguePlage> createState() => _DialoguePlageState();
-}
-
-class _DialoguePlageState extends State<_DialoguePlage> {
-  int _jour = 1;
-  TimeOfDay _debut = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _fin = const TimeOfDay(hour: 18, minute: 0);
-  String? _erreur;
-
-  Future<void> _choisir(bool debut) async {
-    final choix = await showTimePicker(
-      context: context,
-      initialTime: debut ? _debut : _fin,
-      helpText: debut ? 'Début de la plage' : 'Fin de la plage',
-    );
-    if (choix == null) return;
-    setState(() {
-      if (debut) {
-        _debut = choix;
-      } else {
-        _fin = choix;
-      }
-      _erreur = null;
-    });
-  }
-
-  void _valider() {
-    if (minutesDuJour(_fin) <= minutesDuJour(_debut)) {
-      setState(() => _erreur = 'La fin doit être après le début.');
-      return;
-    }
-    Navigator.of(context).pop(_NouvellePlage(_jour, _debut, _fin));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textes = Theme.of(context).textTheme;
-    return AlertDialog(
-      title: const Text('Nouvelle plage'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Libellé visible repris sur la liste pour TalkBack (« Jour,
-          // Lundi »), comme le filtre de l'historique.
-          ExcludeSemantics(child: Text('Jour', style: textes.labelLarge)),
-          const SizedBox(height: Espaces.s2),
-          Semantics(
-            label: 'Jour',
-            child: DropdownButtonFormField<int>(
-              initialValue: _jour,
-              items: [
-                for (var j = 1; j <= 7; j++)
-                  DropdownMenuItem(value: j, child: Text(nomsJours[j - 1])),
-              ],
-              onChanged: (j) => setState(() => _jour = j ?? _jour),
-            ),
-          ),
-          const SizedBox(height: Espaces.s4),
-          _ChoixHeure(
-            libelle: 'Début',
-            heure: _debut,
-            surAppui: () => _choisir(true),
-          ),
-          const SizedBox(height: Espaces.s3),
-          _ChoixHeure(
-            libelle: 'Fin',
-            heure: _fin,
-            surAppui: () => _choisir(false),
-          ),
-          if (_erreur != null) ...[
-            const SizedBox(height: Espaces.s3),
-            MessageErreur(_erreur!),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
-        ),
-        FilledButton(onPressed: _valider, child: const Text('Ajouter')),
-      ],
-    );
-  }
-}
-
-// Libellé et bouton qui affiche l'heure choisie (ouvre le sélecteur).
-class _ChoixHeure extends StatelessWidget {
-  const _ChoixHeure({
-    required this.libelle,
-    required this.heure,
-    required this.surAppui,
-  });
-  final String libelle;
-  final TimeOfDay heure;
-  final VoidCallback surAppui;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+    Widget ligne({
+      required bool premiere,
+      required String libelle,
+      required VoidCallback surAppui,
+      required Widget contenu,
+      Widget? fin,
+    }) => Row(
       children: [
         Expanded(
-          child: Text(libelle, style: Theme.of(context).textTheme.labelLarge),
-        ),
-        OutlinedButton(
-          // Même largeur pour « 09:00 » et « 18:00 ».
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(104, hauteurBouton),
+          child: Semantics(
+            button: true,
+            label: libelle,
+            onTap: surAppui,
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: surAppui,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 104,
+                      child: premiere
+                          ? Text(nom, style: textes.titleSmall)
+                          : null,
+                    ),
+                    Expanded(child: contenu),
+                  ],
+                ),
+              ),
+            ),
           ),
-          onPressed: surAppui,
-          child: Text(
-            formatHeure(heure),
-            semanticsLabel: '$libelle : ${formatHeure(heure)}, modifier',
-          ),
         ),
+        ?fin,
       ],
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: Espaces.s1),
+      child: Column(
+        children: [
+          if (plages.isEmpty)
+            ligne(
+              premiere: true,
+              libelle: '$nom, ne travaille pas, ajouter une plage',
+              surAppui: surNouvelle,
+              contenu: Text('Ne travaille pas', style: textes.bodySmall),
+            ),
+          for (final (i, p) in plages.indexed)
+            ligne(
+              premiere: i == 0,
+              libelle: '$nom, ${heures(p)}, modifier',
+              surAppui: () => surModifier(p),
+              contenu: Text(heures(p), style: style),
+              fin: IconButton(
+                onPressed: () => surSupprimer(p),
+                tooltip: 'Supprimer la plage du $nom ${heures(p)}',
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Couleurs.texteSecondaire,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

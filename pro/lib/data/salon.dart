@@ -147,11 +147,15 @@ abstract interface class DepotSalon {
   Future<List<Coiffeur>> coiffeurs();
 
   Future<List<Plage>> plages(String coiffeurId);
-  Future<void> ajouterPlage(
+  // Même plage pour plusieurs jours (#151, 1 = lundi), tout ou rien ;
+  // remplace : id de la plage modifiée. ErreurSalon : saisie, ou « Chevauche
+  // une plage existante le mercredi. » (le jour est nommé).
+  Future<void> definirPlages(
     String coiffeurId, {
-    required int jour,
+    required List<int> jours,
     required TimeOfDay debut,
     required TimeOfDay fin,
+    String? remplace,
   });
   Future<void> supprimerPlage(String id);
 
@@ -526,21 +530,36 @@ class SalonSupabase implements DepotSalon {
     ];
   });
 
+  // definir_plages() (#151) : messages de la base pour la saisie (PT400),
+  // le chevauchement (PT409) et une plage disparue (PT404), affichés tels
+  // quels.
   @override
-  Future<void> ajouterPlage(
+  Future<void> definirPlages(
     String coiffeurId, {
-    required int jour,
+    required List<int> jours,
     required TimeOfDay debut,
     required TimeOfDay fin,
-  }) => _appel(
-    () => _client.from('horaires').insert({
-      'salon_id': _salonId,
-      'coiffeur_id': coiffeurId,
-      'jour_semaine': jour,
-      'heure_debut': heureSql(debut),
-      'heure_fin': heureSql(fin),
-    }),
-  );
+    String? remplace,
+  }) => _appel(() async {
+    try {
+      await _client.rpc(
+        'definir_plages',
+        params: {
+          'p_salon': _salonId,
+          'p_coiffeur': coiffeurId,
+          'p_jours': jours,
+          'p_debut': heureSql(debut),
+          'p_fin': heureSql(fin),
+          'p_remplace': remplace,
+        },
+      );
+    } on PostgrestException catch (erreur) {
+      if (const {'PT400', 'PT404', 'PT409'}.contains(erreur.code)) {
+        throw ErreurSalon('${erreur.message}.');
+      }
+      rethrow;
+    }
+  });
 
   @override
   Future<void> supprimerPlage(String id) =>

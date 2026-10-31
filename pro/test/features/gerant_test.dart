@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:salon_pro/data/salon.dart';
 import 'package:salon_pro/features/gerant/ecran_coiffeur.dart';
+import 'package:salon_pro/features/gerant/ecran_plage.dart';
 import 'package:salon_pro/features/gerant/ecran_prestations.dart';
 import 'package:salon_pro/ui/charte.dart';
 
@@ -211,42 +212,152 @@ void main() {
       expect(find.text('Compétences'), findsOneWidget);
     });
 
+    // Plages (#151) : plusieurs jours d'un coup, modification d'un jour.
+    Future<void> toucher(WidgetTester tester, Finder cible) async {
+      await tester.ensureVisible(cible);
+      await tester.pumpAndSettle();
+      await tester.tap(cible);
+      await tester.pumpAndSettle();
+    }
+
     testWidgets(
-      'horaires : les 7 jours, ajout d\'une plage, chevauchement refusé',
+      'horaires : du lundi au vendredi en une fois, une plage par jour',
       (tester) async {
         await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
         expect(find.text('Ne travaille pas'), findsNWidgets(7));
 
-        await tester.tap(find.text('Ajouter une plage'));
-        await tester.pumpAndSettle();
+        await toucher(tester, find.text('Ajouter une plage'));
         expect(find.text('Nouvelle plage'), findsOneWidget);
-        // Liste des jours lue avec son libellé (« Jour, Lundi »).
-        final semantique = tester.ensureSemantics();
-        expect(find.bySemanticsLabel(RegExp(r'^Jour\b')), findsOneWidget);
-        semantique.dispose();
-        await tester.tap(find.text('Ajouter'));
-        await tester.pumpAndSettle();
-        expect(salon.journal, ['plage c1 1 09:00-18:00']);
-        expect(find.text('09:00 – 18:00'), findsOneWidget);
-        expect(find.text('Ne travaille pas'), findsNWidgets(6));
+        await toucher(tester, find.text('Du lundi au vendredi'));
+        expect(find.byIcon(Icons.check), findsNWidgets(5));
+        expect(find.text('Enregistrer pour 5 jours'), findsOneWidget);
+        // Toucher à nouveau : « Aucun jour » décoche les cinq.
+        expect(find.text('Aucun jour'), findsOneWidget);
 
-        await tester.tap(find.text('Ajouter une plage'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Ajouter'));
-        await tester.pumpAndSettle();
+        await toucher(tester, find.text('Enregistrer pour 5 jours'));
+        expect(salon.journal, ['plages c1 1,2,3,4,5 09:00-18:00']);
         expect(
-          find.text('Cette plage chevauche une autre plage de ce coiffeur.'),
+          find.text('Plages ajoutées : 5 jours, 09:00 – 18:00.'),
           findsOneWidget,
         );
-        expect(find.text('09:00 – 18:00'), findsOneWidget);
-
-        await tester.tap(
-          find.byTooltip('Supprimer la plage du Lundi 09:00 – 18:00'),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text('Ne travaille pas'), findsNWidgets(7));
+        expect(find.text('09:00 – 18:00'), findsNWidgets(5));
+        expect(find.text('Ne travaille pas'), findsNWidgets(2));
       },
     );
+
+    testWidgets("horaires : les jours se lisent cochés (TalkBack)", (
+      tester,
+    ) async {
+      final semantique = tester.ensureSemantics();
+      await ouvrir(
+        tester,
+        EcranPlage(
+          salon: salon,
+          coiffeur: amira,
+          plagesExistantes: const [],
+          jour: 3,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Mercredi')),
+        matchesSemantics(
+          label: 'Mercredi',
+          hasCheckedState: true,
+          isChecked: true,
+          hasTapAction: true,
+        ),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Jeudi')),
+        matchesSemantics(
+          label: 'Jeudi',
+          hasCheckedState: true,
+          isChecked: false,
+          hasTapAction: true,
+        ),
+      );
+      semantique.dispose();
+    });
+
+    testWidgets(
+      "horaires : toucher un jour vide l'ouvre coché, toucher un jour "
+      'travaillé ouvre sa plage à modifier',
+      (tester) async {
+        salon.plagesEnregistrees['c1'] = [
+          const Plage(
+            id: 'h-lun',
+            jour: 1,
+            debut: TimeOfDay(hour: 9, minute: 0),
+            fin: TimeOfDay(hour: 18, minute: 0),
+          ),
+        ];
+        await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
+
+        // Mardi, vide : nouvelle plage, mardi coché.
+        await toucher(tester, find.text('Mardi'));
+        expect(find.text('Nouvelle plage'), findsOneWidget);
+        expect(find.byIcon(Icons.check), findsOneWidget);
+        await toucher(tester, find.byType(BackButton));
+
+        // Lundi, une plage : modification préremplie ; copie le samedi.
+        await toucher(tester, find.text('Lundi'));
+        expect(find.text('Modifier la plage'), findsOneWidget);
+        expect(find.text('09:00'), findsOneWidget);
+        expect(find.text('18:00'), findsOneWidget);
+        await toucher(tester, find.text('Samedi'));
+        await toucher(tester, find.text('Enregistrer pour 2 jours'));
+        expect(salon.journal, ['plages c1 1,6 09:00-18:00 remplace h-lun']);
+        expect(
+          find.text('Plages enregistrées : 2 jours, 09:00 – 18:00.'),
+          findsOneWidget,
+        );
+        expect(find.text('09:00 – 18:00'), findsNWidgets(2));
+      },
+    );
+
+    testWidgets(
+      'horaires : chevauchement ou aucun jour, message, rien enregistré',
+      (tester) async {
+        final lundi = const Plage(
+          id: 'h-lun',
+          jour: 1,
+          debut: TimeOfDay(hour: 9, minute: 0),
+          fin: TimeOfDay(hour: 18, minute: 0),
+        );
+        await ouvrir(
+          tester,
+          EcranPlage(salon: salon, coiffeur: amira, plagesExistantes: [lundi]),
+        );
+        await toucher(tester, find.text('Enregistrer'));
+        expect(find.text('Choisissez au moins un jour.'), findsOneWidget);
+
+        await toucher(tester, find.text('Du lundi au vendredi'));
+        await toucher(tester, find.text('Enregistrer pour 5 jours'));
+        expect(
+          find.text('Chevauche une plage existante le lundi.'),
+          findsOneWidget,
+        );
+        expect(salon.journal, isEmpty);
+      },
+    );
+
+    testWidgets('horaires : supprimer une plage', (tester) async {
+      salon.plagesEnregistrees['c1'] = [
+        const Plage(
+          id: 'h-lun',
+          jour: 1,
+          debut: TimeOfDay(hour: 9, minute: 0),
+          fin: TimeOfDay(hour: 18, minute: 0),
+        ),
+      ];
+      await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
+      await toucher(
+        tester,
+        find.byTooltip('Supprimer la plage du Lundi 09:00 – 18:00'),
+      );
+      expect(salon.journal, ['supprimer plage h-lun']);
+      expect(find.text('Ne travaille pas'), findsNWidgets(7));
+    });
 
     testWidgets(
       'absence sur des rendez-vous confirmés : avertissement, sans blocage',

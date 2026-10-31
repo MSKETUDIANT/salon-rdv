@@ -250,28 +250,44 @@ class FauxSalon implements DepotSalon {
     ...?plagesEnregistrees[coiffeurId],
   ];
 
+  // Comme definir_plages() (#151) : tout ou rien, le jour qui chevauche est
+  // nommé ; remplace : la plage modifiée est retirée d'abord.
   @override
-  Future<void> ajouterPlage(
+  Future<void> definirPlages(
     String coiffeurId, {
-    required int jour,
+    required List<int> jours,
     required TimeOfDay debut,
     required TimeOfDay fin,
+    String? remplace,
   }) async {
     _echecEventuel();
     final existantes = plagesEnregistrees.putIfAbsent(coiffeurId, () => []);
-    final chevauche = existantes.any(
-      (p) =>
-          p.jour == jour &&
-          minutesDuJour(p.debut) < minutesDuJour(fin) &&
-          minutesDuJour(debut) < minutesDuJour(p.fin),
-    );
-    if (chevauche) throw ErreurSalon(messageErreurBase('23P01'));
+    final autres = existantes.where((p) => p.id != remplace).toList();
+    for (final jour in {...jours}.toList()..sort()) {
+      final chevauche = autres.any(
+        (p) =>
+            p.jour == jour &&
+            minutesDuJour(p.debut) < minutesDuJour(fin) &&
+            minutesDuJour(debut) < minutesDuJour(p.fin),
+      );
+      if (chevauche) {
+        throw ErreurSalon(
+          'Chevauche une plage existante le '
+          '${nomsJours[jour - 1].toLowerCase()}.',
+        );
+      }
+    }
     journal.add(
-      'plage $coiffeurId $jour ${formatHeure(debut)}-${formatHeure(fin)}',
+      'plages $coiffeurId ${({...jours}.toList()..sort()).join(',')} '
+      '${formatHeure(debut)}-${formatHeure(fin)}'
+      '${remplace == null ? '' : ' remplace $remplace'}',
     );
-    existantes.add(
-      Plage(id: 'h${_suivant++}', jour: jour, debut: debut, fin: fin),
-    );
+    existantes
+      ..removeWhere((p) => p.id == remplace)
+      ..addAll([
+        for (final jour in {...jours}.toList()..sort())
+          Plage(id: 'h${_suivant++}', jour: jour, debut: debut, fin: fin),
+      ]);
   }
 
   @override

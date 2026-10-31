@@ -481,6 +481,17 @@ export type Database = {
           ancienne_photo: string
         }[]
       }
+      definir_plages: {
+        Args: {
+          p_coiffeur: string
+          p_debut: string
+          p_fin: string
+          p_jours: number[]
+          p_remplace?: string
+          p_salon: string
+        }
+        Returns: undefined
+      }
       definir_telephone_salon: {
         Args: { p_salon: string; p_telephone: string }
         Returns: {
