@@ -170,7 +170,7 @@ class _EcranPhotoSalonState extends State<EcranPhotoSalon> {
                 Text(
                   photo == null
                       ? 'Image par défaut. Votre photo s\'affichera en haut de l\'accueil, pour toute l\'équipe.'
-                      : 'Affichée en haut de l\'accueil, pour toute l\'équipe.',
+                      : 'Affichée en haut de l\'accueil de l\'app.',
                   style: textes.bodySmall,
                 ),
                 const SizedBox(height: Espaces.s6),
