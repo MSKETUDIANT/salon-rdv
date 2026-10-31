@@ -45,8 +45,13 @@ test.describe("ordinateur (1366 px)", () => {
 
 test("« Retour » à chaque étape, puis retour du navigateur", async ({ page }) => {
   await page.goto("/");
+  // « Réserver » de l'accueil descend à sa liste de prestations (issue 129,
+  // option A), sans changer de page.
   await page.getByRole("main").getByRole("link", { name: "Réserver" }).click();
-  await expect(page).toHaveURL(/\/reserver$/);
+  await expect(page).toHaveURL(/\/#prestations$/);
+  await expect(page.getByRole("heading", { name: "Prestations" })).toBeInViewport();
+  // L'écran 1 reste ouvert par l'onglet « Réserver » ; « Retour » ramène à l'accueil.
+  await page.goto("/reserver");
   await page.getByRole("link", { name: "Retour à l'accueil" }).click();
   await expect(page).toHaveURL(/\/$/);
 

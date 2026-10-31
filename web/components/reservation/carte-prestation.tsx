@@ -1,40 +1,45 @@
 import Link from "next/link";
-import { Carte } from "@/components/ui/carte";
 import { focus } from "@/components/ui/styles";
 import type { Prestation } from "@/lib/catalogue";
 import { formatDuree, formatPrix } from "@/lib/format";
 
-// Écran 1 : une prestation, sans photo (charte §7). Toute la carte est le lien
-// vers l'écran 2 : nom, durée et prix séparés (prix en gras), chevron (#55).
+// Une prestation, en ligne de liste sans cadre (comme Planity ; remarque de
+// Sparta sur les cartes encadrées, issue 129) : nom, puis durée et prix exact
+// (prix en gras, jamais « à partir de »), bouton « Choisir » à droite. Toute
+// la ligne est le lien vers l'écran 2. Sans photo (charte §7).
 export function CartePrestation({ prestation }: { prestation: Prestation }) {
   return (
     <Link
       href={`/reserver/creneaux?prestation=${prestation.id}`}
-      className={`group block rounded-base ${focus}`}
+      className={`group -mx-2 flex min-h-18 items-center gap-4 rounded-base px-2 py-3 hover:bg-surface ${focus}`}
     >
-      <Carte cliquable className="flex items-center gap-3 group-hover:bg-fond">
-        <span className="flex min-w-0 flex-1 flex-col gap-1">
-          <span className="text-lg font-semibold break-words text-texte">{prestation.nom}</span>
-          <span className="flex flex-wrap items-baseline gap-x-3 text-base tabular-nums">
-            <span className="text-texte-secondaire">{formatDuree(prestation.dureeMinutes)}</span>
-            <span className="font-semibold text-texte">{formatPrix(prestation.prix)}</span>
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="text-lg font-semibold break-words text-texte">{prestation.nom}</span>
+        <span className="flex flex-wrap items-baseline gap-x-2 text-base tabular-nums">
+          <span className="text-texte-secondaire">{formatDuree(prestation.dureeMinutes)}</span>
+          <span aria-hidden="true" className="text-texte-secondaire">
+            ·
           </span>
+          <span className="font-semibold text-texte">{formatPrix(prestation.prix)}</span>
         </span>
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          width="24"
-          height="24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="shrink-0 text-accent"
-        >
-          <path d="m9 6 6 6-6 6" />
-        </svg>
-      </Carte>
+      </span>
+      <span className="inline-flex h-11 shrink-0 items-center rounded-base border border-bordure bg-surface px-4 text-base font-semibold text-accent group-hover:border-accent">
+        Choisir
+      </span>
     </Link>
+  );
+}
+
+// Liste des prestations (accueil et écran 1) : filets fins entre les lignes,
+// pas de cartes encadrées.
+export function ListePrestations({ prestations }: { prestations: Prestation[] }) {
+  return (
+    <ul className="flex flex-col border-t border-separateur">
+      {prestations.map((prestation) => (
+        <li key={prestation.id} className="border-b border-separateur">
+          <CartePrestation prestation={prestation} />
+        </li>
+      ))}
+    </ul>
   );
 }

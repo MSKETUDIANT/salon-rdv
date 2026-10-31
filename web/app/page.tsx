@@ -1,6 +1,6 @@
 import { EnTeteSalon } from "@/components/en-tete-salon";
 import { PhotoAccueil } from "@/components/photo-accueil";
-import { CartePrestation } from "@/components/reservation/carte-prestation";
+import { ListePrestations } from "@/components/reservation/carte-prestation";
 import { adresseAccueil, semaineHoraires, titreAccueil } from "@/lib/accueil";
 import { env } from "@/lib/env";
 import { lireCatalogue } from "@/lib/lire-catalogue";
@@ -25,21 +25,21 @@ export default async function Accueil() {
         nom={titreAccueil(salon)}
         adresse={adresseAccueil(salon)}
         telephone={salon?.telephone ?? null}
+        reserver={prestations.length > 0 ? "#prestations" : "/reserver"}
       />
-      {/* Prestations et prix avant de réserver (issue 129) : mêmes cartes que
-          l'écran 1, un toucher mène aux créneaux de la prestation. */}
+      {/* Prestations et prix avant de réserver (issue 129) : même liste que
+          l'écran 1, un toucher mène aux créneaux de la prestation. Le bouton
+          « Réserver » de l'en-tête descend ici (option A, comme Planity). */}
       {prestations.length > 0 && (
-        <section aria-labelledby="titre-prestations" className="flex flex-col gap-4">
+        <section
+          id="prestations"
+          aria-labelledby="titre-prestations"
+          className="flex scroll-mt-4 flex-col gap-4 md:scroll-mt-20"
+        >
           <h2 id="titre-prestations" className="font-titre text-xl font-medium text-texte">
             Prestations
           </h2>
-          <ul className="flex flex-col gap-3">
-            {prestations.map((prestation) => (
-              <li key={prestation.id}>
-                <CartePrestation prestation={prestation} />
-              </li>
-            ))}
-          </ul>
+          <ListePrestations prestations={prestations} />
         </section>
       )}
       {/* Horaires d'ouverture (issue 129) : la semaine entière, comme Google

@@ -29,4 +29,11 @@ describe("EnTeteSalon (issue 129)", () => {
     expect(lien.getAttribute("href")).toBe("tel:+21671234567");
     expect(lien.textContent).toBe("+216 71 234 567");
   });
+
+  it("« Réserver » mène à la cible donnée (liste de l'accueil, option A)", () => {
+    render(<EnTeteSalon nom="Salon de démo" adresse={null} reserver="#prestations" />);
+    expect(screen.getByRole("link", { name: "Réserver" }).getAttribute("href")).toBe(
+      "#prestations",
+    );
+  });
 });

@@ -337,6 +337,11 @@ Non exigé en v1 : le cahier des charges ne demande aucune interopérabilité
 soit 3 écrans hors accueil ; la connexion se fait sur l'écran 3, sans le
 quitter. Réussi.
 
+Depuis #129 (2026-10-31), la prestation se choisit directement sur l'accueil
+(« Réserver » descend à sa liste) : le test relève `/`,
+`/reserver/creneaux` et `/reserver/confirmation`, soit 3 écrans accueil
+compris. L'écran `/reserver` reste ouvert par l'onglet « Réserver ».
+
 ## BNF-10 — Mobile d'abord, 360 px
 
 - **Seuils** : ceux du cahier des charges (44 × 44 px, 16 px), sans écart.

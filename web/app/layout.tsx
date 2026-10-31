@@ -30,8 +30,11 @@ export const viewport: Viewport = { viewportFit: "cover" };
 // barre d'onglets fixe en bas en dessous.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // data-scroll-behavior : défilement doux pour « Réserver » de l'accueil
+    // (lien vers #prestations, issue 129), mais changement de page instantané.
     <html
       lang="fr"
+      data-scroll-behavior="smooth"
       className={`${newsreader.variable} ${figtree.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
