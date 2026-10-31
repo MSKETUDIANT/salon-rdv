@@ -6,7 +6,9 @@ import { formatDuree, formatPrix } from "@/lib/format";
 // Une prestation, en ligne de liste sans cadre (comme Planity ; remarque de
 // Sparta sur les cartes encadrées, issue 129) : nom, puis durée et prix exact
 // (prix en gras, jamais « à partir de »), bouton « Choisir » à droite. Toute
-// la ligne est le lien vers l'écran 2. Sans photo (charte §7).
+// la ligne est le lien vers l'écran 2. Sans photo (charte §7). Survol : la
+// ligne garde son fond, « Choisir » se remplit de vert (rien ne déborde des
+// filets).
 // depuisAccueil : ligne de l'accueil ; l'écran 2 saura y ramener (« Retour »).
 export function CartePrestation({
   prestation,
@@ -18,7 +20,7 @@ export function CartePrestation({
   return (
     <Link
       href={`/reserver/creneaux?prestation=${prestation.id}${depuisAccueil ? "&depuis=accueil" : ""}`}
-      className={`group -mx-2 flex min-h-18 items-center gap-4 rounded-base px-2 py-3 hover:bg-surface ${focus}`}
+      className={`group flex min-h-18 items-center gap-4 rounded-base py-3 ${focus}`}
     >
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-lg font-semibold break-words text-texte">{prestation.nom}</span>
@@ -30,7 +32,7 @@ export function CartePrestation({
           <span className="font-semibold text-texte">{formatPrix(prestation.prix)}</span>
         </span>
       </span>
-      <span className="inline-flex h-11 shrink-0 items-center rounded-base border border-bordure bg-surface px-4 text-base font-semibold text-accent group-hover:border-accent">
+      <span className="inline-flex h-11 shrink-0 items-center rounded-base border border-bordure bg-surface px-4 text-base font-semibold text-accent group-hover:border-accent group-hover:bg-accent group-hover:text-surface">
         Choisir
       </span>
     </Link>

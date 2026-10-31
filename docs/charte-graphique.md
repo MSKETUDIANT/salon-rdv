@@ -193,7 +193,9 @@ Le bouton principal reste unique.
   comme la liste des horaires. Nom en gras (18 px) ; dessous la durée en texte
   secondaire, « · », puis le prix exact en gras (jamais « à partir de ») ;
   bouton « Choisir » à droite (bordure `bordure`, texte `accent`, 44 px de
-  haut). Toute la ligne est le lien ; survol : fond `surface`. Un nom long
+  haut). Toute la ligne est le lien ; survol : la ligne garde son
+  fond, « Choisir » se remplit (fond `accent`, texte `surface`), sans rien qui
+  déborde des filets. Un nom long
   passe à la ligne, « Choisir » garde sa place.
 - Comparé à Planity (même modèle : nom, durée, prix, « Choisir ») : pas de
   prix « à partir de » ou « sur devis », pas de ligne non réservable avec un
