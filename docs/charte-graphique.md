@@ -153,6 +153,11 @@ Recadrée en 4:3, centrée sur le fauteuil et le miroir, écran de télévision
 exclu : zone de 2400 × 1800 px à partir de la ligne 1490 de l'original
 2400 × 3600, exportée en `web/public/accueil-salon.webp` (1600 × 1200, WebP).
 
+Depuis #117, la photo envoyée par le gérant dans l'app pro (#105) remplace
+cette photo de démonstration, recadrée en 4:3 de la même façon (centrée,
+`object-cover`). Sans photo du gérant, ou si elle ne se charge pas, la photo
+de démonstration reste affichée.
+
 ## 7. Cartes de prestations
 
 - Contenu : nom, durée, prix.
