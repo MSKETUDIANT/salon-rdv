@@ -204,7 +204,9 @@ installé dans le projet).
    Le build lit la base distante : une PR dont le site dépend d'une migration
    pas encore poussée a une preview en échec jusqu'au `db push`.
 4. Contrôle de chaque PR en attendant GitHub Actions (#19, bloquée) :
-   `web/vercel.json` fait lancer `npm run lint` et `npm test` avant le build.
+   `web/vercel.json` fait lancer `npm run lint` et `npm test` avant le build
+   (tests avec `NODE_ENV=test` : Vercel définit `NODE_ENV=production` pendant
+   le build, et React ne permet pas de tester les composants en production).
    Un lint ou un test unitaire en échec fait échouer le build : la PR passe au
    rouge sur GitHub (check « Vercel ») et la production n'est pas déployée.
    Les tests SQL, les tests de bout en bout et l'app pro restent lancés en
