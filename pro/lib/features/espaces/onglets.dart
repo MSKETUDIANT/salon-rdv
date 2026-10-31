@@ -9,6 +9,7 @@ import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/format.dart';
 import '../gerant/ecran_equipe.dart';
+import '../gerant/ecran_photo_salon.dart';
 import '../gerant/ecran_prestations.dart';
 import '../historique/ecran_historique.dart';
 import 'ecran_mes_infos.dart';
@@ -35,7 +36,7 @@ class _Section extends StatelessWidget {
 // Gérant (#81) : identité du salon en tête (nom, adresse, horaires déduits de
 // ceux des coiffeurs, option A de Sparta), puis listes à icônes avec un
 // chiffre : Activité (historique), Configuration (prestations, équipe).
-class OngletSalonGerant extends StatelessWidget {
+class OngletSalonGerant extends StatefulWidget {
   const OngletSalonGerant({
     super.key,
     required this.salon,
@@ -43,6 +44,17 @@ class OngletSalonGerant extends StatelessWidget {
   });
   final DepotSalon salon;
   final DepotPlanning planning;
+
+  @override
+  State<OngletSalonGerant> createState() => _OngletSalonGerantState();
+}
+
+class _OngletSalonGerantState extends State<OngletSalonGerant> {
+  // Relu au retour de la photo du salon (#105).
+  int _version = 0;
+
+  DepotSalon get salon => widget.salon;
+  DepotPlanning get planning => widget.planning;
 
   Future<_ResumeSalon> _lire() async {
     final maintenant = await planning.maintenantAuSalon();
@@ -54,11 +66,13 @@ class OngletSalonGerant extends StatelessWidget {
       salon.coiffeurs(),
       planning.periode(lundi, lundi.add(const Duration(days: 6))),
     ]);
-    final identite = resultats[0] as ({String nom, String? adresse});
+    final identite =
+        resultats[0] as ({String nom, String? adresse, String? photo});
     final semaine = resultats[3] as DonneesPlanning;
     return _ResumeSalon(
       nom: identite.nom,
       adresse: identite.adresse,
+      photo: identite.photo,
       jour: jour,
       ouverture: horairesDuSalon(semaine.plages),
       prestations: (resultats[1] as List<Prestation>)
@@ -87,6 +101,7 @@ class OngletSalonGerant extends StatelessWidget {
         enfants: [
           Text('Espace gérant', style: textes.bodySmall),
           Chargement<_ResumeSalon>(
+            key: ValueKey(_version),
             lire: _lire,
             afficher: (context, r, _) {
               final aujourdhui = r.ouverture[r.jour.weekday];
@@ -139,6 +154,25 @@ class OngletSalonGerant extends StatelessWidget {
                         : '${r.coiffeurs} coiffeurs',
                     surAppui: () => ouvrir(EcranEquipe(salon: salon)),
                   ),
+                  // Photo du bandeau de l'accueil (#105, option 2a).
+                  _Ligne(
+                    icone: Icons.photo_outlined,
+                    titre: 'Photo du salon',
+                    aDroite: r.photo == null ? 'Par défaut' : 'Personnalisée',
+                    // Relu au retour : la photo a pu changer.
+                    surAppui: () async {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => EcranPhotoSalon(salon: salon),
+                        ),
+                      );
+                      if (mounted) {
+                        setState(() {
+                          _version++;
+                        });
+                      }
+                    },
+                  ),
                 ],
               );
             },
@@ -153,6 +187,7 @@ class _ResumeSalon {
   const _ResumeSalon({
     required this.nom,
     required this.adresse,
+    required this.photo,
     required this.jour,
     required this.ouverture,
     required this.prestations,
@@ -162,6 +197,8 @@ class _ResumeSalon {
   });
   final String nom;
   final String? adresse;
+  // Adresse publique de la photo du salon (#105), null : image par défaut.
+  final String? photo;
   final DateTime jour;
   final Map<int, (TimeOfDay, TimeOfDay)> ouverture;
   final int prestations;

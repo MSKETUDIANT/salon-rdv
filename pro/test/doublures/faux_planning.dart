@@ -15,6 +15,12 @@ class FauxPlanning implements DepotPlanning {
   @override
   Future<String?> monNom() async => nom;
 
+  // Adresse de la photo du salon (#105) ; null : image par défaut.
+  String? photo;
+
+  @override
+  Future<String?> photoDuSalon() async => photo;
+
   @override
   Future<void> modifierMonNom(String nouveau) async {
     await _action('nom $nouveau');

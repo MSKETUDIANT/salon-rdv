@@ -65,9 +65,17 @@ void _retenirIndiceVu() {
 void reinitialiserIndice() => _indiceVu = null;
 
 class _Jour {
-  const _Jour(this.maintenant, this.nom, this.donnees, this.coiffeurs);
+  const _Jour(
+    this.maintenant,
+    this.nom,
+    this.donnees,
+    this.coiffeurs,
+    this.photo,
+  );
   final DateTime maintenant;
   final String? nom;
+  // Adresse de la photo du salon (#105), null : image par défaut.
+  final String? photo;
   final DonneesPlanning donnees;
   final Map<String, String> coiffeurs;
 }
@@ -126,6 +134,8 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     await _lireIndiceVu();
     final maintenant = await widget.planning.maintenantAuSalon();
     final jour = DateUtils.dateOnly(maintenant);
+    // Sans photo lisible, l'image par défaut : l'accueil s'affiche quand même.
+    final photo = widget.planning.photoDuSalon().catchError((_) => null);
     final resultats = await Future.wait<dynamic>([
       widget.planning.monNom(),
       widget.planning.periode(
@@ -143,6 +153,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
         if (widget.gerant)
           for (final c in resultats[2] as List<Coiffeur>) c.id: c.nom,
       },
+      await photo,
     );
   }
 
@@ -297,7 +308,7 @@ class _EcranAujourdhuiState extends State<EcranAujourdhui> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const BandeauSalon(),
+        BandeauSalon(photo: j.photo),
         const SizedBox(height: Espaces.s4),
         Text(
           '${formatDate(jour)} · ${widget.gerant ? 'Espace gérant' : 'Espace coiffeur'}',

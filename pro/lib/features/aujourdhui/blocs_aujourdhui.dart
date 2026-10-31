@@ -4,6 +4,7 @@ import '../../data/planning.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/format.dart';
+import '../../ui/photo_salon.dart';
 
 // Blocs de l'onglet « Accueil » (ecran_aujourdhui.dart) : bandeaux, rappel,
 // prochain rendez-vous, chiffres du jour, équipe du jour.
@@ -86,23 +87,15 @@ class BandeauEnCours extends StatelessWidget {
 }
 
 // Photo du salon en bandeau, sans texte dessus (comme sur le site, charte
-// §6). Image par défaut tant que le salon ne peut pas envoyer la sienne (#74).
+// §6) : celle envoyée par le gérant (#105), sinon l'image par défaut.
 class BandeauSalon extends StatelessWidget {
-  const BandeauSalon({super.key});
+  const BandeauSalon({super.key, this.photo});
+  // Photo envoyée par le gérant (#105), null : image par défaut.
+  final String? photo;
 
   @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(rayon),
-      child: Image.asset(
-        'assets/images/salon-defaut.webp',
-        height: 104,
-        fit: BoxFit.cover,
-        alignment: const Alignment(0, -0.2),
-        semanticLabel: 'Photo du salon',
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      PhotoSalon(adresse: photo, hauteur: 104);
 }
 
 // Rappel en tête, une seule ligne (« 1 à clôturer · 1 à encaisser ») : fond
