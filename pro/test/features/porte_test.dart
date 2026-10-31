@@ -321,7 +321,7 @@ void main() {
     await seConnecter(tester, 'gerant@salon.test');
     await ouvrirOnglet(tester, 'Profil');
     expect(find.bySemanticsLabel('Salon RDV'), findsNothing);
-    expect(find.bySemanticsLabel('À propos, Version 0.2.0'), findsOneWidget);
+    expect(find.bySemanticsLabel('À propos, Version 0.3.0'), findsOneWidget);
     // Mot de passe : ligne active depuis #107 (sans « Bientôt »).
     expect(find.bySemanticsLabel('Mot de passe'), findsOneWidget);
     semantique.dispose();

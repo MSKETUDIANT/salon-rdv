@@ -13,7 +13,7 @@ Un seul salon en v1 ; la base est prête pour plusieurs salons.
 | Quoi | Adresse |
 | --- | --- |
 | Site client (production) | https://salon-rdv-one.vercel.app |
-| App pro (Android, APK) | https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.2.0 |
+| App pro (Android, APK) | https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.3.0 |
 | Dépôt | https://github.com/MSKETUDIANT/salon-rdv |
 
 Les données en ligne sont des **données de démonstration** (deux coiffeurs
@@ -39,9 +39,16 @@ fictifs, quatre prestations) : `docs/donnees-demo.md`.
   garanti par une contrainte d'exclusion. Les apps ne font qu'afficher.
 - **Site client** (`web/`) : Next.js, TypeScript, Tailwind. Connexion par code
   à 6 chiffres reçu par e-mail, au moment de réserver.
-- **App pro** (`pro/`) : Flutter. Connexion par e-mail et mot de passe ;
-  espace coiffeur (planning, clôture des rendez-vous) et espace gérant
-  (configuration du salon, planning de l'équipe, encaissements, historique).
+- **App pro** (`pro/`) : Flutter. Connexion par e-mail et mot de passe
+  (mot de passe oublié : code à 6 chiffres par e-mail) ; profil (nom, mot de
+  passe).
+  - Espace coiffeur : accueil du jour, planning (semaine, vue horaire ou
+    liste), client arrivé, clôture des rendez-vous (terminé, absent), nouveau
+    rendez-vous pour un client de passage (bouton ou créneau vide touché).
+  - Espace gérant : tout cela pour toute l'équipe, plus la configuration du
+    salon (prestations, équipe, horaires, absences, compétences, photo du
+    salon), les encaissements et l'historique.
+- Choix d'architecture et règles : `docs/architecture.md`.
 
 | Dossier | Contenu |
 | --- | --- |
