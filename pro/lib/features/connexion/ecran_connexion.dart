@@ -5,6 +5,7 @@ import '../../data/session.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/marque.dart';
+import 'ecran_mot_de_passe_oublie.dart';
 
 // Connexion de l'équipe : e-mail et mot de passe (comptes créés via #2).
 // « Se connecter » n'est jamais désactivé : au clic, ce qui manque est indiqué
@@ -61,6 +62,29 @@ class _EcranConnexionState extends State<EcranConnexion> {
     });
   }
 
+  // Code reçu par e-mail, puis nouveau mot de passe (#39). Réussite : le
+  // compte est connecté et la porte remplace cet écran par son espace.
+  // Le message passe par le gestionnaire de messages de l'app, pris avant :
+  // cet écran n'existe plus au retour (la porte l'a remplacé).
+  Future<void> _motDePasseOublie() async {
+    final messages = ScaffoldMessenger.of(context);
+    final change = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            EcranMotDePasseOublie(auth: widget.auth, email: _email.text.trim()),
+      ),
+    );
+    if (change == true) {
+      messages
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Mot de passe changé. Vous êtes connecté.'),
+          ),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textes = Theme.of(context).textTheme;
@@ -105,6 +129,15 @@ class _EcranConnexionState extends State<EcranConnexion> {
                 surValidation: _seConnecter,
               ),
             ],
+          ),
+        ),
+        // Mot de passe oublié (#39) : lien souligné de la charte, sous le
+        // champ concerné.
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: _motDePasseOublie,
+            child: const Text('Mot de passe oublié ?'),
           ),
         ),
         const SizedBox(height: Espaces.s6),

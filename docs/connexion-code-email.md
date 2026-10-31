@@ -2,11 +2,14 @@
 
 Le client se connecte à l'écran de confirmation avec un **code à 6 chiffres**
 reçu par e-mail (charte graphique §5, issue #6). Pas de mot de passe, pas de
-lien magique. Le gérant et l'app pro gardent l'e-mail et le mot de passe.
+lien magique. Le gérant et l'app pro gardent l'e-mail et le mot de passe ; en
+cas d'oubli, l'app pro envoie aussi un **code à 6 chiffres** pour choisir un
+nouveau mot de passe (issue #39), jamais de lien.
 
 > En local, rien à faire : `supabase/config.toml` règle la longueur du code
-> (`otp_length = 6`) et les deux modèles d'e-mail
-> (`supabase/templates/code-connexion.html`) ; les e-mails arrivent dans
+> (`otp_length = 6`) et les trois modèles d'e-mail
+> (`supabase/templates/code-connexion.html`,
+> `supabase/templates/code-reinitialisation.html`) ; les e-mails arrivent dans
 > Mailpit.
 
 Ces réglages ne passent pas par une migration : ils se font dans le dashboard
@@ -63,6 +66,13 @@ Pour **chacun** des deux modèles :
 - **Body** : le contenu de `supabase/templates/code-connexion.html`, tel quel
   (il affiche `{{ .Token }}`, le code).
 
+Mot de passe oublié de l'app pro (#39, à faire avec l'accord de Sparta) :
+modèle **Reset Password** :
+
+- **Subject** : `Votre code pour changer de mot de passe` ;
+- **Body** : le contenu de `supabase/templates/code-reinitialisation.html`,
+  tel quel (code `{{ .Token }}`, aucun lien).
+
 ### 5. Vérifier
 
 1. Sur le site déployé, aller jusqu'à l'écran de confirmation, saisir un nom et
@@ -72,6 +82,10 @@ Pour **chacun** des deux modèles :
 3. Saisir le code : « Connecté avec … » s'affiche.
 4. Refaire le test avec une adresse **jamais utilisée** (navigation privée) :
    c'est le modèle « Confirm signup » qui part, il doit aussi contenir le code.
+5. Dans l'app pro, « Mot de passe oublié ? » avec l'adresse d'un compte de
+   l'équipe : l'e-mail a pour objet « Votre code pour changer de mot de
+   passe », contient 6 chiffres et aucun lien ; le code permet de choisir un
+   nouveau mot de passe.
 
 ## Limite d'envoi
 

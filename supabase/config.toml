@@ -255,6 +255,12 @@ content_path = "./supabase/templates/code-connexion.html"
 subject = "Votre code de connexion"
 content_path = "./supabase/templates/code-connexion.html"
 
+# Issue #39 : mot de passe oublié de l'app pro, code à 6 chiffres, sans lien.
+# En distant : à reporter dans le dashboard (docs/connexion-code-email.md).
+[auth.email.template.recovery]
+subject = "Votre code pour changer de mot de passe"
+content_path = "./supabase/templates/code-reinitialisation.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
