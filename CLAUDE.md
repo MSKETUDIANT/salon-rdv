@@ -45,12 +45,18 @@ Règle métier critique : zéro double réservation, garantie par la base
   montre-le, puis arrête-toi et attends mon accord.
 - Ne dis jamais « c'est fait » sans preuve : sortie de commande, test, capture.
 - Ne supprime rien (fichier, branche, projet, donnée) sans mon accord explicite.
+  Exception : après le merge d'une PR et la fermeture de son issue, supprime
+  sa branche (en local et sur GitHub).
 - Jamais de `git checkout`, `git restore` ou `git reset` sur des modifications
   non commitées sans mon accord. Pour mettre de côté un essai, `git stash`.
 - Pas d'outil absent du projet lancé par `npx` (ou équivalent qui télécharge
   un paquet) sans mon accord : seulement les outils déjà installés dans le
   projet.
 - Une issue à la fois. Ne touche pas à ce qui est hors de l'issue en cours.
+  Exception : quand une PR attend ma validation, avance l'issue suivante sur
+  une autre branche.
+- Quand je dis « par priorité », fixe toi-même l'ordre des issues et
+  annonce-le en une ligne, sans attendre ma validation.
 - Si une consigne te paraît fausse ou contradictoire, dis-le avant d'agir.
 - Si tu ne sais pas, dis-le. Ne devine pas.
 - Quand une décision de conception n'est pas évidente, présente deux ou trois
@@ -64,15 +70,32 @@ Règle métier critique : zéro double réservation, garantie par la base
   pas les mêmes défauts. Corrige tes propres défauts avant de présenter le
   résultat, et donne la liste des critères vérifiés. Ne présente une livraison
   que si elle passe cette vérification.
+- Rendu du site : présente des captures du build local (Chrome, 360 px de
+  large). La preview Vercel est protégée par une connexion : c'est moi qui la
+  valide.
+- L'émulateur et ma session y sont partagés : préviens avant de déconnecter
+  mon compte.
+- N'arrête jamais un processus par son nom (`taskkill /IM`, `pkill`…) :
+  seulement les tâches que tu as lancées toi-même.
 - Ordre de mise en ligne : merge de la PR sur main, puis db push depuis main.
 
 ## 5. Conventions
-- Toute modification de la base passe par une migration de la CLI.
-  Jamais de SQL appliqué à la main dans le dashboard.
+- Toute modification de la base passe par une migration de la CLI, même en
+  local. Jamais de SQL de schéma appliqué à la main, ni dans le dashboard ni
+  sur la base locale.
   Exception : en distant, le seul SQL manuel autorisé est le script de données
   de démo `supabase/demo/donnees-demo.sql` (procédure : `docs/donnees-demo.md`),
   avec la procédure du premier gérant (`docs/premier-gerant.md`). Données
   seulement, jamais le schéma, et toujours avec mon accord.
+- Réglage du dashboard Supabase nécessaire à une fonction (modèle d'e-mail,
+  réglage Auth) : écrit dans la PR et dans l'issue, fait par moi avant la mise
+  en ligne de la fonction. Tu ne le fais jamais toi-même.
+- Comptes de démo locaux (seed) : mot de passe `motdepasse`, jamais modifiés
+  par toi. Tes essais se font sur un compte créé pour l'occasion, et tu remets
+  les données comme avant après chaque essai.
+- App pro : une nouvelle version = `version` dans `pro/pubspec.yaml` (PR),
+  APK construit depuis main, puis release `gh release create` (autorisé dans
+  `.claude/settings.json`), empreinte SHA-256 vérifiée après téléchargement.
 - Une branche par issue : `issue-<n>-<sujet-court>`.
 - Commits en français, format : `type: description`
   (feat, fix, docs, test, refactor, chore).
