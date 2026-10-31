@@ -8,10 +8,12 @@ export function ListeCreneaux({
   jour,
   prestationId,
   coiffeurId,
+  depuisAccueil = false,
 }: {
   jour: Jour;
   prestationId: string;
   coiffeurId?: string;
+  depuisAccueil?: boolean;
 }) {
   return (
     <section aria-labelledby={`jour-${jour.cle}`} className="flex flex-col gap-3">
@@ -23,7 +25,7 @@ export function ListeCreneaux({
           <li key={heure.debut}>
             {/* Pas de préchargement : des dizaines de liens, en 3G. */}
             <Link
-              href={lienConfirmation(prestationId, heure.debut, coiffeurId)}
+              href={lienConfirmation(prestationId, heure.debut, coiffeurId, depuisAccueil)}
               prefetch={false}
               className={`flex h-12 items-center justify-center rounded-base border border-bordure bg-surface text-base font-semibold text-texte tabular-nums hover:bg-fond ${focus}`}
             >

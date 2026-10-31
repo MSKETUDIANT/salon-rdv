@@ -39,7 +39,7 @@ export default async function Accueil() {
           <h2 id="titre-prestations" className="font-titre text-xl font-medium text-texte">
             Prestations
           </h2>
-          <ListePrestations prestations={prestations} />
+          <ListePrestations prestations={prestations} depuisAccueil />
         </section>
       )}
       {/* Horaires d'ouverture (issue 129) : la semaine entière, comme Google

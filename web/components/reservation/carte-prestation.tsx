@@ -7,10 +7,17 @@ import { formatDuree, formatPrix } from "@/lib/format";
 // Sparta sur les cartes encadrées, issue 129) : nom, puis durée et prix exact
 // (prix en gras, jamais « à partir de »), bouton « Choisir » à droite. Toute
 // la ligne est le lien vers l'écran 2. Sans photo (charte §7).
-export function CartePrestation({ prestation }: { prestation: Prestation }) {
+// depuisAccueil : ligne de l'accueil ; l'écran 2 saura y ramener (« Retour »).
+export function CartePrestation({
+  prestation,
+  depuisAccueil = false,
+}: {
+  prestation: Prestation;
+  depuisAccueil?: boolean;
+}) {
   return (
     <Link
-      href={`/reserver/creneaux?prestation=${prestation.id}`}
+      href={`/reserver/creneaux?prestation=${prestation.id}${depuisAccueil ? "&depuis=accueil" : ""}`}
       className={`group -mx-2 flex min-h-18 items-center gap-4 rounded-base px-2 py-3 hover:bg-surface ${focus}`}
     >
       <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -32,12 +39,18 @@ export function CartePrestation({ prestation }: { prestation: Prestation }) {
 
 // Liste des prestations (accueil et écran 1) : filets fins entre les lignes,
 // pas de cartes encadrées.
-export function ListePrestations({ prestations }: { prestations: Prestation[] }) {
+export function ListePrestations({
+  prestations,
+  depuisAccueil = false,
+}: {
+  prestations: Prestation[];
+  depuisAccueil?: boolean;
+}) {
   return (
     <ul className="flex flex-col border-t border-separateur">
       {prestations.map((prestation) => (
         <li key={prestation.id} className="border-b border-separateur">
-          <CartePrestation prestation={prestation} />
+          <CartePrestation prestation={prestation} depuisAccueil={depuisAccueil} />
         </li>
       ))}
     </ul>

@@ -20,6 +20,18 @@ describe("CartePrestation", () => {
 });
 
 describe("ListePrestations (issue 129)", () => {
+  it("sur l'accueil : l'origine suit dans le lien vers l'écran 2", () => {
+    render(
+      <ListePrestations
+        prestations={[{ id: "p1", nom: "Couleur", prix: 80, dureeMinutes: 90 }]}
+        depuisAccueil
+      />,
+    );
+    expect(screen.getByRole("link").getAttribute("href")).toBe(
+      "/reserver/creneaux?prestation=p1&depuis=accueil",
+    );
+  });
+
   it("une ligne par prestation, dans l'ordre reçu", () => {
     render(
       <ListePrestations

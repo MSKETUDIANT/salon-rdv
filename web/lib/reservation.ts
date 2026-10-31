@@ -36,11 +36,18 @@ export function jourEtHeure(debut: string, fuseau: string): { jour: string; heur
 
 // Retour à l'écran 2 sans perdre la prestation ni le filtre coiffeur. pris :
 // le créneau choisi vient d'être pris (#51) ; l'écran 2 relit alors la liste
-// et l'annonce en tête.
-export function lienCreneaux(prestationId: string, coiffeurId?: string, pris = false): string {
+// et l'annonce en tête. depuisAccueil : prestation choisie sur l'accueil
+// (issue 129), gardé pour que « Retour » de l'écran 2 y ramène.
+export function lienCreneaux(
+  prestationId: string,
+  coiffeurId?: string,
+  pris = false,
+  depuisAccueil = false,
+): string {
   const params = new URLSearchParams({ prestation: prestationId });
   if (coiffeurId) params.set("coiffeur", coiffeurId);
   if (pris) params.set("pris", "1");
+  if (depuisAccueil) params.set("depuis", "accueil");
   return `/reserver/creneaux?${params}`;
 }
 

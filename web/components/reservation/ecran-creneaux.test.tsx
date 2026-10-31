@@ -48,6 +48,26 @@ function initiaux(): CreneauxInitiaux {
 }
 
 describe("EcranCreneaux", () => {
+  it("« Retour » : vers l'écran 1, ou vers la liste de l'accueil si on en vient (issue 129)", async () => {
+    render(<EcranCreneaux catalogue={catalogue} />);
+    expect(screen.getByRole("link", { name: "Retour aux prestations" }).getAttribute("href")).toBe(
+      "/reserver",
+    );
+    const heure = await screen.findByRole("link", { name: "09:00" });
+    expect(heure.getAttribute("href")).not.toContain("depuis");
+    cleanup();
+
+    etat.recherche = "prestation=p1&depuis=accueil";
+    render(<EcranCreneaux catalogue={catalogue} initiaux={initiaux()} />);
+    expect(
+      screen.getByRole("link", { name: "Retour aux prestations de l'accueil" }).getAttribute("href"),
+    ).toBe("/#prestations");
+    // L'origine suit jusqu'à l'écran 3, pour son propre « Retour ».
+    expect((await screen.findByRole("link", { name: "09:00" })).getAttribute("href")).toContain(
+      "depuis=accueil",
+    );
+  });
+
   it("prix sans millimes, bande de 14 jours, premier jour disponible choisi", async () => {
     render(<EcranCreneaux catalogue={catalogue} />);
 

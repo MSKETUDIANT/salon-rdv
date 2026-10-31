@@ -130,6 +130,10 @@ toute façon les éléments inactifs du seuil de contraste.
    sur cet écran, « Peu importe » par défaut.
 3. **Confirmation** : récapitulatif (prestation, coiffeur, date, heure, prix).
 
+- « Retour » ramène là d'où vient le client (#129, comme Planity ou
+  Doctolib) : prestation choisie sur l'accueil → l'écran 2 revient à la liste
+  de l'accueil (`depuis=accueil` gardé dans l'adresse jusqu'à l'écran 3) ;
+  choisie sur l'écran 1 ou par un lien partagé → l'écran 1.
 - Aucune connexion pour parcourir les écrans 1 et 2.
 - **Connexion à l'écran 3 seulement, par code à 6 chiffres envoyé par e-mail
   (OTP), sans mot de passe ni lien magique** : le client saisit son e-mail,

@@ -66,8 +66,9 @@ test("« Retour » à chaque étape, puis retour du navigateur", async ({ page }
   await page.getByRole("link", { name: "Retour aux créneaux" }).click();
   await expect(page).toHaveURL(/\/reserver\/creneaux\?/);
   await expect(page.getByLabel("Coiffeur")).toHaveValue(SEED.amira);
-  await page.getByRole("link", { name: "Retour aux prestations" }).click();
-  await expect(page).toHaveURL(/\/reserver$/);
+  // Prestation choisie sur l'accueil : retour à sa liste (issue 129).
+  await page.getByRole("link", { name: "Retour aux prestations de l'accueil" }).click();
+  await expect(page).toHaveURL(/\/#prestations$/);
 
   // Retour du navigateur : on remonte l'historique, écran par écran.
   await page.goBack();
@@ -83,4 +84,21 @@ test("écran ouvert directement (lien partagé) : « Retour » marche quand mêm
   await expect(page).toHaveURL(/\/reserver$/);
   await page.getByRole("link", { name: "Retour à l'accueil" }).click();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test("prestation choisie sur l'accueil : « Retour » ramène à la liste de l'accueil (issue 129)", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("main").getByRole("link", { name: "Réserver" }).click();
+  await page.getByRole("link", { name: /Coupe homme/ }).click();
+  await page.getByRole("link", { name: /^\d{2}:\d{2}$/ }).first().click();
+  await expect(page).toHaveURL(/\/reserver\/confirmation\?.*depuis=accueil/);
+
+  // Écran 3 → écran 2 (origine gardée) → liste des prestations de l'accueil.
+  await page.getByRole("link", { name: "Retour aux créneaux" }).click();
+  await expect(page).toHaveURL(/\/reserver\/creneaux\?.*depuis=accueil/);
+  await page.getByRole("link", { name: "Retour aux prestations de l'accueil" }).click();
+  await expect(page).toHaveURL(/\/#prestations$/);
+  await expect(page.getByRole("heading", { name: "Prestations" })).toBeInViewport();
 });

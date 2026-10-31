@@ -108,9 +108,17 @@ export function grouperParJour(
 }
 
 // Lien vers l'écran 3 (confirmation, #6). Sans coiffeur : « Peu importe ».
-export function lienConfirmation(prestationId: string, debut: string, coiffeurId?: string): string {
+// depuisAccueil : prestation choisie sur l'accueil (issue 129), gardé pour que
+// « Retour » y ramène.
+export function lienConfirmation(
+  prestationId: string,
+  debut: string,
+  coiffeurId?: string,
+  depuisAccueil = false,
+): string {
   const params = new URLSearchParams({ prestation: prestationId, debut });
   if (coiffeurId) params.set("coiffeur", coiffeurId);
+  if (depuisAccueil) params.set("depuis", "accueil");
   return `/reserver/confirmation?${params}`;
 }
 
