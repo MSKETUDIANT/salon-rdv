@@ -137,7 +137,7 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
             if (!_codeEnvoye) ...[
               Text(
                 'Saisissez l\'adresse e-mail de votre compte : vous recevrez '
-                'un code à 6 chiffres pour choisir un nouveau mot de passe.',
+                'un code à 6 chiffres.',
                 style: textes.bodyLarge,
               ),
               const SizedBox(height: Espaces.s6),
@@ -155,8 +155,10 @@ class _EcranMotDePasseOublieState extends State<EcranMotDePasseOublie> {
               Semantics(
                 liveRegion: true,
                 child: Text(
-                  'Si un compte existe pour ${_email.text.trim()}, un e-mail '
-                  'vient d\'être envoyé avec un code à 6 chiffres.',
+                  // « cette adresse » plutôt que l'adresse elle-même, qui
+                  // se couperait au milieu (au tiret, par exemple).
+                  'Si un compte existe pour cette adresse, un e-mail vient '
+                  'd\'être envoyé avec un code à 6 chiffres.',
                   style: textes.bodyLarge,
                 ),
               ),

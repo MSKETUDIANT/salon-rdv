@@ -104,7 +104,7 @@ void main() {
     expect(auth.appels, ['code inconnu@salon.test']);
     expect(
       find.text(
-        "Si un compte existe pour inconnu@salon.test, un e-mail vient d'être "
+        "Si un compte existe pour cette adresse, un e-mail vient d'être "
         'envoyé avec un code à 6 chiffres.',
       ),
       findsOneWidget,
