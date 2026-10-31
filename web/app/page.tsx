@@ -1,20 +1,41 @@
 import { EnTeteSalon } from "@/components/en-tete-salon";
 import { PhotoAccueil } from "@/components/photo-accueil";
-import { titreAccueil } from "@/lib/accueil";
+import { CartePrestation } from "@/components/reservation/carte-prestation";
+import { adresseAccueil, titreAccueil } from "@/lib/accueil";
 import { env } from "@/lib/env";
+import { lireCatalogue } from "@/lib/lire-catalogue";
 import { lireSalon } from "@/lib/salon";
 
-// Page publique : doit rester statique (nom et photo du salon en cache,
+// Page publique : doit rester statique (salon et catalogue en cache,
 // revalidés chaque minute). Le build échoue si elle devient dynamique.
 export const ensureStatic = "navigation";
 
 export default async function Accueil() {
-  const salon = await lireSalon(env.salonId);
+  const [salon, { prestations }] = await Promise.all([
+    lireSalon(env.salonId),
+    lireCatalogue(env.salonId),
+  ]);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pt-4 sm:px-8 sm:pt-8">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pt-4 pb-8 sm:px-8 sm:pt-8">
       <PhotoAccueil photo={salon?.photo ?? null} nom={titreAccueil(salon)} />
-      <EnTeteSalon nom={titreAccueil(salon)} />
+      <EnTeteSalon nom={titreAccueil(salon)} adresse={adresseAccueil(salon)} />
+      {/* Prestations et prix avant de réserver (issue 129) : mêmes cartes que
+          l'écran 1, un toucher mène aux créneaux de la prestation. */}
+      {prestations.length > 0 && (
+        <section aria-labelledby="titre-prestations" className="flex flex-col gap-4">
+          <h2 id="titre-prestations" className="font-titre text-xl font-medium text-texte">
+            Prestations
+          </h2>
+          <ul className="flex flex-col gap-3">
+            {prestations.map((prestation) => (
+              <li key={prestation.id}>
+                <CartePrestation prestation={prestation} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </main>
   );
 }
