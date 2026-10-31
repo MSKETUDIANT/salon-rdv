@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { EcranCreneaux } from "@/components/reservation/ecran-creneaux";
+import { EcranCreneaux, type CreneauxInitiaux } from "@/components/reservation/ecran-creneaux";
 import type { Catalogue } from "@/lib/catalogue";
 
 const etat = vi.hoisted(() => ({ recherche: "prestation=p1" }));
@@ -36,6 +36,16 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
+
+// Liste lue par le serveur (#46) pour « Peu importe » : mardi 9h seulement.
+function initiaux(): CreneauxInitiaux {
+  return {
+    prestationId: "p1",
+    coiffeurId: "",
+    du: "2026-10-26",
+    creneaux: [{ coiffeur_id: "a", debut: "2026-10-27T08:00:00+00:00", fin: "2026-10-27T08:45:00+00:00" }],
+  };
+}
 
 describe("EcranCreneaux", () => {
   it("prix sans millimes, bande de 14 jours, premier jour disponible choisi", async () => {
@@ -72,23 +82,38 @@ describe("EcranCreneaux", () => {
     expect((screen.getByLabelText("Coiffeur") as HTMLSelectElement).value).toBe("");
   });
 
-  it("retour après un refus (pris=1) : message en tête, liste relue sans la lecture anticipée", async () => {
-    // Lecture anticipée périmée qui proposerait encore le créneau pris.
-    const perime = [{ coiffeur_id: "a", debut: "2026-10-27T07:00:00+00:00", fin: "2026-10-27T07:45:00+00:00" }];
-    (window as unknown as Record<string, unknown>).__creneauxPrecharges = {
-      prestation: "p1",
-      du: "2026-10-26",
-      au: "2026-11-08",
-      promesse: Promise.resolve(perime),
-    };
+  it("retour après un refus (pris=1) : message en tête, liste relue par le serveur", () => {
     etat.recherche = "prestation=p1&pris=1";
-    render(<EcranCreneaux catalogue={catalogue} />);
+    render(<EcranCreneaux catalogue={catalogue} initiaux={initiaux()} />);
 
     expect(screen.getByRole("alert").textContent).toBe("Ce créneau vient d'être pris. Choisissez-en un autre.");
+    expect(screen.getAllByRole("link", { name: /^\d{2}:\d{2}$/ }).map((l) => l.textContent)).toEqual(["09:00"]);
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it("liste du serveur (#46) : affichée sans attendre ni relire", () => {
+    render(<EcranCreneaux catalogue={catalogue} initiaux={initiaux()} />);
+    // Dès le premier rendu, sans await : c'est ce qui part dans le HTML.
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Mardi 27 octobre");
+    expect(screen.getAllByRole("link", { name: /^\d{2}:\d{2}$/ }).map((l) => l.textContent)).toEqual(["09:00"]);
+    expect(screen.queryByText("Chargement des créneaux…")).toBeNull();
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled();
+  });
+
+  it("liste du serveur, puis un autre coiffeur : lecture depuis le navigateur", async () => {
+    render(<EcranCreneaux catalogue={catalogue} initiaux={initiaux()} />);
+    fireEvent.change(screen.getByLabelText("Coiffeur"), { target: { value: "a" } });
+    expect(screen.getByText("Chargement des créneaux…")).toBeTruthy();
     await screen.findByRole("heading", { level: 2 });
     expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
-    expect(screen.getAllByRole("link", { name: /^\d{2}:\d{2}$/ }).map((l) => l.textContent)).toEqual(["09:00"]);
-    delete (window as unknown as Record<string, unknown>).__creneauxPrecharges;
+    expect(vi.mocked(fetch).mock.calls[0][0]).toContain("p_coiffeur=a");
+  });
+
+  it("liste du serveur pour une autre demande : ignorée, relue", async () => {
+    etat.recherche = "prestation=p1&coiffeur=a";
+    render(<EcranCreneaux catalogue={catalogue} initiaux={initiaux()} />);
+    await screen.findByRole("heading", { level: 2 });
+    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
   });
 
   it("sans refus : pas de message", async () => {
