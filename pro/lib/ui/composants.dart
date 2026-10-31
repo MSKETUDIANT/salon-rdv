@@ -278,7 +278,7 @@ String initiales(String nom) {
 
 // Version affichée dans le profil (#73) ; tenue égale à celle de pubspec.yaml
 // par test/ui/version_test.dart.
-const versionApp = '0.5.0';
+const versionApp = '0.6.0';
 
 // Avatar rond (#72) : initiales sur fond `separateur`, faute de photo.
 // Décoratif : le nom est toujours écrit à côté ou dans le libellé du parent.
