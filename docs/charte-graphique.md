@@ -124,11 +124,16 @@ toute façon les éléments inactifs du seuil de contraste.
 
 ## 5. Parcours de réservation (BNF-9 : 3 écrans hors authentification)
 
-1. **Prestation** : catalogue en cartes.
+1. **Prestation** : liste des prestations (§7), sur l'accueil (depuis #129)
+   ou sur l'écran `/reserver` (onglet « Réserver »).
 2. **Créneau** : créneaux libres par jour. Le choix du coiffeur est un filtre
    sur cet écran, « Peu importe » par défaut.
 3. **Confirmation** : récapitulatif (prestation, coiffeur, date, heure, prix).
 
+- « Retour » ramène là d'où vient le client (#129, comme Planity ou
+  Doctolib) : prestation choisie sur l'accueil → l'écran 2 revient à la liste
+  de l'accueil (`depuis=accueil` gardé dans l'adresse jusqu'à l'écran 3) ;
+  choisie sur l'écran 1 ou par un lien partagé → l'écran 1.
 - Aucune connexion pour parcourir les écrans 1 et 2.
 - **Connexion à l'écran 3 seulement, par code à 6 chiffres envoyé par e-mail
   (OTP), sans mot de passe ni lien magique** : le client saisit son e-mail,
@@ -163,9 +168,12 @@ aussi ce que le client cherche avant de réserver, sous le titre :
 - l'adresse du salon (icône de repère, texte secondaire), puis le lien
   secondaire « Itinéraire » aligné sous l'adresse, vers Google Maps ;
   rien si l'adresse est vide ;
-- après les boutons, la section « Prestations » : les mêmes cartes que
+- après les boutons, la section « Prestations » : la même liste que
   l'écran 1 (§7), un toucher mène aux créneaux de la prestation ; rien si
-  aucune prestation n'est active.
+  aucune prestation n'est active. Le bouton « Réserver » descend jusqu'à
+  cette liste (lien `#prestations`, défilement doux sauf si l'utilisateur
+  demande moins d'animations), comme « Prendre RDV » chez Planity : on ne
+  revoit pas la même liste sur une autre page (option A de Sparta) ;
 - le téléphone du salon (réglé par le gérant dans l'app pro), en lien
   secondaire avec une icône de combiné : un toucher lance l'appel (`tel:`) ;
   rien sans numéro. Le même lien « Appeler le salon » suit le message de
@@ -180,6 +188,16 @@ Le bouton principal reste unique.
 ## 7. Cartes de prestations
 
 - Contenu : nom, durée, prix.
+- Depuis #129 (remarque de Sparta : cartes encadrées trop « carrées ») : une
+  ligne de liste **sans cadre**, filets fins `separateur` entre les lignes,
+  comme la liste des horaires. Nom en gras (18 px) ; dessous la durée en texte
+  secondaire, « · », puis le prix exact en gras (jamais « à partir de ») ;
+  bouton « Choisir » à droite (bordure `bordure`, texte `accent`, 44 px de
+  haut). Toute la ligne est le lien ; survol : fond `surface`. Un nom long
+  passe à la ligne, « Choisir » garde sa place.
+- Comparé à Planity (même modèle : nom, durée, prix, « Choisir ») : pas de
+  prix « à partir de » ou « sur devis », pas de ligne non réservable avec un
+  bouton « Choisir », téléphone et horaires sur la même page que la liste.
 - Photo facultative : la carte doit être réussie sans photo, qui est le cas
   normal en v1.
 - Pas de stockage d'images en v1, sauf la photo d'accueil, fichier statique du

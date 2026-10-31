@@ -16,9 +16,10 @@ test("parcours complet en 3 écrans, connexion seulement à l'écran 3, réserva
 
   await page.goto("/");
   const debut = Date.now();
+  // « Réserver » descend à la liste des prestations de l'accueil (issue 129,
+  // option A) : même page, aucune connexion demandée.
   await page.getByRole("main").getByRole("link", { name: "Réserver" }).click();
-
-  // Écran 1 : aucune connexion demandée.
+  await expect(page).toHaveURL(/\/#prestations$/);
   await page.getByRole("link", { name: /Coupe homme/ }).click();
 
   // Écran 2 : aucune connexion demandée ; on prend la première heure.
@@ -45,8 +46,10 @@ test("parcours complet en 3 écrans, connexion seulement à l'écran 3, réserva
   testInfo.annotations.push({ type: "BNF-4 (indicatif, automate)", description: `${duree} s` });
   console.log(`Parcours complet (automate, accueil → confirmée) : ${duree} s`);
 
-  // BNF-9 : 3 écrans hors accueil et hors authentification (faite sur l'écran 3).
-  expect(ecrans).toEqual(["/", "/reserver", "/reserver/creneaux", "/reserver/confirmation"]);
+  // BNF-9 : 3 écrans au plus hors authentification (faite sur l'écran 3). Depuis
+  // l'issue 129, la prestation se choisit sur l'accueil : 3 écrans, accueil
+  // compris.
+  expect(ecrans).toEqual(["/", "/reserver/creneaux", "/reserver/confirmation"]);
 
   // BF-C5 : la réservation est en base, rattachée au client connecté.
   const enBase = await reservationsA(lien.searchParams.get("debut")!);

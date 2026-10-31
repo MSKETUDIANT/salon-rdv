@@ -2,20 +2,50 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BandeJours } from "@/components/reservation/bande-jours";
-import { CartePrestation } from "@/components/reservation/carte-prestation";
+import { CartePrestation, ListePrestations } from "@/components/reservation/carte-prestation";
 import { ListeCreneaux } from "@/components/reservation/liste-creneaux";
 import { coiffeursCompetents, type Catalogue } from "@/lib/catalogue";
 
 afterEach(cleanup);
 
 describe("CartePrestation", () => {
-  it("nom, durée et prix ; toute la carte mène aux créneaux", () => {
+  it("nom, durée, prix et « Choisir » ; toute la ligne mène aux créneaux", () => {
     render(
       <CartePrestation prestation={{ id: "p1", nom: "Coupe femme", prix: 35, dureeMinutes: 45 }} />,
     );
     const lien = screen.getByRole("link");
     expect(lien.getAttribute("href")).toBe("/reserver/creneaux?prestation=p1");
-    expect(lien.textContent?.replace(/\s/g, " ")).toBe("Coupe femme45 min35 DT");
+    expect(lien.textContent?.replace(/\s/g, " ")).toBe("Coupe femme45 min·35 DTChoisir");
+  });
+});
+
+describe("ListePrestations (issue 129)", () => {
+  it("sur l'accueil : l'origine suit dans le lien vers l'écran 2", () => {
+    render(
+      <ListePrestations
+        prestations={[{ id: "p1", nom: "Couleur", prix: 80, dureeMinutes: 90 }]}
+        depuisAccueil
+      />,
+    );
+    expect(screen.getByRole("link").getAttribute("href")).toBe(
+      "/reserver/creneaux?prestation=p1&depuis=accueil",
+    );
+  });
+
+  it("une ligne par prestation, dans l'ordre reçu", () => {
+    render(
+      <ListePrestations
+        prestations={[
+          { id: "p1", nom: "Couleur", prix: 80, dureeMinutes: 90 },
+          { id: "p2", nom: "Coupe homme", prix: 20, dureeMinutes: 30 },
+        ]}
+      />,
+    );
+    const lignes = screen.getAllByRole("listitem");
+    expect(lignes.map((l) => within(l).getByRole("link").getAttribute("href"))).toEqual([
+      "/reserver/creneaux?prestation=p1",
+      "/reserver/creneaux?prestation=p2",
+    ]);
   });
 });
 

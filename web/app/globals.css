@@ -48,6 +48,14 @@
   --default-font-family: var(--font-texte);
 }
 
+/* Défilement doux vers une ancre de la page (issue 129), sauf si
+   l'utilisateur a demandé moins d'animations. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   background-color: var(--color-fond);
   color: var(--color-texte);

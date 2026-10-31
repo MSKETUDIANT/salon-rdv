@@ -51,6 +51,10 @@ describe("formats et liens", () => {
     expect(lienCreneaux("p1", "a")).toBe("/reserver/creneaux?prestation=p1&coiffeur=a");
     expect(lienCreneaux("p1")).toBe("/reserver/creneaux?prestation=p1");
     expect(lienCreneaux("p1", "a", true)).toBe("/reserver/creneaux?prestation=p1&coiffeur=a&pris=1");
+    // Prestation choisie sur l'accueil (issue 129) : origine gardée.
+    expect(lienCreneaux("p1", undefined, false, true)).toBe(
+      "/reserver/creneaux?prestation=p1&depuis=accueil",
+    );
   });
 
   it("e-mail et code à 6 chiffres", () => {

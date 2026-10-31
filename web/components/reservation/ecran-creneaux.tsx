@@ -61,6 +61,9 @@ export function EcranCreneaux({
   // Retour de l'écran 3 après un refus (#51) : liste relue (par le serveur),
   // message en tête.
   const pris = params.get("pris") === "1";
+  // Prestation choisie sur l'accueil (issue 129) : « Retour » ramène à sa
+  // liste, sinon à l'écran 1, comme le retour de Planity ou Doctolib.
+  const depuisAccueil = params.get("depuis") === "accueil";
   const cle = `${prestationId}|${coiffeurId}|${essai}|${pris}`;
   const [resultat, setResultat] = useState<Resultat | null>(() =>
     initiaux &&
@@ -113,7 +116,11 @@ export function EcranCreneaux({
 
   return (
     <div className="flex flex-col gap-6">
-      <LienRetour href="/reserver" vers="aux prestations" />
+      {depuisAccueil ? (
+        <LienRetour href="/#prestations" vers="aux prestations de l'accueil" />
+      ) : (
+        <LienRetour href="/reserver" vers="aux prestations" />
+      )}
 
       {pris && (
         <p role="alert" className="text-base font-semibold text-erreur">
@@ -167,6 +174,7 @@ export function EcranCreneaux({
           jours={jours}
           prestationId={prestation.id}
           coiffeurId={coiffeurId || undefined}
+          depuisAccueil={depuisAccueil}
         />
       )}
     </div>
@@ -180,10 +188,12 @@ function Creneaux({
   jours,
   prestationId,
   coiffeurId,
+  depuisAccueil,
 }: {
   jours: Jour[];
   prestationId: string;
   coiffeurId?: string;
+  depuisAccueil: boolean;
 }) {
   const [choix, setChoix] = useState<{ jours: Jour[]; cle: string } | null>(null);
   const disponibles = jours.filter((jour) => jour.heures.length > 0);
@@ -207,7 +217,12 @@ function Creneaux({
         choisi={jour.cle}
         onChoisir={(cle) => setChoix({ jours, cle })}
       />
-      <ListeCreneaux jour={jour} prestationId={prestationId} coiffeurId={coiffeurId} />
+      <ListeCreneaux
+        jour={jour}
+        prestationId={prestationId}
+        coiffeurId={coiffeurId}
+        depuisAccueil={depuisAccueil}
+      />
     </div>
   );
 }

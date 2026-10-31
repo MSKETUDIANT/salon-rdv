@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CartePrestation } from "@/components/reservation/carte-prestation";
+import { ListePrestations } from "@/components/reservation/carte-prestation";
 import { BoutonLien } from "@/components/ui/bouton-lien";
 import { LienRetour } from "@/components/ui/lien-retour";
 import { lireCatalogue } from "@/lib/lire-catalogue";
@@ -30,13 +30,7 @@ export default async function Reserver() {
           </BoutonLien>
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {prestations.map((prestation) => (
-            <li key={prestation.id}>
-              <CartePrestation prestation={prestation} />
-            </li>
-          ))}
-        </ul>
+        <ListePrestations prestations={prestations} />
       )}
     </main>
   );

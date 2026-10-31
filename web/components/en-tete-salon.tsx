@@ -5,15 +5,18 @@ import { lienItineraire, lienTelephone } from "@/lib/accueil";
 // Sous la photo d'accueil, sur fond uni : titre court, adresse du salon et
 // lien « Itinéraire », téléphone à toucher pour appeler (issue 129), un seul
 // bouton principal (charte §6), puis un simple lien vers « Mes réservations »
-// (#7).
+// (#7). reserver : cible du bouton, la liste des prestations de l'accueil
+// (« #prestations », option A de l'issue 129) ou l'écran 1.
 export function EnTeteSalon({
   nom,
   adresse,
   telephone = null,
+  reserver = "/reserver",
 }: {
   nom: string;
   adresse: string | null;
   telephone?: string | null;
+  reserver?: string;
 }) {
   return (
     <div className="flex flex-col items-start gap-6 py-8">
@@ -77,7 +80,7 @@ export function EnTeteSalon({
           </a>
         )}
       </div>
-      <BoutonLien href="/reserver">Réserver</BoutonLien>
+      <BoutonLien href={reserver}>Réserver</BoutonLien>
       <BoutonLien href="/mes-reservations" variante="secondaire">
         Mes réservations
       </BoutonLien>

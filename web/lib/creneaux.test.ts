@@ -124,6 +124,13 @@ describe("lienConfirmation", () => {
   it("« Peu importe » : pas de coiffeur dans le lien", () => {
     expect(lienConfirmation("p1", "2026-10-26T08:00:00.000Z")).not.toContain("coiffeur");
   });
+
+  it("prestation choisie sur l'accueil (issue 129) : origine gardée", () => {
+    expect(lienConfirmation("p1", "2026-10-26T08:00:00.000Z", undefined, true)).toBe(
+      "/reserver/confirmation?prestation=p1&debut=2026-10-26T08%3A00%3A00.000Z&depuis=accueil",
+    );
+    expect(lienConfirmation("p1", "2026-10-26T08:00:00.000Z")).not.toContain("depuis");
+  });
 });
 
 describe("mois de la bande de jours (#55)", () => {

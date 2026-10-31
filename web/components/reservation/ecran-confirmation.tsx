@@ -30,7 +30,11 @@ import { createClient } from "@/lib/supabase/client";
 // sans quitter l'écran (BF-C4), puis confirmation (BF-C5). « Confirmer »
 // n'est jamais désactivé : au clic, ce qui manque est indiqué.
 export function EcranConfirmation({ catalogue }: { catalogue: Catalogue }) {
-  const demande = lireDemande(useSearchParams(), catalogue);
+  const params = useSearchParams();
+  const demande = lireDemande(params, catalogue);
+  // Prestation choisie sur l'accueil (issue 129) : gardé dans les liens vers
+  // l'écran 2, dont le « Retour » ramène alors à l'accueil.
+  const depuisAccueil = params.get("depuis") === "accueil";
 
   if (!demande) {
     return (
@@ -42,10 +46,18 @@ export function EcranConfirmation({ catalogue }: { catalogue: Catalogue }) {
       </div>
     );
   }
-  return <Confirmation demande={demande} catalogue={catalogue} />;
+  return <Confirmation demande={demande} catalogue={catalogue} depuisAccueil={depuisAccueil} />;
 }
 
-function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Catalogue }) {
+function Confirmation({
+  demande,
+  catalogue,
+  depuisAccueil,
+}: {
+  demande: Demande;
+  catalogue: Catalogue;
+  depuisAccueil: boolean;
+}) {
   const router = useRouter();
   const [supabase] = useState(createClient);
   const compte = useCompte(supabase);
@@ -53,7 +65,7 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
   const [enCours, setEnCours] = useState(false);
   const [manque, setManque] = useState<string | null>(null);
   const [resultat, setResultat] = useState<ResultatReservation | null>(null);
-  const lienPris = lienCreneaux(demande.prestation.id, demande.coiffeur?.id, true);
+  const lienPris = lienCreneaux(demande.prestation.id, demande.coiffeur?.id, true, depuisAccueil);
 
   // Écran 2 préchargé : en cas de refus, le renvoi est immédiat (#51).
   useEffect(() => {
@@ -120,7 +132,7 @@ function Confirmation({ demande, catalogue }: { demande: Demande; catalogue: Cat
     );
   }
 
-  const retour = lienCreneaux(demande.prestation.id, demande.coiffeur?.id);
+  const retour = lienCreneaux(demande.prestation.id, demande.coiffeur?.id, false, depuisAccueil);
 
   return (
     <div className="flex flex-col gap-6">
