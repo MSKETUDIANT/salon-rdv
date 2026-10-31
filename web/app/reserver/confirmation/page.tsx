@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { EcranConfirmation } from "@/components/reservation/ecran-confirmation";
+import { SqueletteConfirmation } from "@/components/reservation/squelette-confirmation";
 import { env } from "@/lib/env";
 import { lireCatalogue } from "@/lib/lire-catalogue";
 
@@ -18,7 +19,8 @@ export default async function Confirmation() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-8 sm:px-8">
-      <Suspense fallback={<p className="text-base text-texte-secondaire">Chargement…</p>}>
+      {/* Pendant le chargement : la forme de l'écran (issue 131). */}
+      <Suspense fallback={<SqueletteConfirmation />}>
         <EcranConfirmation catalogue={catalogue} />
       </Suspense>
     </main>
