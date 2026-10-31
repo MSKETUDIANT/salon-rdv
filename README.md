@@ -175,6 +175,13 @@ merge de la PR sur `main`, puis `db push` depuis `main`, puis
 
 Résultats des besoins non fonctionnels : `docs/resultats-bnf.md`.
 
+Tests de bout en bout en échec : la trace complète et une capture de chaque
+test échoué restent dans `web/test-results/`, et le rapport dans
+`web/playwright-report/` (dossiers ignorés par Git). Pour les lire, dans
+`web/` : `npx playwright show-report`, ou
+`npx playwright show-trace test-results/<test>/trace.zip` (Playwright est déjà
+installé dans le projet).
+
 ## Déployer
 
 ### Base distante (Supabase)
