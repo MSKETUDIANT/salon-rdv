@@ -54,6 +54,30 @@ class FausseAuth implements ServiceAuth {
     comptes[compte!] = nouveau;
     return null;
   }
+
+  // Mot de passe oublié (#39) : le code « 123456 » est le bon ; le compte est
+  // alors connecté avec son nouveau mot de passe.
+  @override
+  Future<ErreurOubli?> envoyerCodeOubli(String email) async {
+    appels.add('code $email');
+    return null;
+  }
+
+  @override
+  Future<ErreurOubli?> reinitialiserMotDePasse(
+    String email,
+    String code,
+    String nouveau,
+  ) async {
+    appels.add('réinitialisation $email');
+    if (code != '123456' || !comptes.containsKey(email)) {
+      return ErreurOubli.codeInvalide;
+    }
+    comptes[email] = nouveau;
+    compte = email;
+    _flux.add(email);
+    return null;
+  }
 }
 
 class FauxRoles implements DepotRoles {
@@ -338,6 +362,39 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Espace pro'), findsOneWidget);
       expect(auth.compte, isNull);
+    },
+  );
+
+  // Mot de passe oublié (#39) : parcours complet, de la connexion à l'espace.
+  testWidgets(
+    'mot de passe oublié : code reçu, nouveau mot de passe, espace ouvert',
+    (tester) async {
+      await lancer(tester);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(0), 'amira@salon.test');
+      await tester.tap(find.text('Mot de passe oublié ?'));
+      await tester.pumpAndSettle();
+      // E-mail repris de l'écran de connexion.
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'amira@salon.test',
+      );
+      await tester.tap(find.text('Recevoir un code'));
+      await tester.pumpAndSettle();
+      expect(auth.appels, contains('code amira@salon.test'));
+
+      await tester.enterText(find.byType(TextField).at(0), '123456');
+      await tester.enterText(find.byType(TextField).at(1), 'nouveau-mdp');
+      await tester.enterText(find.byType(TextField).at(2), 'nouveau-mdp');
+      await tester.tap(find.text('Changer le mot de passe'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Espace coiffeur'), findsOneWidget);
+      expect(
+        find.text('Mot de passe changé. Vous êtes connecté.'),
+        findsOneWidget,
+      );
+      expect(auth.comptes['amira@salon.test'], 'nouveau-mdp');
     },
   );
 }

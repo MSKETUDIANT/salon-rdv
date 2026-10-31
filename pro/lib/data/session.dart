@@ -15,7 +15,39 @@ abstract interface class ServiceAuth {
   Future<void> seDeconnecter();
   // Changement de mot de passe du compte connecté (#107) : null si réussi.
   Future<ErreurMotDePasse?> changerMotDePasse(String actuel, String nouveau);
+  // Mot de passe oublié (#39, code à 6 chiffres) : envoi du code, puis code
+  // et nouveau mot de passe (le compte est alors connecté). null si réussi.
+  Future<ErreurOubli?> envoyerCodeOubli(String email);
+  Future<ErreurOubli?> reinitialiserMotDePasse(
+    String email,
+    String code,
+    String nouveau,
+  );
 }
+
+// Refus du parcours « mot de passe oublié ». Jamais de message qui dirait si
+// l'adresse a un compte.
+enum ErreurOubli {
+  codeInvalide(
+    'Code incorrect ou expiré. Vérifiez-le, ou demandez un nouveau code.',
+  ),
+  tropFaible('Mot de passe trop faible : 8 caractères au moins.'),
+  tropDeDemandes('Trop de demandes. Réessayez dans une minute.'),
+  reseau('Connexion impossible. Vérifiez le réseau, puis réessayez.'),
+  autre('Une erreur est survenue. Réessayez.');
+
+  const ErreurOubli(this.message);
+  final String message;
+}
+
+// Codes de Supabase Auth du parcours « mot de passe oublié ».
+ErreurOubli erreurOubli(String? code) => switch (code) {
+  'otp_expired' || 'invalid_credentials' => ErreurOubli.codeInvalide,
+  'weak_password' => ErreurOubli.tropFaible,
+  'over_email_send_rate_limit' ||
+  'over_request_rate_limit' => ErreurOubli.tropDeDemandes,
+  _ => ErreurOubli.autre,
+};
 
 // Refus d'un changement de mot de passe, avec le champ concerné.
 enum ErreurMotDePasse {
@@ -65,6 +97,45 @@ class AuthSupabase implements ServiceAuth {
   @override
   Future<void> seDeconnecter() => _client.auth.signOut();
 
+  // Supabase n'indique pas si l'adresse a un compte : l'écran affiche le même
+  // message dans tous les cas.
+  @override
+  Future<ErreurOubli?> envoyerCodeOubli(String email) async {
+    try {
+      await _client.auth.resetPasswordForEmail(email);
+      return null;
+    } on AuthException catch (erreur) {
+      final refus = erreurOubli(erreur.code);
+      // Seule la limite d'envoi est dite ; le reste reste neutre.
+      return refus == ErreurOubli.tropDeDemandes ? refus : null;
+    } catch (_) {
+      return ErreurOubli.reseau;
+    }
+  }
+
+  // Le code (type recovery) ouvre une session, puis le mot de passe est
+  // remplacé. La porte (porte.dart) affiche alors l'espace du compte.
+  @override
+  Future<ErreurOubli?> reinitialiserMotDePasse(
+    String email,
+    String code,
+    String nouveau,
+  ) async {
+    try {
+      await _client.auth.verifyOTP(
+        email: email,
+        token: code,
+        type: OtpType.recovery,
+      );
+      await _client.auth.updateUser(UserAttributes(password: nouveau));
+      return null;
+    } on AuthException catch (erreur) {
+      return erreurOubli(erreur.code);
+    } catch (_) {
+      return ErreurOubli.reseau;
+    }
+  }
+
   // Le mot de passe actuel est vérifié par une reconnexion (la session reste
   // la même), puis remplacé. La longueur minimale est aussi imposée par
   // Supabase Auth (weak_password).
@@ -96,6 +167,7 @@ class AuthSupabase implements ServiceAuth {
 }
 
 // Codes de Supabase Auth au remplacement du mot de passe.
+// (Mot de passe oublié : erreurOubli, plus haut.)
 ErreurMotDePasse erreurMotDePasse(String? code) => switch (code) {
   'weak_password' => ErreurMotDePasse.tropFaible,
   'same_password' => ErreurMotDePasse.identique,
