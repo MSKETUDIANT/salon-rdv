@@ -32,9 +32,12 @@ installés :
   production (lecture seule).
 - `npm run mesurer:bnf5` : la mesure BNF-5 seule.
 
-Dernière exécution complète (2026-10-25, après `supabase db reset`) : 5 étapes
-sur 5 réussies, soit 408 tests SQL, 106 tests unitaires, 11 tests de bout en
-bout, analyse Flutter sans erreur et 71 tests Flutter.
+Dernière exécution complète (2026-10-31, après #46, #39, #102 à #107, #110 et
+#117) : 5 étapes sur 5 réussies, soit 466 tests SQL, 118 tests unitaires, 15
+tests de bout en bout, analyse Flutter sans erreur et 264 tests Flutter.
+
+Exécution précédente (2026-10-25, après `supabase db reset`) : 408 tests SQL,
+106 tests unitaires, 11 tests de bout en bout, 71 tests Flutter.
 
 **CI** : pas encore possible. GitHub Actions ne démarre pas, le compte est
 verrouillé pour un problème de facturation (#19). La commande unique est prête
@@ -282,15 +285,23 @@ Analyse d'avant #46, conservée :
 
 | Partie | Couverture (lignes) | Règles de réservation |
 | --- | --- | --- |
-| Base | non mesurable en lignes pour le SQL | toutes les branches reliées à un test (BNF-2), 408 tests |
-| Site, `lib/` | 77,7 % | `creneaux.ts`, `reservation.ts`, `mes-reservations.ts` : 100 % |
-| Site, total (`npm run test:couverture`) | 76,5 % (branches 85,2 %) | — |
-| App pro (`flutter test --coverage`) | 95,3 % (#47, 2026-10-29 ; avant : 78,9 %) ; `lib/data/` 98 %, `ecran_equipe.dart` 100 % | règles dans la base |
+| Base | non mesurable en lignes pour le SQL | toutes les branches reliées à un test (BNF-2), 466 tests (2026-10-31) |
+| Site, `lib/` | 82,3 % (2026-10-31) | `creneaux.ts`, `reservation.ts`, `mes-reservations.ts` : 100 % |
+| Site, total (`npm run test:couverture`) | 77,7 % (branches 83,7 %) | — |
+| App pro (`flutter test --coverage`) | 95,1 % (2026-10-31) ; `lib/data/` 96,8 % | règles dans la base |
 
 **Écart mineur** :
 
-- côté site, les pages serveur (`app/**/page.tsx`) et `lib/supabase/` sont à
-  0 % en tests unitaires : les tests de bout en bout les couvrent.
+- côté site, les pages serveur (`app/**/page.tsx`), `lib/supabase/` et les
+  lectures faites par le serveur (`lib/salon.ts`, `lib/creneaux-serveur.ts`,
+  #46 et #117) sont à 0 % en tests unitaires : les tests de bout en bout les
+  couvrent (accueil, écran 2).
+
+**Rattrapé le 2026-10-31** : les adaptateurs Supabase ajoutés après #47 (client
+de passage, client arrivé, photo du salon, nom, mots de passe) n'avaient pas
+de test propre ; `lib/data/` était retombé à 79,3 % et l'app pro à 92,5 %.
+`test/data/adaptateurs_recents_test.dart` (18 tests, même fausse API) les
+ramène à 96,8 % et 95,1 %.
 
 **Comblé par #47** (2026-10-29) : côté app pro, `lib/data/` passe de 24 % à
 98 % (adaptateurs Supabase testés avec une fausse API, `test/data/adaptateurs_test.dart` :

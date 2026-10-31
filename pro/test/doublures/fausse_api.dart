@@ -15,7 +15,12 @@ class FausseApi {
     'http://api.test',
     'cle-anon',
     httpClient: MockClient(_repondre),
-    authOptions: const AuthClientOptions(autoRefreshToken: false),
+    // Flux sans PKCE : le PKCE demande un stockage local, que l'app réelle a
+    // (Supabase.initialize) mais pas ce client de test.
+    authOptions: const AuthClientOptions(
+      autoRefreshToken: false,
+      authFlowType: AuthFlowType.implicit,
+    ),
   );
 
   // Sans réseau (#83) : chaque requête échoue comme sans connexion.
@@ -27,7 +32,18 @@ class FausseApi {
       throw http.ClientException('Failed host lookup', requete.url);
     }
     final cle = '${requete.method} ${requete.url.path}';
-    final reponse = reponses[cle];
+    // Clé terminée par « * » : tout chemin qui commence ainsi (fichier de la
+    // photo du salon, nommé à l'envoi).
+    final reponse =
+        reponses[cle] ??
+        reponses.entries
+            .where(
+              (e) =>
+                  e.key.endsWith('*') &&
+                  cle.startsWith(e.key.substring(0, e.key.length - 1)),
+            )
+            .map((e) => e.value)
+            .firstOrNull;
     if (reponse == null) {
       return _json({'message': 'Pas de réponse prévue : $cle'}, 404, requete);
     }
@@ -73,6 +89,21 @@ class FausseApi {
     Object? corps, {
     int statut = 200,
   }) => reponses['$methode /auth/v1/$chemin'] = (r) => _json(corps, statut, r);
+
+  // Réponse de l'API Storage (/storage/v1/<chemin>, « * » final : préfixe).
+  void repondreStockage(
+    String methode,
+    String chemin,
+    Object? corps, {
+    int statut = 200,
+  }) =>
+      reponses['$methode /storage/v1/$chemin'] = (r) => _json(corps, statut, r);
+
+  // Requêtes envoyées à l'API Storage, dont le chemin commence par `debut`.
+  List<http.Request> versStockage(String debut) => [
+    for (final r in requetes)
+      if (r.url.path.startsWith('/storage/v1/$debut')) r,
+  ];
 
   // Fuseau du salon, lu par .single() (objet JSON).
   void salon({String fuseau = 'Africa/Tunis'}) =>
