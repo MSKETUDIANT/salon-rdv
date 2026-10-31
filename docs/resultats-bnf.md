@@ -12,7 +12,7 @@ Vérification de l'issue #12, selon la méthode prévue au cahier des charges
 | BNF-2 Adéquation | Haute | 100 % des créneaux respectent la règle centrale | 38 tests sur des plannings types, toutes les branches de la règle couvertes | **Passe** |
 | BNF-3 Sécurité | Haute | un client ne voit que ses réservations ; seul le gérant modifie horaires, absences, catalogue | tests d'accès par rôle sur toutes les tables ; Security Advisor : aucun défaut bloquant, 2 points tranchés par Sparta | **Passe** (protection des mots de passe : activation à confirmer) |
 | BNF-4 Utilisabilité | Haute | un nouveau client réserve en moins de 2 min, sans aide | test avec 5 vrais utilisateurs à faire (`docs/bnf-4-fiche-test.md`) | **À faire** (Sparta) |
-| BNF-5 Performance | Moyenne | liste des créneaux en moins de 3 s, téléphone d'entrée de gamme, 3G | médiane **3,33 s** en « Fast 3G » | **Écart** de 0,33 s, expliqué ; suite : #46 |
+| BNF-5 Performance | Moyenne | liste des créneaux en moins de 3 s, téléphone d'entrée de gamme, 3G | médiane **1,75 s** en « Fast 3G » (3,33 s avant #46) | **Passe** depuis #46 (liste calculée par le serveur) |
 | BNF-6 Maintenabilité | Moyenne | code en modules ; règles de réservation couvertes par des tests | découpe en modules relue ; règles de réservation couvertes (SQL, 100 % des lignes de `lib/` qui les appliquent) | **Passe** ; écart app pro comblé par #47, reste 1 écart mineur (site) |
 | BNF-7 Portabilité | Basse | navigateur d'ordinateur et Android | Chrome sur ordinateur : automatique, réussi ; Android et navigateur de Sparta : à faire | **En partie**, reste manuel (Sparta) |
 | BNF-8 Compatibilité | Basse | pas d'interopérabilité exigée en v1 | non exigé en v1 | **Sans objet** |
@@ -222,9 +222,24 @@ cahier :
   1,44 Mb/s, montant 675 kb/s, latence 562,5 ms). C'est le seul profil qui
   compte pour le verdict.
 
-| Préchauffage | Mesures (ms) | Médiane | Seuil 3 s |
-| --- | --- | --- | --- |
-| 439 ms | 3 288, 3 288, 3 342, 3 377, 3 327 | **3,33 s** | **dépassé de 0,33 s** |
+| Date | Version | Préchauffage | Mesures (ms) | Médiane | Seuil 3 s |
+| --- | --- | --- | --- | --- | --- |
+| 2026-10-25 | liste rendue par React (#12) | 439 ms | 3 288, 3 288, 3 342, 3 377, 3 327 | **3,33 s** | dépassé de 0,33 s |
+| 2026-10-31 | même version, nouvelle mesure | — | 3 368 à 3 551 | **3,43 s** | dépassé de 0,43 s |
+| 2026-10-31 | **liste calculée par le serveur (#46)** | 1 514 ms | 1 720, 1 723, 1 753, 1 756, 2 225 | **1,75 s** | **tenu** (1,25 s de marge) |
+
+**Verdict : BNF-5 passe** depuis #46 (PR #116, `806d05c`).
+
+- **Ce que #46 a changé** (option A de Sparta) : la coquille de l'écran 2
+  reste statique, mais la liste des créneaux est lue par le serveur à chaque
+  visite et part dans le même HTML (`ensureStatic = "shell"`, `<Suspense>`).
+  Les heures sont des liens vers l'écran 3, utilisables avant le JavaScript.
+  JavaScript chargé avant la première heure : 17 Ko au lieu de 150 Ko. Le
+  script de préchargement des créneaux a été retiré.
+- **Préchauffage** : 1,5 s après le déploiement (fonction serveur « à
+  froid ») ; non compté, comme avant.
+
+Analyse d'avant #46, conservée :
 
 - **Où passe le temps** (Fast 3G) : HTML complet à 0,67 s ; ensuite 142 Ko de
   JavaScript (compressé) à charger et à exécuter avec le processeur ralenti,
@@ -235,9 +250,8 @@ cahier :
 - **Écart expliqué** : avec 562,5 ms de latence par aller-retour, chaque
   ressource JavaScript coûte cher ; la liste dépend de l'exécution de React.
   BNF-5 n'est pas tenu en 3G.
-- **Suite : issue #46** (décision de Sparta) : afficher la liste dès le HTML
-  (rendu côté serveur à la demande, ou liste préremplie par le script de
-  préchargement sans attendre React), réduire le JavaScript de l'écran 2.
+- **Suite : issue #46** (décision de Sparta) : afficher la liste dès le HTML.
+  Fait : voir le tableau ci-dessus.
 - **Diagnostic seulement** : le script a aussi un profil
   `--profil=lighthouse` (150 ms de latence), utile pour isoler l'effet de la
   latence ; il ne change pas le verdict ci-dessus.
