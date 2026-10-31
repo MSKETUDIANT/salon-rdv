@@ -331,6 +331,7 @@ export type Database = {
           id: string
           nom: string
           pas_creneau_minutes: number
+          photo: string | null
         }
         Insert: {
           adresse?: string | null
@@ -339,6 +340,7 @@ export type Database = {
           id?: string
           nom: string
           pas_creneau_minutes?: number
+          photo?: string | null
         }
         Update: {
           adresse?: string | null
@@ -347,6 +349,7 @@ export type Database = {
           id?: string
           nom?: string
           pas_creneau_minutes?: number
+          photo?: string | null
         }
         Relationships: []
       }
@@ -412,6 +415,12 @@ export type Database = {
           coiffeur_id: string
           debut: string
           fin: string
+        }[]
+      }
+      definir_photo_salon: {
+        Args: { p_chemin: string; p_salon: string }
+        Returns: {
+          ancienne_photo: string
         }[]
       }
       historique: {
