@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Bouton } from "@/components/ui/bouton";
 import { Champ } from "@/components/ui/champ";
 import { lienSecondaire } from "@/components/ui/styles";
+import { seDeconnecter, suivreCompte } from "@/lib/compte";
 import { codeValide, emailValide, envoyerCode, validerCode } from "@/lib/reservation";
 import type { createClient } from "@/lib/supabase/client";
 
@@ -18,13 +19,7 @@ export type EtapeConnexion = "email" | "code";
 export function useCompte(supabase: Client): string | null | undefined {
   const [compte, setCompte] = useState<string | null | undefined>(undefined);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setCompte(data.session?.user.email ?? null));
-    const { data } = supabase.auth.onAuthStateChange((_evenement, session) =>
-      setCompte(session?.user.email ?? null),
-    );
-    return () => data.subscription.unsubscribe();
-  }, [supabase]);
+  useEffect(() => suivreCompte(supabase, setCompte), [supabase]);
 
   return compte;
 }
@@ -169,7 +164,7 @@ export function CompteConnecte({ supabase, compte }: { supabase: Client; compte:
       </p>
       <button
         type="button"
-        onClick={() => supabase.auth.signOut()}
+        onClick={() => seDeconnecter(supabase)}
         className={lienSecondaire}
       >
         Changer de compte

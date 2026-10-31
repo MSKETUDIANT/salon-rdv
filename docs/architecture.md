@@ -86,8 +86,8 @@ Supabase :
   sert à plusieurs (exemple : `features/planning/elements_planning.dart`) est
   exporté par un seul fichier.
 
-Exception connue : le bouton de déconnexion du site appelle
-`supabase.auth.signOut()` depuis `components/connexion/connexion-code.tsx`.
+Le compte connecté du site (lecture de la session, déconnexion) passe aussi
+par `lib/compte.ts` depuis #119 : aucun composant n'appelle Supabase.
 
 ### 4. Patron Dépôt dans l'app pro
 
@@ -125,7 +125,7 @@ aujourd'hui.
 
 ## Points faibles
 
-Corrigés par #110 :
+Corrigés par #110 (et #119 pour la règle 3 côté site) :
 
 - La règle « annulable » était écrite deux fois (`mes_reservations()` et
   `annuler_reservation()`) : elle est maintenant dans
@@ -140,7 +140,6 @@ Corrigés par #110 :
 
 Restent connus :
 
-- La déconnexion du site appelle Supabase depuis un composant (règle 3).
 - Certaines vérifications sont faites aussi dans les applications pour le
   confort (créneau passé, champs requis). Elles doivent rester alignées sur
   la base, qui fait foi.
