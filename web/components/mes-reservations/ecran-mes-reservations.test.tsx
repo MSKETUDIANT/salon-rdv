@@ -134,6 +134,23 @@ describe("EcranMesReservations", () => {
       ),
     ).toBeTruthy();
     expect(within(aVenir).queryByRole("button", { name: "Annuler la réservation" })).toBeNull();
+    // Sans numéro du salon : pas de lien d'appel.
+    expect(within(aVenir).queryByRole("link", { name: /Appeler le salon/ })).toBeNull();
+  });
+
+  it("délai passé et numéro du salon (issue 129) : lien pour appeler", async () => {
+    lignes = [ligne("r1", "2030-01-08T09:00:00Z", "confirmee", false)];
+    render(
+      <EcranMesReservations
+        salonId="s1"
+        fuseau="Africa/Tunis"
+        delaiAnnulation={120}
+        telephone="71 234 567"
+      />,
+    );
+    const aVenir = await screen.findByRole("region", { name: "À venir" });
+    const lien = within(aVenir).getByRole("link", { name: "Appeler le salon au 71 234 567" });
+    expect(lien.getAttribute("href")).toBe("tel:71234567");
   });
 
   it("annulable malgré un délai réglé : bouton, pas de message", async () => {

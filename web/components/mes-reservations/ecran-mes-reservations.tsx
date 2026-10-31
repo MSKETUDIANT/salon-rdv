@@ -10,6 +10,8 @@ import { Bouton } from "@/components/ui/bouton";
 import { BoutonLien } from "@/components/ui/bouton-lien";
 import { LienRetour } from "@/components/ui/lien-retour";
 import { Carte } from "@/components/ui/carte";
+import { lienSecondaire } from "@/components/ui/styles";
+import { lienTelephone } from "@/lib/accueil";
 import { formatDuree, formatPrix } from "@/lib/format";
 import {
   annuler,
@@ -27,14 +29,17 @@ import { createClient } from "@/lib/supabase/client";
 // réservations à venir avec confirmation. Connexion par code e-mail sur le
 // même écran si besoin.
 // delaiAnnulation : délai minimum d'annulation du salon, en minutes (issue 118).
+// telephone : numéro du salon, proposé quand le délai est passé (issue 129).
 export function EcranMesReservations({
   salonId,
   fuseau,
   delaiAnnulation = 0,
+  telephone = null,
 }: {
   salonId: string;
   fuseau: string;
   delaiAnnulation?: number;
+  telephone?: string | null;
 }) {
   const [supabase] = useState(createClient);
   const compte = useCompte(supabase);
@@ -57,6 +62,7 @@ export function EcranMesReservations({
             salonId={salonId}
             fuseau={fuseau}
             delaiAnnulation={delaiAnnulation}
+            telephone={telephone}
           />
         </>
       ) : (
@@ -77,11 +83,13 @@ function Reservations({
   salonId,
   fuseau,
   delaiAnnulation,
+  telephone,
 }: {
   supabase: Client;
   salonId: string;
   fuseau: string;
   delaiAnnulation: number;
+  telephone: string | null;
 }) {
   // undefined : en cours de lecture ; null : erreur.
   const [reservations, setReservations] = useState<MaReservation[] | null | undefined>(undefined);
@@ -148,6 +156,7 @@ function Reservations({
                   fuseau={fuseau}
                   maintenant={maintenant}
                   delaiAnnulation={delaiAnnulation}
+                  telephone={telephone}
                   supabase={supabase}
                   onAnnulee={(message) => {
                     setAnnulee(message);
@@ -185,6 +194,7 @@ function CarteReservation({
   fuseau,
   maintenant,
   delaiAnnulation = 0,
+  telephone = null,
   supabase,
   onAnnulee,
 }: {
@@ -192,6 +202,7 @@ function CarteReservation({
   fuseau: string;
   maintenant: Date;
   delaiAnnulation?: number;
+  telephone?: string | null;
   supabase?: Client;
   onAnnulee?: (message: string) => void;
 }) {
@@ -248,9 +259,20 @@ function CarteReservation({
 
       {/* Délai d'annulation passé (issue 118) : le message remplace « Annuler ». */}
       {messageDelaiPasse(reservation, maintenant, delaiAnnulation) && (
-        <p className="text-base text-texte-secondaire">
-          {messageDelaiPasse(reservation, maintenant, delaiAnnulation)}
-        </p>
+        <div className="flex flex-col items-start gap-1">
+          <p className="text-base text-texte-secondaire">
+            {messageDelaiPasse(reservation, maintenant, delaiAnnulation)}
+          </p>
+          {telephone && (
+            <a
+              href={lienTelephone(telephone)}
+              aria-label={`Appeler le salon au ${telephone}`}
+              className={lienSecondaire}
+            >
+              Appeler le salon
+            </a>
+          )}
+        </div>
       )}
 
       {reservation.annulable && supabase && (

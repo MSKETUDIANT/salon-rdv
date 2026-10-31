@@ -12,6 +12,7 @@ import '../gerant/ecran_delai_annulation.dart';
 import '../gerant/ecran_equipe.dart';
 import '../gerant/ecran_photo_salon.dart';
 import '../gerant/ecran_prestations.dart';
+import '../gerant/ecran_telephone_salon.dart';
 import '../historique/ecran_historique.dart';
 import 'ecran_mes_infos.dart';
 import 'ecran_mot_de_passe.dart';
@@ -66,16 +67,18 @@ class _OngletSalonGerantState extends State<OngletSalonGerant> {
       salon.prestations(),
       salon.coiffeurs(),
       planning.periode(lundi, lundi.add(const Duration(days: 6))),
+      salon.horairesOuverture(),
     ]);
     final identite = resultats[0] as IdentiteSalon;
     final semaine = resultats[3] as DonneesPlanning;
     return _ResumeSalon(
       nom: identite.nom,
       adresse: identite.adresse,
+      telephone: identite.telephone,
       photo: identite.photo,
       delaiAnnulation: identite.delaiAnnulationMinutes,
       jour: jour,
-      ouverture: horairesDuSalon(semaine.plages),
+      ouverture: resultats[4] as Map<int, (TimeOfDay, TimeOfDay)>,
       prestations: (resultats[1] as List<Prestation>)
           .where((p) => p.active)
           .length,
@@ -119,6 +122,8 @@ class _OngletSalonGerantState extends State<OngletSalonGerant> {
                   const SizedBox(height: Espaces.s2),
                   if (r.adresse case final adresse? when adresse.isNotEmpty)
                     _Info(icone: Icons.place_outlined, texte: adresse),
+                  if (r.telephone case final telephone?)
+                    _Info(icone: Icons.call_outlined, texte: telephone),
                   _Info(
                     icone: Icons.schedule,
                     texte: aujourdhui == null
@@ -173,6 +178,27 @@ class _OngletSalonGerantState extends State<OngletSalonGerant> {
                       }
                     },
                   ),
+                  // Téléphone affiché sur le site (#129, option A).
+                  _Ligne(
+                    icone: Icons.call_outlined,
+                    titre: 'Téléphone',
+                    aDroite: r.telephone ?? 'Aucun',
+                    surAppui: () async {
+                      await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) => EcranTelephoneSalon(
+                            salon: salon,
+                            telephone: r.telephone,
+                          ),
+                        ),
+                      );
+                      if (mounted) {
+                        setState(() {
+                          _version++;
+                        });
+                      }
+                    },
+                  ),
                   // Photo du bandeau de l'accueil (#105, option 2a).
                   _Ligne(
                     icone: Icons.photo_outlined,
@@ -206,6 +232,7 @@ class _ResumeSalon {
   const _ResumeSalon({
     required this.nom,
     required this.adresse,
+    required this.telephone,
     required this.photo,
     required this.delaiAnnulation,
     required this.jour,
@@ -217,6 +244,8 @@ class _ResumeSalon {
   });
   final String nom;
   final String? adresse;
+  // Téléphone du salon (#129), null : aucun.
+  final String? telephone;
   // Adresse publique de la photo du salon (#105), null : image par défaut.
   final String? photo;
   // Délai minimum d'annulation en minutes (#118).
@@ -227,26 +256,6 @@ class _ResumeSalon {
   final int coiffeurs;
   final int rendezVousSemaine;
   final int aEncaisser;
-}
-
-// Horaires du salon déduits de ceux des coiffeurs (#81, option A) : pour
-// chaque jour (1 = lundi), de la première arrivée au dernier départ. Jour
-// absent : fermé.
-Map<int, (TimeOfDay, TimeOfDay)> horairesDuSalon(List<PlageCoiffeur> plages) {
-  final jours = <int, (int, int)>{};
-  for (final p in plages) {
-    final d = p.plage.debut.hour * 60 + p.plage.debut.minute;
-    final f = p.plage.fin.hour * 60 + p.plage.fin.minute;
-    final actuel = jours[p.plage.jour];
-    jours[p.plage.jour] = actuel == null
-        ? (d, f)
-        : (actuel.$1 < d ? actuel.$1 : d, actuel.$2 > f ? actuel.$2 : f);
-  }
-  TimeOfDay heure(int m) => TimeOfDay(hour: m ~/ 60, minute: m % 60);
-  return {
-    for (final MapEntry(key: j, value: (d, f)) in jours.entries)
-      j: (heure(d), heure(f)),
-  };
 }
 
 // Semaine, un groupe de jours aux mêmes horaires par ligne (comme Google

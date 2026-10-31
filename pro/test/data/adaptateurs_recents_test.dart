@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:salon_pro/data/planning.dart';
 import 'package:salon_pro/data/salon.dart';
@@ -206,6 +207,57 @@ void main() {
         });
       },
     );
+
+    test(
+      "téléphone (#129) : lu avec l'identité, réglé par la fonction",
+      () async {
+        api.repondre('GET', 'salons', {
+          'nom': 'Salon de démo',
+          'adresse': null,
+          'telephone': '71 234 567',
+          'photo': null,
+          'delai_annulation_minutes': 0,
+        });
+        expect((await salon.identite()).telephone, '71 234 567');
+
+        api.repondre('POST', 'rpc/definir_telephone_salon', [
+          {'telephone': '+216 71 234 567'},
+        ]);
+        await salon.definirTelephone('+216 71 234 567');
+        expect(corps('rpc/definir_telephone_salon'), {
+          'p_salon': salonId,
+          'p_telephone': '+216 71 234 567',
+        });
+      },
+    );
+
+    test('téléphone refusé par la base (PT400) : message du champ', () async {
+      api.refuser('POST', 'rpc/definir_telephone_salon', 'PT400');
+      await expectLater(
+        salon.definirTelephone('12'),
+        throwsA(
+          isA<ErreurSalon>().having(
+            (e) => e.message,
+            'message',
+            messageTelephoneInvalide,
+          ),
+        ),
+      );
+    });
+
+    test("horaires d'ouverture (#129) : lus par horaires_du_salon", () async {
+      api.repondre('POST', 'rpc/horaires_du_salon', [
+        {'jour_semaine': 1, 'ouverture': '09:00:00', 'fermeture': '19:00:00'},
+        {'jour_semaine': 6, 'ouverture': '10:00:00', 'fermeture': '18:30:00'},
+      ]);
+      final ouverture = await salon.horairesOuverture();
+      expect(corps('rpc/horaires_du_salon'), {'p_salon': salonId});
+      expect(ouverture.keys, [1, 6]);
+      expect(ouverture[6], (
+        const TimeOfDay(hour: 10, minute: 0),
+        const TimeOfDay(hour: 18, minute: 30),
+      ));
+    });
 
     test(
       'changer la photo : envoi, enregistrement, ancien fichier supprimé',

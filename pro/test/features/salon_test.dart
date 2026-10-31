@@ -12,7 +12,7 @@ import '../doublures/faux_planning.dart';
 import '../doublures/faux_salon.dart';
 
 // Onglet « Salon » du gérant (#81) : identité du salon (nom, adresse,
-// horaires déduits de ceux des coiffeurs), listes à icônes avec un chiffre.
+// horaires d'ouverture lus dans la base, #129), listes à icônes avec un chiffre.
 
 late FauxPlanning planning;
 
@@ -39,10 +39,22 @@ void main() {
   testWidgets('identité : nom, adresse, horaires du jour et de la semaine', (
     tester,
   ) async {
-    await ouvrir(tester);
+    // Horaires d'ouverture lus dans la base (horaires_du_salon, #129) ;
+    // lundi 7 janvier : Amira 09:00-18:00, Youssef 10:00-19:00.
+    final salon = FauxSalon()
+      ..ouverture = {
+        1: (
+          const TimeOfDay(hour: 9, minute: 0),
+          const TimeOfDay(hour: 19, minute: 0),
+        ),
+        3: (
+          const TimeOfDay(hour: 9, minute: 0),
+          const TimeOfDay(hour: 18, minute: 0),
+        ),
+      };
+    await ouvrir(tester, salon: salon);
     expect(find.text('Salon de démo'), findsOneWidget);
     expect(find.text('1 rue de la Coupe'), findsOneWidget);
-    // Lundi 7 janvier : Amira 09:00-18:00, Youssef 10:00-19:00.
     expect(find.text("Ouvert aujourd'hui · 09:00 – 19:00"), findsOneWidget);
     expect(
       find.text(
@@ -104,18 +116,15 @@ void main() {
     expect(find.byType(EcranEquipe), findsOneWidget);
   });
 
+  // Horaires d'ouverture calculés par la base (horaires_du_salon, #129) ;
+  // ici, seulement leur résumé.
   test('horaires : jours consécutifs identiques regroupés', () {
-    Plage plage(int jour, int h1, int h2) => Plage(
-      id: 'p$jour$h1',
-      jour: jour,
-      debut: TimeOfDay(hour: h1, minute: 0),
-      fin: TimeOfDay(hour: h2, minute: 0),
-    );
-    final ouverture = horairesDuSalon([
-      for (var j = 2; j <= 6; j++)
-        PlageCoiffeur(coiffeurId: 'c1', plage: plage(j, 9, 19)),
-      PlageCoiffeur(coiffeurId: 'c2', plage: plage(1, 10, 18)),
-    ]);
+    (TimeOfDay, TimeOfDay) plage(int h1, int h2) =>
+        (TimeOfDay(hour: h1, minute: 0), TimeOfDay(hour: h2, minute: 0));
+    final ouverture = {
+      1: plage(10, 18),
+      for (var j = 2; j <= 6; j++) j: plage(9, 19),
+    };
     expect(resumeHoraires(ouverture).split('\n'), [
       'Lun 10:00 – 18:00',
       'Mar–Sam 09:00 – 19:00',
