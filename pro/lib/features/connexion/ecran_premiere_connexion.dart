@@ -143,9 +143,10 @@ class _EcranPremiereConnexionState extends State<EcranPremiereConnexion> {
             if (!_codeEnvoye) ...[
               Text(
                 // Espaces insécables : « à 6 chiffres » ne se coupe pas.
-                'Votre gérant vous a ajouté à l\'équipe ? Saisissez '
-                'l\'adresse e-mail de l\'invitation : vous recevrez un code '
-                'à 6 chiffres pour créer votre mot de passe.',
+                // Sans accord au masculin ni au féminin.
+                "Vous rejoignez l'équipe du salon ? Saisissez l'adresse "
+                "e-mail de l'invitation : vous recevrez un code à 6 chiffres "
+                'pour créer votre mot de passe.',
                 style: textes.bodyLarge,
               ),
               const SizedBox(height: Espaces.s6),

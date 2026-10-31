@@ -182,17 +182,16 @@ class _EcranConnexionState extends State<EcranConnexion> {
         ),
         // Coiffeur invité par le gérant (#145) : sous le bouton principal,
         // comme « Pas encore de compte ? » dans les grandes applications.
-        const SizedBox(height: Espaces.s4),
-        Wrap(
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text("Nouveau dans l'équipe ?", style: textes.bodyLarge),
-            TextButton(
-              onPressed: _premiereConnexion,
-              child: const Text('Première connexion'),
-            ),
-          ],
+        // Texte et lien alignés à gauche, l'un sous l'autre, comme « Mot de
+        // passe oublié ? » (sur une ligne, ils ne tiennent pas à 360 px).
+        const SizedBox(height: Espaces.s6),
+        Text("Nouveau dans l'équipe ?", style: textes.bodyLarge),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: _premiereConnexion,
+            child: const Text('Première connexion'),
+          ),
         ),
       ],
     );

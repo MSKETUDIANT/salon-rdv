@@ -84,9 +84,10 @@ class _EcranInviterCoiffeurState extends State<EcranInviterCoiffeur> {
         child: ListeCharte(
           enfants: [
             Text(
-              "Le coiffeur ouvre ensuite l'app sur son téléphone et choisit "
-              '« Première connexion » avec cette adresse : il reçoit un code '
-              'et crée son mot de passe.',
+              // Sans genre : la personne invitée peut être une coiffeuse.
+              "Ensuite, dans l'app, « Première connexion » avec cette "
+              'adresse : un code est envoyé par e-mail pour créer le mot de '
+              'passe.',
               style: textes.bodyLarge,
             ),
             const SizedBox(height: Espaces.s6),
