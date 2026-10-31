@@ -37,6 +37,15 @@ String formatDuree(int minutes) {
       : '$heures h ${reste.toString().padLeft(2, '0')}';
 }
 
+// Délai minimum d'annulation (#118) : « Jusqu'au rendez-vous », « 2 h
+// avant », « 30 min avant ».
+String formatDelaiAnnulation(int minutes) =>
+    minutes == 0 ? "Jusqu'au rendez-vous" : '${formatDuree(minutes)} avant';
+
+// Même délai, version courte pour une ligne de liste : « Sans délai ».
+String formatDelaiCourt(int minutes) =>
+    minutes == 0 ? 'Sans délai' : '${formatDuree(minutes)} avant';
+
 // « 09:00 ».
 String formatHeure(TimeOfDay h) =>
     '${h.hour.toString().padLeft(2, '0')}:${h.minute.toString().padLeft(2, '0')}';

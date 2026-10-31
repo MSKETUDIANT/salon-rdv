@@ -327,6 +327,7 @@ export type Database = {
         Row: {
           adresse: string | null
           created_at: string
+          delai_annulation_minutes: number
           fuseau_horaire: string
           id: string
           nom: string
@@ -336,6 +337,7 @@ export type Database = {
         Insert: {
           adresse?: string | null
           created_at?: string
+          delai_annulation_minutes?: number
           fuseau_horaire?: string
           id?: string
           nom: string
@@ -345,6 +347,7 @@ export type Database = {
         Update: {
           adresse?: string | null
           created_at?: string
+          delai_annulation_minutes?: number
           fuseau_horaire?: string
           id?: string
           nom?: string
@@ -415,6 +418,12 @@ export type Database = {
           coiffeur_id: string
           debut: string
           fin: string
+        }[]
+      }
+      definir_delai_annulation: {
+        Args: { p_minutes: number; p_salon: string }
+        Returns: {
+          delai_annulation_minutes: number
         }[]
       }
       definir_photo_salon: {

@@ -15,6 +15,7 @@ import {
   annuler,
   libelleStatut,
   lireMesReservations,
+  messageDelaiPasse,
   separer,
   type MaReservation,
   type ResultatAnnulation,
@@ -25,7 +26,16 @@ import { createClient } from "@/lib/supabase/client";
 // « Mes réservations » (BF-C6) : à venir et historique, annulation des
 // réservations à venir avec confirmation. Connexion par code e-mail sur le
 // même écran si besoin.
-export function EcranMesReservations({ salonId, fuseau }: { salonId: string; fuseau: string }) {
+// delaiAnnulation : délai minimum d'annulation du salon, en minutes (issue 118).
+export function EcranMesReservations({
+  salonId,
+  fuseau,
+  delaiAnnulation = 0,
+}: {
+  salonId: string;
+  fuseau: string;
+  delaiAnnulation?: number;
+}) {
   const [supabase] = useState(createClient);
   const compte = useCompte(supabase);
 
@@ -41,7 +51,13 @@ export function EcranMesReservations({ salonId, fuseau }: { salonId: string; fus
         <>
           <CompteConnecte supabase={supabase} compte={compte} />
           {/* key : relit tout au changement de compte. */}
-          <Reservations key={compte} supabase={supabase} salonId={salonId} fuseau={fuseau} />
+          <Reservations
+            key={compte}
+            supabase={supabase}
+            salonId={salonId}
+            fuseau={fuseau}
+            delaiAnnulation={delaiAnnulation}
+          />
         </>
       ) : (
         <FormulaireConnexion
@@ -60,10 +76,12 @@ function Reservations({
   supabase,
   salonId,
   fuseau,
+  delaiAnnulation,
 }: {
   supabase: Client;
   salonId: string;
   fuseau: string;
+  delaiAnnulation: number;
 }) {
   // undefined : en cours de lecture ; null : erreur.
   const [reservations, setReservations] = useState<MaReservation[] | null | undefined>(undefined);
@@ -129,6 +147,7 @@ function Reservations({
                   reservation={r}
                   fuseau={fuseau}
                   maintenant={maintenant}
+                  delaiAnnulation={delaiAnnulation}
                   supabase={supabase}
                   onAnnulee={(message) => {
                     setAnnulee(message);
@@ -165,12 +184,14 @@ function CarteReservation({
   reservation,
   fuseau,
   maintenant,
+  delaiAnnulation = 0,
   supabase,
   onAnnulee,
 }: {
   reservation: MaReservation;
   fuseau: string;
   maintenant: Date;
+  delaiAnnulation?: number;
   supabase?: Client;
   onAnnulee?: (message: string) => void;
 }) {
@@ -224,6 +245,13 @@ function CarteReservation({
           </div>
         ))}
       </dl>
+
+      {/* Délai d'annulation passé (issue 118) : le message remplace « Annuler ». */}
+      {messageDelaiPasse(reservation, maintenant, delaiAnnulation) && (
+        <p className="text-base text-texte-secondaire">
+          {messageDelaiPasse(reservation, maintenant, delaiAnnulation)}
+        </p>
+      )}
 
       {reservation.annulable && supabase && (
         <div className="flex flex-col items-start gap-3">

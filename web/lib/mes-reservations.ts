@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { formatDuree } from "@/lib/format";
 
 // « Mes réservations » (#7, BF-C6) : fonctions SQL mes_reservations et
 // annuler_reservation, qui ne portent que sur le client connecté (BNF-3).
@@ -49,6 +50,19 @@ export function separer(
   );
   const historique = reservations.filter((r) => !aVenir.includes(r)).reverse();
   return { aVenir, historique };
+}
+
+// Délai d'annulation du salon passé (#118) : réservation à venir, plus
+// annulable. Message à la place du bouton « Annuler » ; null sinon (la base
+// décide, `annulable` ; le délai ne sert qu'au texte).
+export function messageDelaiPasse(
+  reservation: MaReservation,
+  maintenant: Date,
+  delaiMinutes: number,
+): string | null {
+  const aVenir = reservation.statut === "confirmee" && new Date(reservation.debut) > maintenant;
+  if (!aVenir || reservation.annulable || delaiMinutes <= 0) return null;
+  return `Annulation possible jusqu'à ${formatDuree(delaiMinutes)} avant le rendez-vous. Contactez le salon.`;
 }
 
 // Une réservation confirmée dont l'heure est passée n'a pas encore été

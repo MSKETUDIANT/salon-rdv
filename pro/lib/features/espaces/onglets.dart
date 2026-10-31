@@ -8,6 +8,7 @@ import '../../ui/chargement.dart';
 import '../../ui/charte.dart';
 import '../../ui/composants.dart';
 import '../../ui/format.dart';
+import '../gerant/ecran_delai_annulation.dart';
 import '../gerant/ecran_equipe.dart';
 import '../gerant/ecran_photo_salon.dart';
 import '../gerant/ecran_prestations.dart';
@@ -66,13 +67,13 @@ class _OngletSalonGerantState extends State<OngletSalonGerant> {
       salon.coiffeurs(),
       planning.periode(lundi, lundi.add(const Duration(days: 6))),
     ]);
-    final identite =
-        resultats[0] as ({String nom, String? adresse, String? photo});
+    final identite = resultats[0] as IdentiteSalon;
     final semaine = resultats[3] as DonneesPlanning;
     return _ResumeSalon(
       nom: identite.nom,
       adresse: identite.adresse,
       photo: identite.photo,
+      delaiAnnulation: identite.delaiAnnulationMinutes,
       jour: jour,
       ouverture: horairesDuSalon(semaine.plages),
       prestations: (resultats[1] as List<Prestation>)
@@ -154,6 +155,24 @@ class _OngletSalonGerantState extends State<OngletSalonGerant> {
                         : '${r.coiffeurs} coiffeurs',
                     surAppui: () => ouvrir(EcranEquipe(salon: salon)),
                   ),
+                  // Délai minimum d'annulation des clients (#118, option 1A).
+                  _Ligne(
+                    icone: Icons.event_busy_outlined,
+                    titre: 'Annulation',
+                    aDroite: formatDelaiCourt(r.delaiAnnulation),
+                    surAppui: () async {
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => EcranDelaiAnnulation(salon: salon),
+                        ),
+                      );
+                      if (mounted) {
+                        setState(() {
+                          _version++;
+                        });
+                      }
+                    },
+                  ),
                   // Photo du bandeau de l'accueil (#105, option 2a).
                   _Ligne(
                     icone: Icons.photo_outlined,
@@ -188,6 +207,7 @@ class _ResumeSalon {
     required this.nom,
     required this.adresse,
     required this.photo,
+    required this.delaiAnnulation,
     required this.jour,
     required this.ouverture,
     required this.prestations,
@@ -199,6 +219,8 @@ class _ResumeSalon {
   final String? adresse;
   // Adresse publique de la photo du salon (#105), null : image par défaut.
   final String? photo;
+  // Délai minimum d'annulation en minutes (#118).
+  final int delaiAnnulation;
   final DateTime jour;
   final Map<int, (TimeOfDay, TimeOfDay)> ouverture;
   final int prestations;
@@ -658,25 +680,35 @@ class _Ligne extends StatelessWidget {
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: Couleurs.separateur)),
           ),
-          child: Row(
-            children: [
-              Icon(icone, color: Couleurs.texteSecondaire),
-              const SizedBox(width: Espaces.s3),
-              Expanded(child: Text(titre, style: textes.bodyLarge)),
-              Text(
-                aDroite,
-                style: accent
-                    ? textes.labelLarge!.copyWith(
-                        color: CouleursStatut.aCloturerTexte,
-                      )
-                    : textes.bodySmall,
-              ),
-              if (surAppui != null)
-                const Icon(
-                  Icons.chevron_right,
-                  color: Couleurs.texteSecondaire,
+          child: LayoutBuilder(
+            builder: (context, contraintes) => Row(
+              children: [
+                Icon(icone, color: Couleurs.texteSecondaire),
+                const SizedBox(width: Espaces.s3),
+                Expanded(child: Text(titre, style: textes.bodyLarge)),
+                // Collé au chevron ; au-delà de la moitié de la ligne (grande
+                // police), passe à la ligne plutôt que de déborder.
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: contraintes.maxWidth / 2,
+                  ),
+                  child: Text(
+                    aDroite,
+                    textAlign: TextAlign.end,
+                    style: accent
+                        ? textes.labelLarge!.copyWith(
+                            color: CouleursStatut.aCloturerTexte,
+                          )
+                        : textes.bodySmall,
+                  ),
                 ),
-            ],
+                if (surAppui != null)
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Couleurs.texteSecondaire,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

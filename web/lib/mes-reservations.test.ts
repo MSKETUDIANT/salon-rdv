@@ -3,6 +3,7 @@ import {
   annuler,
   libelleStatut,
   lireMesReservations,
+  messageDelaiPasse,
   separer,
   type MaReservation,
 } from "@/lib/mes-reservations";
@@ -105,5 +106,24 @@ describe("annuler", () => {
     expect(await annuler(client({ error: { code: "PT404" } }), "r1")).toBe("impossible");
     expect(await annuler(client({ error: { code: "PT401" } }), "r1")).toBe("deconnecte");
     expect(await annuler(client({ error: { code: "500" } }), "r1")).toBe("erreur");
+  });
+});
+
+describe("messageDelaiPasse (#118)", () => {
+  const futur = reservation("r1", "2026-10-26T12:00:00Z", "confirmee");
+  it("à venir, plus annulable, délai réglé : le message", () => {
+    expect(messageDelaiPasse({ ...futur, annulable: false }, maintenant, 120)).toBe(
+      "Annulation possible jusqu'à 2 h avant le rendez-vous. Contactez le salon.",
+    );
+  });
+  it("encore annulable, sans délai, passée ou annulée : rien", () => {
+    expect(messageDelaiPasse({ ...futur, annulable: true }, maintenant, 120)).toBeNull();
+    expect(messageDelaiPasse({ ...futur, annulable: false }, maintenant, 0)).toBeNull();
+    expect(
+      messageDelaiPasse(reservation("r2", "2026-10-24T12:00:00Z", "confirmee"), maintenant, 120),
+    ).toBeNull();
+    expect(
+      messageDelaiPasse(reservation("r3", "2026-10-26T12:00:00Z", "annulee"), maintenant, 120),
+    ).toBeNull();
   });
 });
