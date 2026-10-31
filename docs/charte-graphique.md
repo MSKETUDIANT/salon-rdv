@@ -158,6 +158,17 @@ cette photo de démonstration, recadrée en 4:3 de la même façon (centrée,
 `object-cover`). Sans photo du gérant, ou si elle ne se charge pas, la photo
 de démonstration reste affichée.
 
+Depuis #129 (option A de Sparta, comme Planity ou Fresha), l'accueil montre
+aussi ce que le client cherche avant de réserver, sous le titre :
+- l'adresse du salon (icône de repère, texte secondaire), puis le lien
+  secondaire « Itinéraire » aligné sous l'adresse, vers Google Maps ;
+  rien si l'adresse est vide ;
+- après les boutons, la section « Prestations » : les mêmes cartes que
+  l'écran 1 (§7), un toucher mène aux créneaux de la prestation ; rien si
+  aucune prestation n'est active.
+Le bouton principal reste unique. Horaires d'ouverture et téléphone : PR 2
+de #129.
+
 ## 7. Cartes de prestations
 
 - Contenu : nom, durée, prix.
