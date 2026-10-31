@@ -37,7 +37,9 @@ export default defineConfig({
   // Une seule base partagée : les tests s'enchaînent.
   workers: 1,
   timeout: 90_000,
-  reporter: "list",
+  // Liste dans la console, plus un rapport HTML écrit dans playwright-report/
+  // (ignoré par Git) : un échec isolé reste identifiable après coup (issue 142).
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://localhost:${port}`,
     channel: "chrome",
@@ -45,6 +47,10 @@ export default defineConfig({
     isMobile: true,
     hasTouch: true,
     locale: "fr-FR",
+    // En cas d'échec seulement : trace complète (réseau, console, étapes) et
+    // capture, gardées dans test-results/ (issue 142).
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   projects: [
     { name: "clair" },
