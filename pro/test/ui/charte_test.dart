@@ -22,7 +22,11 @@ String hex(Color c) =>
 
 void main() {
   test('mêmes couleurs que le site (web/app/globals.css)', () {
-    final css = File('../web/app/globals.css').readAsStringSync();
+    // Mode clair seulement : les valeurs sombres du site (#21) suivent, dans
+    // le bloc prefers-color-scheme ; l'app pro n'a pas de mode sombre.
+    final fichier = File('../web/app/globals.css').readAsStringSync();
+    final debutSombre = fichier.indexOf('@media (prefers-color-scheme: dark)');
+    final css = debutSombre < 0 ? fichier : fichier.substring(0, debutSombre);
     final jetons = {
       for (final m in RegExp(
         r'--color-([a-z-]+):\s*(#[0-9A-Fa-f]{6})',

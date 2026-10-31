@@ -83,6 +83,15 @@ class IdentiteSalon {
 const messageTelephoneInvalide =
     'Numéro invalide : de 8 à 15 chiffres, avec espaces, points ou tirets.';
 
+// Invitation d'un coiffeur en attente (#145) : il n'a pas encore créé son
+// accès (« Première connexion » dans l'app).
+class Invitation {
+  const Invitation({required this.id, required this.nom, required this.email});
+  final String id;
+  final String nom;
+  final String email;
+}
+
 // Erreur à afficher telle quelle au gérant.
 class ErreurSalon implements Exception {
   const ErreurSalon(this.message);
@@ -106,6 +115,13 @@ abstract interface class DepotSalon {
   Future<void> changerPhoto(Uint8List octets, String type);
   // Retour à l'image par défaut ; le fichier est supprimé.
   Future<void> retirerPhoto();
+  // Équipe (#145, gérant) : invitations en attente ; inviter renvoie true si
+  // un compte existait déjà (coiffeur ajouté tout de suite), false si
+  // l'invitation attend. ErreurSalon : e-mail ou nom invalide, déjà dans
+  // l'équipe.
+  Future<List<Invitation>> invitations();
+  Future<bool> inviterCoiffeur({required String nom, required String email});
+  Future<void> annulerInvitation(String id);
   Future<List<Prestation>> prestations();
   Future<void> creerPrestation({
     required String nom,
@@ -410,6 +426,57 @@ class SalonSupabase implements DepotSalon {
   );
 
   // Noms des coiffeurs : coiffeurs_du_salon() (convention du projet).
+  @override
+  Future<List<Invitation>> invitations() => _appel(() async {
+    final lignes = await _client
+        .from('invitations')
+        .select('id, nom, email')
+        .eq('salon_id', _salonId)
+        .isFilter('acceptee_le', null)
+        .order('created_at');
+    return [
+      for (final l in lignes)
+        Invitation(
+          id: l['id'] as String,
+          nom: l['nom'] as String,
+          email: l['email'] as String,
+        ),
+    ];
+  });
+
+  // Messages de la base pour la saisie (PT400) et « déjà dans l'équipe »
+  // (PT409), affichés tels quels.
+  @override
+  Future<bool> inviterCoiffeur({required String nom, required String email}) =>
+      _appel(() async {
+        try {
+          final lignes =
+              await _client.rpc(
+                    'inviter_coiffeur',
+                    params: {
+                      'p_salon': _salonId,
+                      'p_email': email,
+                      'p_nom': nom,
+                    },
+                  )
+                  as List;
+          return lignes.first['resultat'] == 'ajoute';
+        } on PostgrestException catch (erreur) {
+          switch (erreur.code) {
+            case 'PT400':
+              throw ErreurSalon('${erreur.message}.');
+            case 'PT409':
+              throw const ErreurSalon("Déjà dans l'équipe.");
+          }
+          rethrow;
+        }
+      });
+
+  @override
+  Future<void> annulerInvitation(String id) => _appel(
+    () => _client.rpc('annuler_invitation', params: {'p_invitation': id}),
+  );
+
   @override
   Future<List<Coiffeur>> coiffeurs() => _appel(() async {
     final lignes =

@@ -188,6 +188,49 @@ class FauxSalon implements DepotSalon {
     );
   }
 
+  // Invitations en attente (#145) ; adresses des comptes qui existent déjà
+  // (inviter les ajoute tout de suite à l'équipe).
+  final invitationsEnAttente = <Invitation>[];
+  final comptesExistants = <String, String>{};
+  final actionsInvitation = <String>[];
+
+  @override
+  Future<List<Invitation>> invitations() async => invitationsEnAttente;
+
+  // Mêmes refus que la base : adresse invalide, déjà dans l'équipe.
+  @override
+  Future<bool> inviterCoiffeur({
+    required String nom,
+    required String email,
+  }) async {
+    _echecEventuel();
+    final adresse = email.trim().toLowerCase();
+    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(adresse)) {
+      throw const ErreurSalon('Adresse e-mail invalide.');
+    }
+    final compte = comptesExistants[adresse];
+    if (compte != null) {
+      if (_coiffeurs.any((c) => c.id == compte)) {
+        throw const ErreurSalon("Déjà dans l'équipe.");
+      }
+      _coiffeurs.add(Coiffeur(id: compte, nom: nom));
+      actionsInvitation.add('ajouté $adresse');
+      return true;
+    }
+    invitationsEnAttente
+      ..removeWhere((i) => i.email == adresse)
+      ..add(Invitation(id: 'inv-$adresse', nom: nom, email: adresse));
+    actionsInvitation.add('invité $adresse');
+    return false;
+  }
+
+  @override
+  Future<void> annulerInvitation(String id) async {
+    _echecEventuel();
+    invitationsEnAttente.removeWhere((i) => i.id == id);
+    actionsInvitation.add('annulé $id');
+  }
+
   @override
   Future<List<Coiffeur>> coiffeurs() async {
     final erreur = erreurCoiffeurs;

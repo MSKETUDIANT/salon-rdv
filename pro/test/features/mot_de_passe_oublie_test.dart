@@ -43,6 +43,23 @@ class FausseAuthOubli implements ServiceAuth {
     appels.add('réinitialisation $email $code $nouveau');
     return refusCode;
   }
+
+  // Première connexion (#145) : mêmes refus que le mot de passe oublié.
+  @override
+  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email) async {
+    appels.add('code première connexion $email');
+    return refusEnvoi;
+  }
+
+  @override
+  Future<ErreurOubli?> creerAcces(
+    String email,
+    String code,
+    String motDePasse,
+  ) async {
+    appels.add('accès $email $code $motDePasse');
+    return refusCode;
+  }
 }
 
 late FausseAuthOubli auth;

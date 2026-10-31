@@ -23,6 +23,12 @@ abstract interface class ServiceAuth {
     String code,
     String nouveau,
   );
+  // Première connexion d'un coiffeur invité (#145) : code à 6 chiffres envoyé
+  // à l'adresse (le compte est créé s'il n'existe pas ; la base lui donne le
+  // rôle coiffeur si une invitation l'attend), puis code et mot de passe
+  // choisi (le compte est alors connecté). null si réussi.
+  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email);
+  Future<ErreurOubli?> creerAcces(String email, String code, String motDePasse);
 }
 
 // Refus du parcours « mot de passe oublié ». Jamais de message qui dirait si
@@ -128,6 +134,45 @@ class AuthSupabase implements ServiceAuth {
         type: OtpType.recovery,
       );
       await _client.auth.updateUser(UserAttributes(password: nouveau));
+      return null;
+    } on AuthException catch (erreur) {
+      return erreurOubli(erreur.code);
+    } catch (_) {
+      return ErreurOubli.reseau;
+    }
+  }
+
+  // Même message neutre que le mot de passe oublié : rien ne dit si
+  // l'adresse a une invitation.
+  @override
+  Future<ErreurOubli?> envoyerCodePremiereConnexion(String email) async {
+    try {
+      await _client.auth.signInWithOtp(email: email, shouldCreateUser: true);
+      return null;
+    } on AuthException catch (erreur) {
+      final refus = erreurOubli(erreur.code);
+      return refus == ErreurOubli.tropDeDemandes ? refus : null;
+    } catch (_) {
+      return ErreurOubli.reseau;
+    }
+  }
+
+  // Le code (type email) ouvre la session du compte, puis le mot de passe
+  // choisi est enregistré. La porte affiche alors l'espace, ou « Accès
+  // réservé à l'équipe » sans invitation.
+  @override
+  Future<ErreurOubli?> creerAcces(
+    String email,
+    String code,
+    String motDePasse,
+  ) async {
+    try {
+      await _client.auth.verifyOTP(
+        email: email,
+        token: code,
+        type: OtpType.email,
+      );
+      await _client.auth.updateUser(UserAttributes(password: motDePasse));
       return null;
     } on AuthException catch (erreur) {
       return erreurOubli(erreur.code);
