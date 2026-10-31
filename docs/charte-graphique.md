@@ -134,6 +134,12 @@ toute façon les éléments inactifs du seuil de contraste.
    d'horaires » comme chez Doctolib, qui cache des heures) ; un moment sans
    créneau n'apparaît pas. Survol d'une heure : bordure et chiffres `accent`.
 3. **Confirmation** : récapitulatif (prestation, coiffeur, date, heure, prix).
+   Pendant le chargement (#131) : un squelette à la forme exacte de l'écran
+   plutôt qu'un « Chargement… » seul. Textes connus réels (titre, intitulés du
+   récapitulatif, « Vos coordonnées »), valeurs en barres `separateur`
+   calées sur les hauteurs de ligne ; rien ne saute à l'arrivée du contenu
+   (vérifié au pixel à 360 et 1280 px) ; lu « Chargement de la réservation… » ;
+   pulsation seulement si l'utilisateur n'a pas demandé moins d'animations.
 
 - « Retour » ramène là d'où vient le client (#129, comme Planity ou
   Doctolib) : prestation choisie sur l'accueil → l'écran 2 revient à la liste
