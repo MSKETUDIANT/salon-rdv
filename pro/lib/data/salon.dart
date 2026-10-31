@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -69,8 +70,14 @@ class ErreurSalon implements Exception {
 }
 
 abstract interface class DepotSalon {
-  // Nom et adresse du salon (#81).
-  Future<({String nom, String? adresse})> identite();
+  // Nom et adresse du salon (#81), adresse publique de sa photo (#105, null :
+  // image par défaut).
+  Future<({String nom, String? adresse, String? photo})> identite();
+  // Photo du salon (#105, gérant) : envoi dans l'espace « salons », puis
+  // definir_photo_salon() ; l'ancien fichier est supprimé. type : type MIME.
+  Future<void> changerPhoto(Uint8List octets, String type);
+  // Retour à l'image par défaut ; le fichier est supprimé.
+  Future<void> retirerPhoto();
   Future<List<Prestation>> prestations();
   Future<void> creerPrestation({
     required String nom,
@@ -120,6 +127,22 @@ abstract interface class DepotSalon {
   Future<void> ajouterCompetence(String coiffeurId, String prestationId);
   Future<void> retirerCompetence(String coiffeurId, String prestationId);
 }
+
+// Espace de stockage des photos de salon (migration 20261031000430).
+const espacePhotos = 'salons';
+
+// Adresse publique d'une photo de l'espace « salons », null sans photo.
+String? adressePhoto(SupabaseClient client, String? chemin) => chemin == null
+    ? null
+    : client.storage.from(espacePhotos).getPublicUrl(chemin);
+
+// Refus de l'API Storage à l'envoi d'une photo.
+String messageErreurPhoto(String? statut) => switch (statut) {
+  '413' => 'Photo trop lourde : 5 Mo au plus.',
+  '415' || '400' => 'Format non accepté : JPEG, PNG ou WebP.',
+  '403' || '401' => 'Photo réservée au gérant du salon.',
+  _ => messageErreurInconnue,
+};
 
 // Messages des erreurs renvoyées par la base (codes PostgreSQL).
 // Erreur hors base (#83) : sans réseau, un message clair ; sinon un message
@@ -188,14 +211,71 @@ class SalonSupabase implements DepotSalon {
       _appel(() async => depuisUtc(DateTime.now(), await _fuseauDuSalon()));
 
   @override
-  Future<({String nom, String? adresse})> identite() => _appel(() async {
-    final ligne = await _client
-        .from('salons')
-        .select('nom, adresse')
-        .eq('id', _salonId)
-        .single();
-    return (nom: ligne['nom'] as String, adresse: ligne['adresse'] as String?);
+  Future<({String nom, String? adresse, String? photo})> identite() =>
+      _appel(() async {
+        final ligne = await _client
+            .from('salons')
+            .select('nom, adresse, photo')
+            .eq('id', _salonId)
+            .single();
+        return (
+          nom: ligne['nom'] as String,
+          adresse: ligne['adresse'] as String?,
+          photo: adressePhoto(_client, ligne['photo'] as String?),
+        );
+      });
+
+  // Nom nouveau à chaque envoi : l'ancienne image en cache n'est jamais
+  // resservie. Si l'enregistrement échoue, le fichier envoyé est retiré.
+  @override
+  Future<void> changerPhoto(Uint8List octets, String type) => _appel(() async {
+    final extension = switch (type) {
+      'image/png' => 'png',
+      'image/webp' => 'webp',
+      _ => 'jpg',
+    };
+    final chemin =
+        '$_salonId/${DateTime.now().toUtc().microsecondsSinceEpoch}.$extension';
+    final espace = _client.storage.from(espacePhotos);
+    try {
+      await espace.uploadBinary(
+        chemin,
+        octets,
+        fileOptions: FileOptions(contentType: type),
+      );
+    } on StorageException catch (erreur) {
+      throw ErreurSalon(messageErreurPhoto(erreur.statusCode));
+    }
+    try {
+      await _definirPhoto(chemin);
+    } catch (_) {
+      await espace.remove([chemin]).catchError((_) => <FileObject>[]);
+      rethrow;
+    }
   });
+
+  @override
+  Future<void> retirerPhoto() => _appel(() => _definirPhoto(null));
+
+  // Enregistre le chemin, puis supprime l'ancien fichier (sans bloquer : un
+  // fichier oublié ne gêne pas l'affichage).
+  Future<void> _definirPhoto(String? chemin) async {
+    final lignes =
+        await _client.rpc(
+              'definir_photo_salon',
+              params: {'p_salon': _salonId, 'p_chemin': chemin},
+            )
+            as List;
+    final ancienne = lignes.isEmpty
+        ? null
+        : lignes.first['ancienne_photo'] as String?;
+    if (ancienne != null && ancienne != chemin) {
+      await _client.storage
+          .from(espacePhotos)
+          .remove([ancienne])
+          .catchError((_) => <FileObject>[]);
+    }
+  }
 
   Future<T> _appel<T>(Future<T> Function() action) async {
     try {

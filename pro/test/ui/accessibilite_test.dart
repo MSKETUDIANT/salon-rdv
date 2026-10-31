@@ -16,6 +16,7 @@ import 'package:salon_pro/features/espaces/ecran_mot_de_passe.dart';
 import 'package:salon_pro/features/espaces/onglets.dart';
 import 'package:salon_pro/features/gerant/ecran_coiffeur.dart';
 import 'package:salon_pro/features/gerant/ecran_equipe.dart';
+import 'package:salon_pro/features/gerant/ecran_photo_salon.dart';
 import 'package:salon_pro/features/gerant/ecran_prestations.dart';
 import 'package:salon_pro/features/historique/ecran_historique.dart';
 import 'package:salon_pro/features/planning/ecran_mon_planning.dart';
@@ -126,6 +127,7 @@ void main() {
     'prestations': () => EcranPrestations(salon: FauxSalon()),
     'nouvelle prestation': () => FormulairePrestation(salon: FauxSalon()),
     'équipe': () => EcranEquipe(salon: FauxSalon()),
+    'photo du salon': () => EcranPhotoSalon(salon: FauxSalon()),
     'fiche coiffeur': () => EcranCoiffeur(salon: FauxSalon(), coiffeur: amira),
     'nouvelle absence': () =>
         FormulaireAbsence(salon: FauxSalon(), coiffeur: amira),

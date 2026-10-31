@@ -207,6 +207,9 @@ abstract interface class DepotPlanning {
   String? get moi;
   // Nom du compte connecté (sa ligne utilisateurs), pour « Bonjour Amira ».
   Future<String?> monNom();
+  // Photo du salon pour le bandeau de l'accueil (#105) : adresse publique,
+  // null pour l'image par défaut.
+  Future<String?> photoDuSalon();
   // Mes infos (#106, option A) : le nom seul (policy « modification de sa
   // ligne », colonnes nom et telephone).
   Future<void> modifierMonNom(String nom);
@@ -331,6 +334,16 @@ class PlanningSupabase implements DepotPlanning {
         .eq('id', id)
         .maybeSingle();
     return ligne?['nom'] as String?;
+  });
+
+  @override
+  Future<String?> photoDuSalon() => _appel(() async {
+    final ligne = await _client
+        .from('salons')
+        .select('photo')
+        .eq('id', _salonId)
+        .single();
+    return adressePhoto(_client, ligne['photo'] as String?);
   });
 
   @override

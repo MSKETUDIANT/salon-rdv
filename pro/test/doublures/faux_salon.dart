@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:salon_pro/data/salon.dart';
 import 'package:salon_pro/ui/format.dart';
@@ -48,9 +50,29 @@ class FauxSalon implements DepotSalon {
     if (erreur != null) throw erreur;
   }
 
+  // Adresse de la photo du salon (#105) ; null : image par défaut.
+  String? photo;
+
   @override
-  Future<({String nom, String? adresse})> identite() async =>
-      (nom: 'Salon de démo', adresse: '1 rue de la Coupe');
+  Future<({String nom, String? adresse, String? photo})> identite() async =>
+      (nom: 'Salon de démo', adresse: '1 rue de la Coupe', photo: photo);
+
+  // « photo image/jpeg 3 octets », « photo retirée » (#105).
+  final actionsPhoto = <String>[];
+
+  @override
+  Future<void> changerPhoto(Uint8List octets, String type) async {
+    _echecEventuel();
+    actionsPhoto.add('photo $type ${octets.length} octets');
+    photo = 'https://exemple.test/photo-${actionsPhoto.length}.jpg';
+  }
+
+  @override
+  Future<void> retirerPhoto() async {
+    _echecEventuel();
+    actionsPhoto.add('photo retirée');
+    photo = null;
+  }
 
   @override
   Future<List<Prestation>> prestations() async =>
