@@ -680,29 +680,35 @@ class _Ligne extends StatelessWidget {
           decoration: const BoxDecoration(
             border: Border(bottom: BorderSide(color: Couleurs.separateur)),
           ),
-          child: Row(
-            children: [
-              Icon(icone, color: Couleurs.texteSecondaire),
-              const SizedBox(width: Espaces.s3),
-              Expanded(child: Text(titre, style: textes.bodyLarge)),
-              // Passe à la ligne plutôt que de déborder (grande police).
-              Flexible(
-                child: Text(
-                  aDroite,
-                  textAlign: TextAlign.end,
-                  style: accent
-                      ? textes.labelLarge!.copyWith(
-                          color: CouleursStatut.aCloturerTexte,
-                        )
-                      : textes.bodySmall,
+          child: LayoutBuilder(
+            builder: (context, contraintes) => Row(
+              children: [
+                Icon(icone, color: Couleurs.texteSecondaire),
+                const SizedBox(width: Espaces.s3),
+                Expanded(child: Text(titre, style: textes.bodyLarge)),
+                // Collé au chevron ; au-delà de la moitié de la ligne (grande
+                // police), passe à la ligne plutôt que de déborder.
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: contraintes.maxWidth / 2,
+                  ),
+                  child: Text(
+                    aDroite,
+                    textAlign: TextAlign.end,
+                    style: accent
+                        ? textes.labelLarge!.copyWith(
+                            color: CouleursStatut.aCloturerTexte,
+                          )
+                        : textes.bodySmall,
+                  ),
                 ),
-              ),
-              if (surAppui != null)
-                const Icon(
-                  Icons.chevron_right,
-                  color: Couleurs.texteSecondaire,
-                ),
-            ],
+                if (surAppui != null)
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Couleurs.texteSecondaire,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
