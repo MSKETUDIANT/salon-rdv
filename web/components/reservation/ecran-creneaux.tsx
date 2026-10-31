@@ -18,7 +18,6 @@ import {
   type Jour,
 } from "@/lib/creneaux";
 import { formatDuree, formatPrix } from "@/lib/format";
-import { prendrePrechargement } from "@/lib/precharger-creneaux";
 
 // Résultat d'une lecture, rattaché à sa demande (prestation, coiffeur, essai) :
 // tant que la clé ne correspond pas à la demande en cours, on affiche le
@@ -28,10 +27,27 @@ type Resultat = { cle: string } & (
   | { erreur: false; du: string; creneaux: Creneau[] }
 );
 
+// Créneaux lus par le serveur pour la prestation et le coiffeur de l'URL
+// (#46) : affichés dès le HTML, sans nouvelle lecture.
+export type CreneauxInitiaux = {
+  prestationId: string;
+  coiffeurId: string;
+  du: string;
+  creneaux: Creneau[];
+};
+
 // Écran 2 : bande des jours, créneaux du jour choisi (par défaut, le premier
-// jour disponible), filtre coiffeur (« Peu importe » par défaut, BNF-9). Le catalogue arrive avec la page statique ; seuls les
-// créneaux sont lus au chargement, sans connexion (BF-C1).
-export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
+// jour disponible), filtre coiffeur (« Peu importe » par défaut, BNF-9). La
+// première liste vient du serveur (initiaux, #46) ; un autre coiffeur ou
+// « Réessayer » relit les créneaux depuis le navigateur, sans connexion
+// (BF-C1).
+export function EcranCreneaux({
+  catalogue,
+  initiaux,
+}: {
+  catalogue: Catalogue;
+  initiaux?: CreneauxInitiaux;
+}) {
   const params = useSearchParams();
   const prestationId = params.get("prestation") ?? "";
   const prestation = catalogue.prestations.find((p) => p.id === prestationId);
@@ -41,11 +57,18 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
     return coiffeursCompetents(catalogue, prestationId).some((c) => c.id === demande) ? demande : "";
   });
   const [essai, setEssai] = useState(0);
-  const [resultat, setResultat] = useState<Resultat | null>(null);
   const idFiltre = useId();
-  // Retour de l'écran 3 après un refus (#51) : liste relue, message en tête.
+  // Retour de l'écran 3 après un refus (#51) : liste relue (par le serveur),
+  // message en tête.
   const pris = params.get("pris") === "1";
   const cle = `${prestationId}|${coiffeurId}|${essai}|${pris}`;
+  const [resultat, setResultat] = useState<Resultat | null>(() =>
+    initiaux &&
+    initiaux.prestationId === prestationId &&
+    initiaux.coiffeurId === coiffeurId
+      ? { cle, erreur: false, du: initiaux.du, creneaux: initiaux.creneaux }
+      : null,
+  );
   // Recalculés seulement à chaque nouvelle lecture : le jour choisi tient tant
   // que la lecture ne change pas.
   const jours = useMemo(
@@ -56,18 +79,16 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
     [resultat, catalogue.fuseau],
   );
 
+  // Lecture depuis le navigateur seulement si la liste affichée ne correspond
+  // pas à la demande (autre coiffeur, « Réessayer », pas de liste du serveur).
+  const aJour = resultat?.cle === cle && !resultat.erreur;
   useEffect(() => {
-    if (!prestation) return;
+    if (!prestation || aJour) return;
     const abandon = new AbortController();
     const { du, au } = periode(new Date(), catalogue.fuseau);
 
     const demande = { prestationId: prestation.id, du, au, coiffeurId: coiffeurId || undefined };
-    // Après un refus, jamais de lecture anticipée : la liste vient de la base.
-    const lecture =
-      (demande.coiffeurId || pris ? undefined : prendrePrechargement(demande)) ??
-      lireCreneaux(demande, abandon.signal);
-
-    lecture.then(
+    lireCreneaux(demande, abandon.signal).then(
       (creneaux) => setResultat({ cle, erreur: false, du, creneaux }),
       () => {
         if (!abandon.signal.aborted) setResultat({ cle, erreur: true });
@@ -75,7 +96,7 @@ export function EcranCreneaux({ catalogue }: { catalogue: Catalogue }) {
     );
 
     return () => abandon.abort();
-  }, [cle, prestation, coiffeurId, pris, catalogue.fuseau]);
+  }, [cle, aJour, prestation, coiffeurId, catalogue.fuseau]);
 
   if (!prestation) {
     return (
