@@ -307,22 +307,27 @@ void main() {
       await salon.changerActivation('p1', active: false);
       expect(corps('prestations', rang: 2), {'active': false});
 
-      // Plusieurs jours d'un coup (#151) : definir_plages().
-      api.repondre('POST', 'rpc/definir_plages', null);
-      await salon.definirPlages(
-        'c1',
-        jours: [1, 2],
-        debut: const TimeOfDay(hour: 9, minute: 0),
-        fin: const TimeOfDay(hour: 12, minute: 30),
-        remplace: 'h0',
-      );
-      expect(corps('rpc/definir_plages'), {
+      // Toute la semaine en une fois (#151) : definir_semaine().
+      api.repondre('POST', 'rpc/definir_semaine', null);
+      await salon.definirSemaine('c1', [
+        (
+          jour: 1,
+          debut: const TimeOfDay(hour: 9, minute: 0),
+          fin: const TimeOfDay(hour: 12, minute: 30),
+        ),
+        (
+          jour: 1,
+          debut: const TimeOfDay(hour: 14, minute: 0),
+          fin: const TimeOfDay(hour: 19, minute: 0),
+        ),
+      ]);
+      expect(corps('rpc/definir_semaine'), {
         'p_salon': salonId,
         'p_coiffeur': 'c1',
-        'p_jours': [1, 2],
-        'p_debut': '09:00',
-        'p_fin': '12:30',
-        'p_remplace': 'h0',
+        'p_plages': [
+          {'jour': 1, 'debut': '09:00', 'fin': '12:30'},
+          {'jour': 1, 'debut': '14:00', 'fin': '19:00'},
+        ],
       });
       await salon.supprimerPlage('h1');
       expect(api.vers('horaires').last.url.queryParameters['id'], 'eq.h1');

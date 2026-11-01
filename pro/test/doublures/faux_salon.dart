@@ -250,44 +250,35 @@ class FauxSalon implements DepotSalon {
     ...?plagesEnregistrees[coiffeurId],
   ];
 
-  // Comme definir_plages() (#151) : tout ou rien, le jour qui chevauche est
-  // nommé ; remplace : la plage modifiée est retirée d'abord.
+  // Comme definir_semaine() (#151) : la semaine remplace les plages, tout ou
+  // rien ; deux plages qui se chevauchent un même jour : le jour est nommé.
   @override
-  Future<void> definirPlages(
-    String coiffeurId, {
-    required List<int> jours,
-    required TimeOfDay debut,
-    required TimeOfDay fin,
-    String? remplace,
-  }) async {
+  Future<void> definirSemaine(
+    String coiffeurId,
+    List<PlageSemaine> plages,
+  ) async {
     _echecEventuel();
-    final existantes = plagesEnregistrees.putIfAbsent(coiffeurId, () => []);
-    final autres = existantes.where((p) => p.id != remplace).toList();
-    for (final jour in {...jours}.toList()..sort()) {
-      final chevauche = autres.any(
-        (p) =>
-            p.jour == jour &&
-            minutesDuJour(p.debut) < minutesDuJour(fin) &&
-            minutesDuJour(debut) < minutesDuJour(p.fin),
-      );
-      if (chevauche) {
-        throw ErreurSalon(
-          'Chevauche une plage existante le '
-          '${nomsJours[jour - 1].toLowerCase()}.',
-        );
+    for (final a in plages) {
+      for (final b in plages) {
+        if (!identical(a, b) &&
+            a.jour == b.jour &&
+            minutesDuJour(a.debut) < minutesDuJour(b.fin) &&
+            minutesDuJour(b.debut) < minutesDuJour(a.fin)) {
+          throw ErreurSalon(
+            'Deux plages se chevauchent le '
+            '${nomsJours[a.jour - 1].toLowerCase()}.',
+          );
+        }
       }
     }
     journal.add(
-      'plages $coiffeurId ${({...jours}.toList()..sort()).join(',')} '
-      '${formatHeure(debut)}-${formatHeure(fin)}'
-      '${remplace == null ? '' : ' remplace $remplace'}',
+      'semaine $coiffeurId '
+      '${plages.map((p) => '${p.jour} ${formatHeure(p.debut)}-${formatHeure(p.fin)}').join(', ')}',
     );
-    existantes
-      ..removeWhere((p) => p.id == remplace)
-      ..addAll([
-        for (final jour in {...jours}.toList()..sort())
-          Plage(id: 'h${_suivant++}', jour: jour, debut: debut, fin: fin),
-      ]);
+    plagesEnregistrees[coiffeurId] = [
+      for (final p in plages)
+        Plage(id: 'h${_suivant++}', jour: p.jour, debut: p.debut, fin: p.fin),
+    ];
   }
 
   @override
