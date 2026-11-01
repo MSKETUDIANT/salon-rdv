@@ -6,8 +6,8 @@ où il se trouve, les tests automatisés qui le prouvent, et sa démonstration
 **sur la version en ligne**.
 
 - Site client : https://salon-rdv-one.vercel.app
-- App pro (Android) : APK de la release `app-pro-v0.6.0`,
-  https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.6.0
+- App pro (Android) : APK de la release `app-pro-v0.7.0`,
+  https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.7.0
 - Tests : `npm run verifier:bnf` dans `web/` (README, « Tests »).
 
 ## Liste
@@ -85,4 +85,4 @@ Cocher chaque ligne de la liste après sa démonstration, avec la date.
 (statistiques des tables : 4 prestations du script de démo, aucune ligne
 modifiée ni supprimée dans `prestations`, `horaires`, `absences`,
 `competences`). Elles restent à refaire en production, avec l'APK
-`app-pro-v0.6.0` (ou une version antérieure) et le compte gérant de production.
+`app-pro-v0.7.0` (ou une version antérieure) et le compte gérant de production.

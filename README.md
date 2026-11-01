@@ -13,7 +13,7 @@ Un seul salon en v1 ; la base est prête pour plusieurs salons.
 | Quoi | Adresse |
 | --- | --- |
 | Site client (production) | https://salon-rdv-one.vercel.app |
-| App pro (Android, APK) | https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.6.0 |
+| App pro (Android, APK) | https://github.com/MSKETUDIANT/salon-rdv/releases/tag/app-pro-v0.7.0 |
 | Dépôt | https://github.com/MSKETUDIANT/salon-rdv |
 
 Les données en ligne sont des **données de démonstration** (deux coiffeurs
