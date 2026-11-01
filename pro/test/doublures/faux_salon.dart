@@ -250,28 +250,35 @@ class FauxSalon implements DepotSalon {
     ...?plagesEnregistrees[coiffeurId],
   ];
 
+  // Comme definir_semaine() (#151) : la semaine remplace les plages, tout ou
+  // rien ; deux plages qui se chevauchent un même jour : le jour est nommé.
   @override
-  Future<void> ajouterPlage(
-    String coiffeurId, {
-    required int jour,
-    required TimeOfDay debut,
-    required TimeOfDay fin,
-  }) async {
+  Future<void> definirSemaine(
+    String coiffeurId,
+    List<PlageSemaine> plages,
+  ) async {
     _echecEventuel();
-    final existantes = plagesEnregistrees.putIfAbsent(coiffeurId, () => []);
-    final chevauche = existantes.any(
-      (p) =>
-          p.jour == jour &&
-          minutesDuJour(p.debut) < minutesDuJour(fin) &&
-          minutesDuJour(debut) < minutesDuJour(p.fin),
-    );
-    if (chevauche) throw ErreurSalon(messageErreurBase('23P01'));
+    for (final a in plages) {
+      for (final b in plages) {
+        if (!identical(a, b) &&
+            a.jour == b.jour &&
+            minutesDuJour(a.debut) < minutesDuJour(b.fin) &&
+            minutesDuJour(b.debut) < minutesDuJour(a.fin)) {
+          throw ErreurSalon(
+            'Deux plages se chevauchent le '
+            '${nomsJours[a.jour - 1].toLowerCase()}.',
+          );
+        }
+      }
+    }
     journal.add(
-      'plage $coiffeurId $jour ${formatHeure(debut)}-${formatHeure(fin)}',
+      'semaine $coiffeurId '
+      '${plages.map((p) => '${p.jour} ${formatHeure(p.debut)}-${formatHeure(p.fin)}').join(', ')}',
     );
-    existantes.add(
-      Plage(id: 'h${_suivant++}', jour: jour, debut: debut, fin: fin),
-    );
+    plagesEnregistrees[coiffeurId] = [
+      for (final p in plages)
+        Plage(id: 'h${_suivant++}', jour: p.jour, debut: p.debut, fin: p.fin),
+    ];
   }
 
   @override

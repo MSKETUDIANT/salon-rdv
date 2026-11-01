@@ -307,21 +307,30 @@ void main() {
       await salon.changerActivation('p1', active: false);
       expect(corps('prestations', rang: 2), {'active': false});
 
-      await salon.ajouterPlage(
-        'c1',
-        jour: 2,
-        debut: const TimeOfDay(hour: 9, minute: 0),
-        fin: const TimeOfDay(hour: 12, minute: 30),
-      );
-      expect(corps('horaires'), {
-        'salon_id': salonId,
-        'coiffeur_id': 'c1',
-        'jour_semaine': 2,
-        'heure_debut': '09:00',
-        'heure_fin': '12:30',
+      // Toute la semaine en une fois (#151) : definir_semaine().
+      api.repondre('POST', 'rpc/definir_semaine', null);
+      await salon.definirSemaine('c1', [
+        (
+          jour: 1,
+          debut: const TimeOfDay(hour: 9, minute: 0),
+          fin: const TimeOfDay(hour: 12, minute: 30),
+        ),
+        (
+          jour: 1,
+          debut: const TimeOfDay(hour: 14, minute: 0),
+          fin: const TimeOfDay(hour: 19, minute: 0),
+        ),
+      ]);
+      expect(corps('rpc/definir_semaine'), {
+        'p_salon': salonId,
+        'p_coiffeur': 'c1',
+        'p_plages': [
+          {'jour': 1, 'debut': '09:00', 'fin': '12:30'},
+          {'jour': 1, 'debut': '14:00', 'fin': '19:00'},
+        ],
       });
       await salon.supprimerPlage('h1');
-      expect(api.vers('horaires')[1].url.queryParameters['id'], 'eq.h1');
+      expect(api.vers('horaires').last.url.queryParameters['id'], 'eq.h1');
 
       await salon.ajouterCompetence('c1', 'p1');
       await salon.retirerCompetence('c1', 'p1');
@@ -414,13 +423,12 @@ void main() {
 
     test('erreurs de la base traduites en messages', () async {
       Future<String> message(String code) async {
-        api.refuser('POST', 'horaires', code);
+        api.refuser('POST', 'absences', code);
         try {
-          await salon.ajouterPlage(
+          await salon.ajouterAbsence(
             'c1',
-            jour: 1,
-            debut: const TimeOfDay(hour: 9, minute: 0),
-            fin: const TimeOfDay(hour: 10, minute: 0),
+            debut: DateTime(2030, 1, 7, 9),
+            fin: DateTime(2030, 1, 7, 10),
           );
         } on ErreurSalon catch (e) {
           return e.message;

@@ -34,6 +34,9 @@ class Coiffeur {
 }
 
 // Plage de travail hebdomadaire. jour : 1 = lundi ... 7 = dimanche.
+// Plage à enregistrer avec la semaine (#151) : jour (1 = lundi), début, fin.
+typedef PlageSemaine = ({int jour, TimeOfDay debut, TimeOfDay fin});
+
 class Plage {
   const Plage({
     required this.id,
@@ -147,12 +150,10 @@ abstract interface class DepotSalon {
   Future<List<Coiffeur>> coiffeurs();
 
   Future<List<Plage>> plages(String coiffeurId);
-  Future<void> ajouterPlage(
-    String coiffeurId, {
-    required int jour,
-    required TimeOfDay debut,
-    required TimeOfDay fin,
-  });
+  // Toute la semaine d'un coiffeur (#151, option B), tout ou rien : ses
+  // plages sont remplacées par celles-ci. ErreurSalon : saisie, ou « Deux
+  // plages se chevauchent le mardi. » (le jour est nommé).
+  Future<void> definirSemaine(String coiffeurId, List<PlageSemaine> plages);
   Future<void> supprimerPlage(String id);
 
   // Date et heure actuelles au salon (pas celles du téléphone).
@@ -526,21 +527,34 @@ class SalonSupabase implements DepotSalon {
     ];
   });
 
+  // definir_semaine() (#151) : messages de la base pour la saisie (PT400) et
+  // le chevauchement (PT409), affichés tels quels.
   @override
-  Future<void> ajouterPlage(
-    String coiffeurId, {
-    required int jour,
-    required TimeOfDay debut,
-    required TimeOfDay fin,
-  }) => _appel(
-    () => _client.from('horaires').insert({
-      'salon_id': _salonId,
-      'coiffeur_id': coiffeurId,
-      'jour_semaine': jour,
-      'heure_debut': heureSql(debut),
-      'heure_fin': heureSql(fin),
-    }),
-  );
+  Future<void> definirSemaine(String coiffeurId, List<PlageSemaine> plages) =>
+      _appel(() async {
+        try {
+          await _client.rpc(
+            'definir_semaine',
+            params: {
+              'p_salon': _salonId,
+              'p_coiffeur': coiffeurId,
+              'p_plages': [
+                for (final p in plages)
+                  {
+                    'jour': p.jour,
+                    'debut': heureSql(p.debut),
+                    'fin': heureSql(p.fin),
+                  },
+              ],
+            },
+          );
+        } on PostgrestException catch (erreur) {
+          if (const {'PT400', 'PT409'}.contains(erreur.code)) {
+            throw ErreurSalon('${erreur.message}.');
+          }
+          rethrow;
+        }
+      });
 
   @override
   Future<void> supprimerPlage(String id) =>

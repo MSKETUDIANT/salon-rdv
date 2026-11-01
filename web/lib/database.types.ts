@@ -481,6 +481,10 @@ export type Database = {
           ancienne_photo: string
         }[]
       }
+      definir_semaine: {
+        Args: { p_coiffeur: string; p_plages: Json; p_salon: string }
+        Returns: undefined
+      }
       definir_telephone_salon: {
         Args: { p_salon: string; p_telephone: string }
         Returns: {

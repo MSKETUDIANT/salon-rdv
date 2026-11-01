@@ -16,6 +16,7 @@ import 'package:salon_pro/features/espaces/ecran_espace.dart';
 import 'package:salon_pro/features/espaces/ecran_mot_de_passe.dart';
 import 'package:salon_pro/features/espaces/onglets.dart';
 import 'package:salon_pro/features/gerant/ecran_coiffeur.dart';
+import 'package:salon_pro/features/gerant/ecran_semaine.dart';
 import 'package:salon_pro/features/gerant/ecran_delai_annulation.dart';
 import 'package:salon_pro/features/gerant/ecran_equipe.dart';
 import 'package:salon_pro/features/gerant/ecran_inviter_coiffeur.dart';
@@ -146,6 +147,31 @@ void main() {
     'téléphone du salon': () =>
         EcranTelephoneSalon(salon: FauxSalon(), telephone: '+216 71 234 567'),
     'fiche coiffeur': () => EcranCoiffeur(salon: FauxSalon(), coiffeur: amira),
+    // Lundi avec une pause : la ligne la plus chargée (#151).
+    'horaires de la semaine': () => EcranSemaine(
+      salon: FauxSalon(),
+      coiffeur: amira,
+      plages: const [
+        Plage(
+          id: 'h1',
+          jour: 1,
+          debut: TimeOfDay(hour: 9, minute: 0),
+          fin: TimeOfDay(hour: 12, minute: 0),
+        ),
+        Plage(
+          id: 'h2',
+          jour: 1,
+          debut: TimeOfDay(hour: 13, minute: 0),
+          fin: TimeOfDay(hour: 19, minute: 0),
+        ),
+        Plage(
+          id: 'h3',
+          jour: 2,
+          debut: TimeOfDay(hour: 9, minute: 0),
+          fin: TimeOfDay(hour: 18, minute: 0),
+        ),
+      ],
+    ),
     'nouvelle absence': () =>
         FormulaireAbsence(salon: FauxSalon(), coiffeur: amira),
   };

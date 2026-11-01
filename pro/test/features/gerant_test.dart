@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:salon_pro/data/salon.dart';
 import 'package:salon_pro/features/gerant/ecran_coiffeur.dart';
+import 'package:salon_pro/features/gerant/ecran_semaine.dart';
 import 'package:salon_pro/features/gerant/ecran_prestations.dart';
 import 'package:salon_pro/ui/charte.dart';
 
@@ -211,40 +212,168 @@ void main() {
       expect(find.text('Compétences'), findsOneWidget);
     });
 
-    testWidgets(
-      'horaires : les 7 jours, ajout d\'une plage, chevauchement refusé',
-      (tester) async {
-        await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
-        expect(find.text('Ne travaille pas'), findsNWidgets(7));
+    // Horaires de la semaine (#151, option B).
+    Future<void> toucher(WidgetTester tester, Finder cible) async {
+      await tester.ensureVisible(cible);
+      await tester.pumpAndSettle();
+      await tester.tap(cible);
+      await tester.pumpAndSettle();
+    }
 
-        await tester.tap(find.text('Ajouter une plage'));
-        await tester.pumpAndSettle();
-        expect(find.text('Nouvelle plage'), findsOneWidget);
-        // Liste des jours lue avec son libellé (« Jour, Lundi »).
-        final semantique = tester.ensureSemantics();
-        expect(find.bySemanticsLabel(RegExp(r'^Jour\b')), findsOneWidget);
-        semantique.dispose();
-        await tester.tap(find.text('Ajouter'));
-        await tester.pumpAndSettle();
-        expect(salon.journal, ['plage c1 1 09:00-18:00']);
+    const neufH = TimeOfDay(hour: 9, minute: 0);
+    const dixHuitH = TimeOfDay(hour: 18, minute: 0);
+
+    // Interrupteur d'un jour, sur l'écran de la semaine.
+    Finder interrupteur(String jour) => find.descendant(
+      of: find.ancestor(of: find.text(jour), matching: find.byType(Row)).first,
+      matching: find.byType(Switch),
+    );
+
+    Future<void> ouvrirSemaine(WidgetTester tester, List<Plage> plages) =>
+        ouvrir(
+          tester,
+          EcranSemaine(salon: salon, coiffeur: amira, plages: plages),
+        );
+
+    testWidgets(
+      "horaires : la fiche résume la semaine, un jour touché ouvre l'écran "
+      'de la semaine',
+      (tester) async {
+        salon.plagesEnregistrees['c1'] = [
+          const Plage(id: 'h1', jour: 1, debut: neufH, fin: dixHuitH),
+        ];
+        await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
         expect(find.text('09:00 – 18:00'), findsOneWidget);
         expect(find.text('Ne travaille pas'), findsNWidgets(6));
+        expect(find.byTooltip(RegExp('Supprimer')), findsNothing);
 
-        await tester.tap(find.text('Ajouter une plage'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Ajouter'));
-        await tester.pumpAndSettle();
+        await toucher(tester, find.text('Mardi'));
+        expect(find.byType(EcranSemaine), findsOneWidget);
+        // Bouton toujours visible, sans défiler.
+        expect(find.text('Enregistrer').hitTestable(), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      "horaires : un jour allumé reprend les heures du jour travaillé le "
+      'plus proche ; copie vers du lundi au vendredi ; une seule '
+      'sauvegarde',
+      (tester) async {
+        await ouvrirSemaine(tester, const [
+          Plage(id: 'h1', jour: 1, debut: neufH, fin: dixHuitH),
+        ]);
+        expect(find.text('Ne travaille pas'), findsNWidgets(6));
+
+        // Mardi allumé : 09:00 – 18:00, comme lundi.
+        await toucher(tester, interrupteur('Mardi'));
+        expect(find.text('09:00'), findsNWidgets(2));
+
+        // Lundi copié vers du lundi au vendredi.
+        await toucher(tester, find.byTooltip('Autres actions du Lundi'));
+        await toucher(tester, find.text("Copier vers d'autres jours…"));
+        expect(find.text('Copier les horaires du lundi vers…'), findsOneWidget);
+        await toucher(tester, find.text('Du lundi au vendredi'));
+        await toucher(tester, find.text('Copier vers 4 jours'));
+        expect(find.text('Ne travaille pas'), findsNWidgets(2));
+        expect(salon.journal, isEmpty);
+
+        await toucher(tester, find.text('Enregistrer'));
+        expect(salon.journal, [
+          'semaine c1 1 09:00-18:00, 2 09:00-18:00, 3 09:00-18:00, '
+              '4 09:00-18:00, 5 09:00-18:00',
+        ]);
+        expect(find.byType(EcranSemaine), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'horaires : ajouter une pause coupe la journée à midi ; × la retire ; '
+      'éteindre un jour',
+      (tester) async {
+        await ouvrirSemaine(tester, const [
+          Plage(id: 'h1', jour: 1, debut: neufH, fin: dixHuitH),
+          Plage(id: 'h2', jour: 2, debut: neufH, fin: dixHuitH),
+        ]);
+        await toucher(tester, find.byTooltip('Autres actions du Lundi'));
+        await toucher(tester, find.text('Ajouter une pause'));
+        expect(find.text('12:00'), findsOneWidget);
+        expect(find.text('13:00'), findsOneWidget);
+
+        await toucher(tester, interrupteur('Mardi'));
+        await toucher(tester, find.text('Enregistrer'));
+        expect(salon.journal, ['semaine c1 1 09:00-12:00, 1 13:00-18:00']);
+      },
+    );
+
+    testWidgets("horaires : × retire une plage d'un jour qui en a deux", (
+      tester,
+    ) async {
+      await ouvrirSemaine(tester, const [
+        Plage(
+          id: 'h1',
+          jour: 1,
+          debut: neufH,
+          fin: TimeOfDay(hour: 12, minute: 0),
+        ),
+        Plage(
+          id: 'h2',
+          jour: 1,
+          debut: TimeOfDay(hour: 14, minute: 0),
+          fin: dixHuitH,
+        ),
+      ]);
+      await toucher(
+        tester,
+        find.byTooltip('Retirer la plage 14:00 – 18:00 du Lundi'),
+      );
+      expect(find.text('14:00'), findsNothing);
+      expect(find.byTooltip(RegExp('Retirer')), findsNothing);
+    });
+
+    testWidgets(
+      "horaires : quitter avec des changements demande d'abord ; rien "
+      "n'est enregistré",
+      (tester) async {
+        await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
+        await toucher(tester, find.text('Modifier les horaires'));
+        await toucher(tester, interrupteur('Lundi'));
+        await toucher(tester, find.byType(BackButton));
+        expect(find.text('Quitter sans enregistrer ?'), findsOneWidget);
+        await toucher(tester, find.text('Rester'));
+        expect(find.byType(EcranSemaine), findsOneWidget);
+
+        await toucher(tester, find.byType(BackButton));
+        await toucher(tester, find.text('Quitter'));
+        expect(find.byType(EcranSemaine), findsNothing);
+        expect(salon.journal, isEmpty);
+      },
+    );
+
+    testWidgets("horaires : sans changement, retour direct, sans question", (
+      tester,
+    ) async {
+      await ouvrir(tester, EcranCoiffeur(salon: salon, coiffeur: amira));
+      await toucher(tester, find.text('Modifier les horaires'));
+      await toucher(tester, find.byType(BackButton));
+      expect(find.text('Quitter sans enregistrer ?'), findsNothing);
+      expect(find.byType(EcranSemaine), findsNothing);
+    });
+
+    testWidgets(
+      'horaires : refus de la base (chevauchement) affiché au-dessus du '
+      'bouton, écran gardé',
+      (tester) async {
+        salon.prochaineErreur = const ErreurSalon(
+          'Deux plages se chevauchent le lundi.',
+        );
+        await ouvrirSemaine(tester, const []);
+        await toucher(tester, interrupteur('Lundi'));
+        await toucher(tester, find.text('Enregistrer'));
         expect(
-          find.text('Cette plage chevauche une autre plage de ce coiffeur.'),
+          find.text('Deux plages se chevauchent le lundi.'),
           findsOneWidget,
         );
-        expect(find.text('09:00 – 18:00'), findsOneWidget);
-
-        await tester.tap(
-          find.byTooltip('Supprimer la plage du Lundi 09:00 – 18:00'),
-        );
-        await tester.pumpAndSettle();
-        expect(find.text('Ne travaille pas'), findsNWidgets(7));
+        expect(find.byType(EcranSemaine), findsOneWidget);
       },
     );
 
